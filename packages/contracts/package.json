@@ -1,0 +1,17 @@
+{
+  "name": "@xanimal-nft/contracts",
+  "version": "1.0.0",
+  "description": "X Animal NFT Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "compile": "forge build",
+    "test": "forge test",
+    "deploy": "forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
+

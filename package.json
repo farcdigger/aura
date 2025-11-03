@@ -1,0 +1,22 @@
+{
+  "name": "xanimal-nft",
+  "version": "1.0.0",
+  "private": true,
+  "description": "X Animal NFT - 10k community NFT collection on Base",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "cd apps/web && npm run dev",
+    "build": "cd apps/web && npm run build",
+    "contract:compile": "cd packages/contracts && forge build",
+    "contract:deploy": "cd packages/contracts && forge script script/Deploy.s.sol:DeployScript"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
+

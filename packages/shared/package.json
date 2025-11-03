@@ -1,0 +1,13 @@
+{
+  "name": "@xanimal-nft/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
+
