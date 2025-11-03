@@ -1,11 +1,6 @@
 // lib/vision.ts (YENİ DOSYA)
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Traits } from "./types";
-
-// .env.local dosyanızdan API anahtarını çeker
-// v0.24.1+ automatically uses v1 API (not v1beta)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // Hata durumunda veya profil resmi anlamsızsa kullanılacak varsayılan özellikler
 const DEFAULT_TRAITS: Traits = {
@@ -15,10 +10,15 @@ const DEFAULT_TRAITS: Traits = {
   accessory: "glowing aura",
 };
 
+// Use direct HTTP request to v1 API endpoint (not v1beta)
+// This ensures we use the correct API version regardless of package version
 export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
   try {
-    // v0.24.1+ uses v1 API automatically (not v1beta)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("GEMINI_API_KEY not set");
+      return DEFAULT_TRAITS;
+    }
 
     // AI #1'e vereceğimiz komut (prompt)
     const prompt = `Analyze this image. Your goal is to extract key visual traits.
@@ -47,17 +47,47 @@ export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
     const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: imageBase64,
-          mimeType: mimeType,
+    // Use v1 API endpoint directly (not v1beta)
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                data: imageBase64,
+                mimeType: mimeType,
+              },
+            },
+          ],
         },
-      },
-    ]);
+      ],
+    };
 
-    const responseText = result.response.text();
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
+    
+    // Extract text from response
+    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!responseText) {
+      console.error("No text in Gemini response:", JSON.stringify(result));
+      return DEFAULT_TRAITS;
+    }
     
     // JSON'u temizle ve parse et
     const jsonText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
