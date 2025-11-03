@@ -16,7 +16,7 @@ const DEFAULT_TRAITS: Traits = {
 
 export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 
     // AI #1'e vereceğimiz komut (prompt)
     const prompt = `Analyze this image. Your goal is to extract key visual traits.
