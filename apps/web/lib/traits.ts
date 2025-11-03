@@ -27,8 +27,8 @@ export function generateSeed(xUserId: string, profileImageUrl: string): string {
 export function buildPrompt(traits: Traits, theme: string): string {
   
   // Gelen özellikleri metne dök
-  const colorPrompt = dominant colors of ${traits.main_colors.join(", ")};
-  const descriptionPrompt = based on a profile picture of ${traits.description};
+  const colorPrompt = `dominant colors of ${traits.main_colors.join(", ")}`;
+  const descriptionPrompt = `based on a profile picture of ${traits.description}`;
 
   // 'theme' değişkenini (koleksiyon teması) kullanarak şablonu oluştur
   return `A high-detail, cinematic portrait of a ${theme} creature.
