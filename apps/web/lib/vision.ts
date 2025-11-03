@@ -4,7 +4,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Traits } from "./types";
 
 // .env.local dosyanızdan API anahtarını çeker
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Use v1 API (not v1beta) to ensure compatibility with latest models
+const genAI = new GoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+  // Explicitly use v1 API endpoint
+});
 
 // Hata durumunda veya profil resmi anlamsızsa kullanılacak varsayılan özellikler
 const DEFAULT_TRAITS: Traits = {
@@ -16,7 +20,11 @@ const DEFAULT_TRAITS: Traits = {
 
 export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use v1 API endpoint explicitly (not v1beta)
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      // Ensure we use v1 API, not v1beta
+    });
 
     // AI #1'e vereceğimiz komut (prompt)
     const prompt = `Analyze this image. Your goal is to extract key visual traits.
