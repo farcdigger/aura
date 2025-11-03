@@ -1,4 +1,3 @@
-Oğuzhan, [4.11.2025 01:01]
 import { NextRequest, NextResponse } from "next/server";
 // DEĞİŞİKLİK: 'seedToTraits' fonksiyonunu sildik, artık kullanmayacağız.
 import { generateSeed } from "@/lib/traits";
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
     
     // Acquire lock to prevent duplicate generation (fail-open if KV unavailable)
     // ... (Bu kısım aynı kaldı) ...
-    const lockKey = generate:${x_user_id};
+    const lockKey = `generate:${x_user_id}`;
     let lockAcquired = false;
     try {
       lockAcquired = await acquireLock(lockKey);
@@ -98,11 +97,8 @@ export async function POST(request: NextRequest) {
       }
       
       // Convert image buffer to base64 for preview
-      const imageBase64 =
-
-Oğuzhan, [4.11.2025 01:01]
-imageBuffer.toString("base64");
-      const previewDataUrl = data:image/png;base64,${imageBase64};
+      const imageBase64 = imageBuffer.toString("base64");
+      const previewDataUrl = `data:image/png;base64,${imageBase64}`;
       
       // Pin image to IPFS
       console.log("Pinning image to IPFS...");
@@ -111,8 +107,8 @@ imageBuffer.toString("base64");
       
       // Create metadata
       const metadata = {
-        name: X Animal NFT #${x_user_id},
-        description: AI-generated NFT for X user ${x_user_id},
+        name: `X Animal NFT #${x_user_id}`,
+        description: `AI-generated NFT for X user ${x_user_id}`,
         image: imageUrl,
         
         // DEĞİŞİKLİK: NFT metadata'sının 'main_colors' gibi array'leri
