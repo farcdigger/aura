@@ -48,8 +48,8 @@ export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
     const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
 
     // Use v1 API endpoint directly (not v1beta)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
+    // Try different model names - v1 API uses different naming
+    // Common models: gemini-pro, gemini-1.5-pro, gemini-1.5-flash-latest
     const requestBody = {
       contents: [
         {
@@ -66,18 +66,48 @@ export async function analyzeProfileImage(imageUrl: string): Promise<Traits> {
       ],
     };
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Try multiple model names in order of preference
+    const modelNames = [
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-pro",
+      "gemini-pro",
+      "gemini-1.5-flash",
+    ];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+    let response: Response | null = null;
+    let lastError: string | null = null;
+
+    for (const modelName of modelNames) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
+        
+        response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Successfully used model: ${modelName}`);
+          break;
+        } else {
+          const errorText = await response.text();
+          lastError = `Model ${modelName}: ${response.status} ${errorText}`;
+          console.warn(`⚠️ Model ${modelName} failed:`, lastError);
+          response = null;
+        }
+      } catch (error) {
+        lastError = `Model ${modelName}: ${error instanceof Error ? error.message : "Unknown error"}`;
+        console.warn(`⚠️ Model ${modelName} error:`, lastError);
+        response = null;
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error("Gemini API error - all models failed:", lastError);
+      throw new Error(`Gemini API error: ${lastError || "All models failed"}`);
     }
 
     const result = await response.json();
