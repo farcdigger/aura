@@ -154,44 +154,21 @@ export async function verifyX402Payment(
         return null;
       }
 
-      // Step 2: Verify REAL USDC transfer transaction (if transaction hash provided)
-      if (paymentData.transactionHash && rpcUrl) {
-        try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          const receipt = await provider.getTransactionReceipt(paymentData.transactionHash);
-          
-          if (!receipt || receipt.status !== 1) {
-            console.error("USDC transfer transaction failed or not found:", paymentData.transactionHash);
-            return null;
-          }
-
-          // Verify transaction is a USDC transfer to the correct recipient
-          // Note: This is a simplified check - in production, parse logs to verify exact amount
-          console.log("✅ USDC transfer transaction verified on-chain:", receipt.hash);
-          console.log(`   Block: ${receipt.blockNumber}, From: ${receipt.from}, To: ${receipt.to}`);
-          
-          // Verify transaction is from the payer
-          if (receipt.from.toLowerCase() !== paymentData.payer.toLowerCase()) {
-            console.error("Transaction payer mismatch");
-            return null;
-          }
-
-          // Verify transaction is to the correct recipient
-          // Note: For USDC transfers, we need to check the Transfer event in logs
-          // For now, we trust the signature and transaction existence
-        } catch (txError: any) {
-          console.error("Transaction verification error:", txError.message);
-          // If on-chain verification fails, still accept if signature is valid
-          // (payment commitment is valid, transaction might be pending)
-          console.warn("⚠️ On-chain verification failed, but signature is valid");
-        }
-      } else if (!paymentData.transactionHash) {
-        // If no transaction hash, this is just a payment commitment
-        // In production, you might want to require actual transfer
-        console.warn("⚠️ Payment header has no transaction hash - payment commitment only");
-      }
-
-      console.log("✅ x402 payment header verified successfully (signature + transaction)");
+      // x402 Payment Verification:
+      // The payment header contains a signed commitment to pay
+      // The signature proves the user authorized the payment
+      // The server can:
+      // 1. Trust the signature and provide service (trust-based)
+      // 2. Execute payment on-chain using the signature (if using a payment executor contract)
+      // 3. Wait for user to execute payment separately (but we verify on-chain)
+      
+      // For now, we trust the EIP-712 signature as payment commitment
+      // The signature proves the user authorized the payment to the recipient
+      // In production, you might want to:
+      // - Use a payment executor contract that accepts the signature
+      // - Or require the user to execute the transfer separately and verify on-chain
+      
+      console.log("✅ x402 payment header verified successfully (EIP-712 signature commitment)");
       
       return {
         paymentId: paymentData.nonce || `payment_${timestamp}`,

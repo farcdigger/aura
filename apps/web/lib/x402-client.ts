@@ -207,37 +207,28 @@ export async function generateX402PaymentHeader(
   };
 
   const signature = await signer.signTypedData(domain, types, paymentData);
-  console.log("✅ Payment commitment signed");
+  console.log("✅ Payment commitment signed (x402 protocol)");
 
-  // Step 2: Execute REAL USDC transfer (x402 requires actual payment)
-  // The payment header includes both the commitment AND the transaction proof
-  // IMPORTANT: paymentOption.recipient is the SERVER wallet address (where USDC goes)
-  console.log(`💸 Executing USDC transfer:`);
-  console.log(`   Amount: ${formatUSDC(requiredAmount, decimals)} USDC`);
-  console.log(`   From: ${walletAddress} (user's wallet)`);
-  console.log(`   To: ${paymentOption.recipient} (SERVER wallet - project receives payment)`);
+  // x402 Payment Header: Only payment commitment (signed message)
+  // The signed payment commitment commits the user to make the payment
+  // The server will verify the signature and can trust the commitment
+  // OR the server can execute the payment on-chain using the signature
+  // 
+  // Following Daydreams Router pattern: payment header is just the commitment
+  // The actual USDC transfer can be:
+  // 1. Done by the server after verifying the signature (trust-based)
+  // 2. Done by the user separately (but we verify on-chain)
+  // 3. Done via a facilitator service
   
-  // Create contract with signer for transfer
-  const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
-    "function transfer(address to, uint256 amount) returns (bool)",
-  ], signer);
-
-  // Execute USDC transfer to SERVER wallet address
-  const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
-  console.log(`📝 Transaction sent: ${tx.hash}`);
-  
-  // Wait for confirmation
-  const receipt = await tx.wait();
-  console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
-
-  // Step 3: Create x402-compliant payment header with transaction proof
-  // Format: JSON with payment data, signature, AND transaction hash
+  // Create x402-compliant payment header (commitment only, no transaction)
+  // Format: JSON with payment data and EIP-712 signature
   const paymentHeader = JSON.stringify({
     ...paymentData,
     signature,
-    transactionHash: receipt.hash,
-    blockNumber: receipt.blockNumber,
   });
+
+  console.log(`💰 x402 Payment Header created (commitment to pay ${formatUSDC(requiredAmount, decimals)} USDC)`);
+  console.log(`   Server will verify signature and execute payment`);
 
   return paymentHeader;
 }
