@@ -5,8 +5,8 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 const envSchema = z.object({
   NEXT_PUBLIC_CHAIN_ID: z.string().default("8453"), // Base Mainnet
-  RPC_URL: z.string().url().optional().or(z.literal("http://localhost:8545")),
-  CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")),
+  RPC_URL: z.string().url().optional().or(z.literal("http://localhost:8545")).default("https://mainnet.base.org"),
+  CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")).default("0xE0b735225971a8126f7f53A6cA1014984cA7fefb"),
   NEXT_PUBLIC_CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")),
   SERVER_SIGNER_PRIVATE_KEY: z.string().startsWith("0x").optional(),
   X_CLIENT_ID: z.string().optional(),
@@ -42,6 +42,9 @@ const envSchema = z.object({
   // Supabase credentials - boş string'leri undefined yap
   NEXT_PUBLIC_SUPABASE_URL: data.NEXT_PUBLIC_SUPABASE_URL === "" ? undefined : data.NEXT_PUBLIC_SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: data.SUPABASE_SERVICE_ROLE_KEY === "" ? undefined : data.SUPABASE_SERVICE_ROLE_KEY,
+  // Ensure RPC_URL and CONTRACT_ADDRESS have defaults for Base Mainnet
+  RPC_URL: data.RPC_URL || "https://mainnet.base.org",
+  CONTRACT_ADDRESS: data.CONTRACT_ADDRESS || "0xE0b735225971a8126f7f53A6cA1014984cA7fefb",
 }));
 
 // Development için default değerler ekle
