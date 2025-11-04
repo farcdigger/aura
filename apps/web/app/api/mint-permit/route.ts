@@ -59,10 +59,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(x402Response, { status: 402 });
       }
       
-      // Verify payment
+      // Verify payment (with on-chain verification if transaction hash provided)
       paymentVerification = await verifyX402Payment(
         paymentHeader,
-        env.X402_FACILITATOR_URL
+        env.X402_FACILITATOR_URL,
+        env.RPC_URL
       );
       
       if (!paymentVerification) {

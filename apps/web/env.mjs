@@ -25,7 +25,8 @@ const envSchema = z.object({
   KV_REST_API_URL: z.string().url().optional().or(z.literal("http://localhost:6379")),
   KV_REST_API_TOKEN: z.string().optional(),
   X402_FACILITATOR_URL: z.string().optional(),
-  X402_PRICE_USDC: z.string().default("2000000"),
+  X402_PRICE_USDC: z.string().default("2000000"), // Amount in USDC (6 decimals, e.g., 2000000 = 2 USDC)
+  USDC_CONTRACT_ADDRESS: z.string().startsWith("0x").optional(), // USDC contract address (optional, will use defaults)
   COLLECTION_THEME: z.string().default("frog"),
   MODEL_VERSION: z.string().default("v1.0.0"),
 }).transform((data) => ({

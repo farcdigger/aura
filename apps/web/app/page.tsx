@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import type { GenerateResponse, MintPermitResponse } from "@/lib/types";
+import { executeX402Payment, type X402PaymentResponse } from "@/lib/x402-client";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -349,49 +350,66 @@ function HomePageContent() {
         console.log("Permit data received:", permitData);
         await mintNFT(permitData);
       } else if (response.status === 402) {
-        const paymentRequest = await response.json();
-        console.log("402 Payment request:", paymentRequest);
+        // x402 Payment Required - Execute payment using Daydreams SDK pattern
+        const paymentRequest: X402PaymentResponse = await response.json();
+        console.log("💳 402 Payment request received:", paymentRequest);
         
-        // Handle x402 payment (simplified - use x402 SDK in production)
-        // For now, show payment instructions
-        alert(`Please pay ${paymentRequest.accepts[0].amount} ${paymentRequest.accepts[0].asset} to ${paymentRequest.accepts[0].recipient}`);
-        
-        // After payment, retry with X-PAYMENT header
-        // TODO: Implement actual x402 payment flow
-        const paymentHeader = JSON.stringify({
-          paymentId: "mock-payment-id",
-          amount: paymentRequest.accepts[0].amount,
-          asset: paymentRequest.accepts[0].asset,
-          network: paymentRequest.accepts[0].network,
-          payer: wallet,
-          recipient: paymentRequest.accepts[0].recipient,
-        });
-        
-        console.log("Sending mock payment:", paymentHeader);
-        
-        const mintResponse = await fetch("/api/mint-permit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-PAYMENT": paymentHeader,
-          },
-          body: JSON.stringify({
-            wallet,
-            x_user_id: userId,
-          }),
-        });
-        
-        console.log("Second mint response status:", mintResponse.status);
-        
-        if (!mintResponse.ok) {
-          const errorData = await mintResponse.json();
-          console.error("Mint permit failed:", errorData);
-          throw new Error(`Mint permit failed: ${errorData.error || 'Unknown error'}`);
+        if (!paymentRequest.accepts || paymentRequest.accepts.length === 0) {
+          throw new Error("No payment options in 402 response");
         }
+
+        const paymentOption = paymentRequest.accepts[0];
+        console.log(`💰 Payment required: ${paymentOption.amount} ${paymentOption.asset} on ${paymentOption.network}`);
         
-        const permitData: MintPermitResponse = await mintResponse.json();
-        console.log("Permit data received:", permitData);
-        await mintNFT(permitData);
+        // Get user's wallet provider
+        if (typeof window.ethereum === "undefined") {
+          throw new Error("Wallet not connected. Please connect your wallet first.");
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
+        // Execute x402 payment (transfer USDC)
+        console.log("💸 Executing x402 payment...");
+        setError(null);
+        setLoading(true);
+        
+        try {
+          const { txHash, proof } = await executeX402Payment(paymentRequest, signer);
+          console.log(`✅ Payment successful! Transaction: ${txHash}`);
+          
+          // Create X-PAYMENT header with proof
+          const paymentHeader = JSON.stringify(proof);
+          
+          // Retry mint permit request with payment proof
+          console.log("📝 Requesting mint permit with payment proof...");
+          const mintResponse = await fetch("/api/mint-permit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-PAYMENT": paymentHeader,
+            },
+            body: JSON.stringify({
+              wallet,
+              x_user_id: userId,
+            }),
+          });
+          
+          console.log("Mint permit response status:", mintResponse.status);
+          
+          if (!mintResponse.ok) {
+            const errorData = await mintResponse.json();
+            console.error("Mint permit failed after payment:", errorData);
+            throw new Error(`Mint permit failed: ${errorData.error || 'Unknown error'}`);
+          }
+          
+          const permitData: MintPermitResponse = await mintResponse.json();
+          console.log("✅ Permit data received:", permitData);
+          await mintNFT(permitData);
+        } catch (paymentError: any) {
+          console.error("❌ Payment failed:", paymentError);
+          throw new Error(`Payment failed: ${paymentError.message || 'Unknown error'}`);
+        }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error("Unexpected response:", response.status, errorData);
