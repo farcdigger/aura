@@ -65,6 +65,8 @@ function HomePageContent() {
         if (data.preview || data.imageUrl) {
           console.log("✅ Found existing NFT, displaying it");
           setGenerated(data);
+          // IMPORTANT: Set currentUserId so mint button works
+          setCurrentUserId(xUserId);
           // Move to pay step if NFT already exists
           setStep("pay");
           return true;
