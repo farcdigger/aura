@@ -136,35 +136,6 @@ function HomePageContent() {
     checkWalletConnection();
   }, []);
 
-  const checkXOAuthConfig = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch("/api/auth/x/debug");
-      const data = await response.json();
-      
-      let message = `${data.status}\n\n`;
-      message += `Konfigürasyon:\n`;
-      message += `- Client ID: ${data.config.hasClientId ? "✅" : "❌"}\n`;
-      message += `- Client Secret: ${data.config.hasClientSecret ? "✅" : "❌"}\n`;
-      message += `- Callback URL: ${data.config.hasCallbackUrl ? "✅" : "❌"}\n`;
-      message += `- Callback URL: ${data.config.callbackUrl}\n`;
-      message += `- Callback Path: ${data.config.callbackPath}\n`;
-      
-      if (data.issues && data.issues.length > 0) {
-        message += `\nSorunlar:\n${data.issues.join("\n")}\n`;
-      }
-      
-      message += `\nÖneriler:\n${data.recommendations.join("\n")}`;
-      
-      setError(message);
-    } catch (err) {
-      setError("Debug bilgisi alınamadı: " + (err instanceof Error ? err.message : "Unknown error"));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const connectX = async () => {
     try {
@@ -196,7 +167,6 @@ function HomePageContent() {
           if (errorData.details.callbackUrl) {
             fullError += `- Callback URL değeri: ${errorData.details.callbackUrl}\n`;
           }
-          fullError += `\n💡 İpucu: "Check Config" butonuna tıklayarak detaylı kontrol yapabilirsin.`;
         }
         
         throw new Error(fullError);
