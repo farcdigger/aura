@@ -174,8 +174,35 @@ export async function generateX402PaymentHeader(
     );
   }
 
-  // Step 1: Create x402 payment commitment (signed message)
-  // This follows the x402 protocol: create a signed payment commitment
+  // x402 Payment Flow: USDC transfer FIRST, then create payment header with transaction
+  // This ensures USDC actually leaves user's wallet in a SINGLE approval
+  // The payment header will contain the transaction hash as proof
+  
+  console.log(`💸 Executing USDC transfer (user will approve once in wallet):`);
+  console.log(`   Amount: ${formatUSDC(requiredAmount, decimals)} USDC`);
+  console.log(`   From: ${walletAddress} (user's wallet)`);
+  console.log(`   To: ${paymentOption.recipient} (SERVER wallet - project receives payment)`);
+  
+  // Step 1: Execute USDC transfer FIRST (user approves this in wallet)
+  // This is the ACTUAL payment - USDC leaves user's wallet
+  const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
+    "function transfer(address to, uint256 amount) returns (bool)",
+  ], signer);
+
+  // Execute USDC transfer to SERVER wallet address
+  // User approves this transaction in wallet - USDC is transferred
+  const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
+  console.log(`📝 Transaction sent: ${tx.hash}`);
+  console.log(`   ⚠️ Waiting for user to approve USDC transfer in wallet...`);
+  
+  // Wait for confirmation
+  const receipt = await tx.wait();
+  console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+  console.log(`   💰 ${formatUSDC(requiredAmount, decimals)} USDC transferred to server wallet`);
+
+  // Step 2: Create x402 payment header with transaction proof
+  // The payment header contains the transaction hash as proof of payment
+  // This follows x402 protocol: payment proof in header
   const paymentData = {
     amount: paymentOption.amount,
     asset: paymentOption.asset,
@@ -184,71 +211,18 @@ export async function generateX402PaymentHeader(
     payer: walletAddress,
     timestamp: Math.floor(Date.now() / 1000),
     nonce: Math.random().toString(36).substring(7),
-  };
-
-  // Sign the payment data using EIP-712
-  const domain = {
-    name: "X402 Payment",
-    version: "1",
-    chainId: paymentOption.network === "base" ? 8453 : paymentOption.network === "base-sepolia" ? 84532 : 8453,
-    verifyingContract: usdcAddress,
-  };
-
-  const types = {
-    Payment: [
-      { name: "amount", type: "string" },
-      { name: "asset", type: "string" },
-      { name: "network", type: "string" },
-      { name: "recipient", type: "address" },
-      { name: "payer", type: "address" },
-      { name: "timestamp", type: "uint256" },
-      { name: "nonce", type: "string" },
-    ],
-  };
-
-  // Step 1: Sign payment commitment (EIP-712)
-  // This is the x402 payment commitment - user signs this message
-  const signature = await signer.signTypedData(domain, types, paymentData);
-  console.log("✅ Payment commitment signed (x402 protocol)");
-  console.log("   User approved payment commitment in wallet");
-
-  // Step 2: Execute REAL USDC transfer (user must approve this in wallet)
-  // After signing the commitment, we execute the actual USDC transfer
-  // This is the actual payment - USDC leaves the user's wallet
-  console.log(`💸 Executing USDC transfer:`);
-  console.log(`   Amount: ${formatUSDC(requiredAmount, decimals)} USDC`);
-  console.log(`   From: ${walletAddress} (user's wallet)`);
-  console.log(`   To: ${paymentOption.recipient} (SERVER wallet - project receives payment)`);
-  console.log(`   ⚠️ User will need to approve this transfer in wallet`);
-  
-  // Create contract with signer for transfer
-  const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
-    "function transfer(address to, uint256 amount) returns (bool)",
-  ], signer);
-
-  // Execute USDC transfer to SERVER wallet address
-  // This is the REAL payment - USDC will leave user's wallet
-  const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
-  console.log(`📝 Transaction sent: ${tx.hash}`);
-  console.log(`   ⚠️ Waiting for user to approve transfer in wallet...`);
-  
-  // Wait for confirmation
-  const receipt = await tx.wait();
-  console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
-  console.log(`   💰 ${formatUSDC(requiredAmount, decimals)} USDC transferred to server wallet`);
-
-  // Step 3: Create x402-compliant payment header with both commitment AND transaction
-  // Format: JSON with payment data, signature (commitment), AND transaction hash (actual payment)
-  const paymentHeader = JSON.stringify({
-    ...paymentData,
-    signature, // EIP-712 signature (payment commitment)
-    transactionHash: receipt.hash, // Actual USDC transfer transaction
+    transactionHash: receipt.hash, // Proof of actual USDC transfer
     blockNumber: receipt.blockNumber,
-  });
+  };
+
+  // Create x402-compliant payment header with transaction proof
+  // Format: JSON with payment data and transaction hash (proof of payment)
+  // No EIP-712 signature needed - transaction hash IS the proof
+  const paymentHeader = JSON.stringify(paymentData);
 
   console.log(`💰 x402 Payment Header created:`);
-  console.log(`   - Payment commitment: Signed ✓`);
-  console.log(`   - USDC transfer: ${receipt.hash} ✓`);
+  console.log(`   - USDC transfer: ${receipt.hash} ✓ (proof of payment)`);
+  console.log(`   - Payment amount: ${formatUSDC(requiredAmount, decimals)} USDC ✓`);
 
   return paymentHeader;
 }
