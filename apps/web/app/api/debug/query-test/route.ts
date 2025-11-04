@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Test 3: Check what eq() condition looks like
     const condition = eq(tokens.x_user_id, x_user_id);
+    const conditionAny = condition as any; // Type assertion for debugging
     
     return NextResponse.json({
       testQuery: {
@@ -40,11 +41,11 @@ export async function GET(request: NextRequest) {
           token_id: userToken[0].token_id,
         } : null,
         conditionStructure: {
-          keys: Object.keys(condition),
-          hasColumn: !!condition._column,
-          hasValue: condition._value !== undefined,
-          columnName: condition._column?.name || condition._column?._?.name,
-          value: condition._value?.value ?? condition._value,
+          keys: Object.keys(conditionAny),
+          hasColumn: !!conditionAny._column,
+          hasValue: conditionAny._value !== undefined,
+          columnName: conditionAny._column?.name || conditionAny._column?._?.name,
+          value: conditionAny._value?.value ?? conditionAny._value,
         },
       },
       timestamp: new Date().toISOString(),
