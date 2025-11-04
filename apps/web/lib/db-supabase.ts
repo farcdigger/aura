@@ -174,7 +174,9 @@ export const db = {
 
             try {
               // Type assertion needed because tableName is dynamic
-              let query = supabaseClient.from(tableName as any).select("*");
+              // Cast to any to bypass TypeScript's strict type checking for dynamic table names
+              const client = supabaseClient as any;
+              let query = client.from(tableName).select("*");
               
               if (condition && condition._column) {
                 const columnName = condition._column.name || condition._column._?.name;
@@ -207,8 +209,10 @@ export const db = {
 
           try {
             // Type assertion needed because tableName is dynamic
-            const { data, error } = await supabaseClient
-              .from(tableName as any)
+            // Cast to any to bypass TypeScript's strict type checking for dynamic table names
+            const client = supabaseClient as any;
+            const { data, error } = await client
+              .from(tableName)
               .select("*")
               .limit(n);
 
@@ -239,9 +243,11 @@ export const db = {
 
         try {
           // Type assertion needed because tableName is dynamic
-          const { data, error } = await supabaseClient
-            .from(tableName as any)
-            .insert(values as any)
+          // Cast to any to bypass TypeScript's strict type checking for dynamic table names
+          const client = supabaseClient as any;
+          const { data, error } = await client
+            .from(tableName)
+            .insert(values)
             .select()
             .single();
 
@@ -273,7 +279,9 @@ export const db = {
 
             try {
               // Type assertion needed because tableName is dynamic
-              let query = supabaseClient.from(tableName as any).update(values as any);
+              // Cast to any to bypass TypeScript's strict type checking for dynamic table names
+              const client = supabaseClient as any;
+              let query = client.from(tableName).update(values);
 
               // Parse Drizzle eq() condition
               if (condition && condition._column) {
