@@ -109,8 +109,9 @@ export async function verifyX402Payment(
       
       // Verify EIP-712 signature
       // This is the x402 payment commitment - the signature proves the payment
+      // IMPORTANT: Domain name must match exactly with client-side (case-sensitive!)
       const domain = {
-        name: "X402 Payment",
+        name: "x402 Payment", // Must match client-side domain name exactly
         version: "1",
         chainId: network === "base" ? 8453 : network === "base-sepolia" ? 84532 : 8453,
         verifyingContract: usdcAddress,
