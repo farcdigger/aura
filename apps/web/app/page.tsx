@@ -470,6 +470,23 @@ function HomePageContent() {
       const signer = await provider.getSigner();
       const signerAddress = await signer.getAddress();
       
+      // Check network
+      const network = await provider.getNetwork();
+      console.log("🌐 Network:", {
+        chainId: network.chainId.toString(),
+        name: network.name,
+      });
+      
+      // Verify we're on Base Mainnet (chain ID 8453)
+      const expectedChainId = BigInt(8453);
+      if (network.chainId !== expectedChainId) {
+        throw new Error(
+          `Wrong network! Please switch to Base Mainnet (Chain ID: 8453).\n\n` +
+          `Current network: ${network.name} (Chain ID: ${network.chainId})\n` +
+          `Expected: Base Mainnet (Chain ID: 8453)`
+        );
+      }
+      
       console.log("👤 Signer address:", signerAddress);
       
       // Contract ABI (simplified)
