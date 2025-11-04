@@ -121,14 +121,30 @@ export async function POST(request: NextRequest) {
       const tokenURI = tokenData[0].token_uri;
       const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
     
+      // Convert values to proper types for EIP-712
+      // xUserId: hash string (0x...) - ethers will convert to uint256
+      // nonce: BigInt from contract - convert to string for EIP-712
+      // deadline: number - convert to string for EIP-712
       const auth: MintAuth = {
         to: wallet,
         payer: paymentVerification.payer,
-        xUserId: hash, // Use hash string (will be converted to BigInt by ethers)
+        xUserId: hash, // Hash string (0x...) - ethers signTypedData will handle uint256 conversion
         tokenURI,
-        nonce: Number(nonce),
-        deadline,
+        nonce: Number(nonce), // Contract returns BigInt, convert to number for EIP-712 (ethers will convert to uint256)
+        deadline, // Number - ethers will convert to uint256
       };
+      
+      // Log values to debug BigInt conversion issues
+      console.log("MintAuth values:", {
+        to: auth.to,
+        payer: auth.payer,
+        xUserId: auth.xUserId,
+        xUserIdType: typeof auth.xUserId,
+        nonce: auth.nonce,
+        nonceType: typeof auth.nonce,
+        deadline: auth.deadline,
+        deadlineType: typeof auth.deadline,
+      });
       
       // Sign mint auth
       const signature = await signMintAuth(auth);

@@ -39,13 +39,34 @@ export async function signMintAuth(auth: MintAuth): Promise<string> {
   
   const signer = new ethers.Wallet(env.SERVER_SIGNER_PRIVATE_KEY);
   
-  const signature = await signer.signTypedData(
-    EIP712_DOMAIN,
-    { MintAuth: EIP712_TYPES.MintAuth },
-    auth
-  );
+  // Convert values to proper types for EIP-712 uint256
+  // ethers.js signTypedData expects uint256 values as hex strings or BigInt
+  // xUserId is already a hex string (0x...), nonce and deadline need conversion
+  const eip712Auth = {
+    to: auth.to,
+    payer: auth.payer,
+    xUserId: auth.xUserId, // Hex string - ethers will convert to uint256
+    tokenURI: auth.tokenURI,
+    nonce: auth.nonce, // Number - ethers will convert to uint256
+    deadline: auth.deadline, // Number - ethers will convert to uint256
+  };
   
-  return signature;
+  try {
+    const signature = await signer.signTypedData(
+      EIP712_DOMAIN,
+      { MintAuth: EIP712_TYPES.MintAuth },
+      eip712Auth
+    );
+    
+    return signature;
+  } catch (error: any) {
+    console.error("EIP-712 signing error:", {
+      error: error.message,
+      auth: eip712Auth,
+      types: EIP712_TYPES.MintAuth,
+    });
+    throw new Error(`Failed to sign mint auth: ${error.message}`);
+  }
 }
 
 export function verifyMintAuth(auth: MintAuth, signature: string): string {
