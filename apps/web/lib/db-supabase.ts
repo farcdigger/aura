@@ -185,12 +185,61 @@ export const db = {
               const client = supabaseClient as any;
               let query = client.from(tableName).select("*");
               
-              if (condition && condition._column) {
-                const columnName = condition._column.name || condition._column._?.name;
-                const value = condition._value?.value ?? condition._value;
+              // Parse Drizzle eq() condition - try multiple ways to extract column name and value
+              if (condition) {
+                let columnName: string | undefined;
+                let value: any;
                 
+                // Method 1: Direct _column access
+                if (condition._column) {
+                  columnName = condition._column.name || 
+                               condition._column._?.name || 
+                               condition._column._?.column?.name ||
+                               condition._column.column?.name;
+                  
+                  // Try to get value from _value
+                  if (condition._value !== undefined) {
+                    value = condition._value.value !== undefined ? condition._value.value : condition._value;
+                  }
+                }
+                
+                // Method 2: Try column property
+                if (!columnName && condition.column) {
+                  columnName = condition.column.name || condition.column._?.name;
+                  value = condition.value;
+                }
+                
+                // Method 3: Try to extract from Drizzle's internal structure
+                if (!columnName && typeof condition === 'object') {
+                  // Drizzle might store column name in different places
+                  const keys = Object.keys(condition);
+                  for (const key of keys) {
+                    if (key.includes('column') || key.includes('name')) {
+                      const colObj = (condition as any)[key];
+                      if (colObj && (colObj.name || colObj._?.name)) {
+                        columnName = colObj.name || colObj._?.name;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // Try to find value
+                  if (condition._value !== undefined) {
+                    value = condition._value.value ?? condition._value;
+                  } else if ((condition as any).value !== undefined) {
+                    value = (condition as any).value;
+                  }
+                }
+                
+                // Apply filter if we found both column name and value
                 if (columnName && value !== undefined) {
+                  console.log(`🔍 Applying filter: ${columnName} = ${value}`);
                   query = query.eq(columnName, value);
+                } else {
+                  console.warn(`⚠️ Could not parse condition for ${tableName}:`, {
+                    conditionKeys: Object.keys(condition),
+                    condition: JSON.stringify(condition, null, 2).substring(0, 200),
+                  });
                 }
               }
 
@@ -200,6 +249,8 @@ export const db = {
                 console.error(`Supabase select error from ${tableName}:`, error);
                 return [];
               }
+              
+              console.log(`📊 Query result from ${tableName}: ${data?.length || 0} rows`);
 
               return data || [];
             } catch (error: any) {
@@ -345,4 +396,7 @@ export const payments = { name: paymentsTable } as any;
 
 // Export Supabase client for direct access if needed
 export { supabaseClient };
+
+// Export helper to check if Supabase is configured
+export const isSupabaseAvailable = supabaseClient !== null;
 
