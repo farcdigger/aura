@@ -121,7 +121,12 @@ export async function executeX402Payment(
   // Get USDC contract
   const usdcAddress = getUSDCAddress(paymentOption.network);
   if (!usdcAddress) {
-    throw new Error(`USDC not supported on network: ${paymentOption.network}`);
+    throw new Error(
+      `USDC not configured for network: ${paymentOption.network}\n\n` +
+      `For Base Sepolia, you need to:\n` +
+      `1. Deploy a test USDC token (ERC20), or\n` +
+      `2. Set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS environment variable with a valid test token address`
+    );
   }
 
   const usdcAbi = [
@@ -132,9 +137,42 @@ export async function executeX402Payment(
 
   const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, signer);
   
-  // Check balance
-  const balance = await usdcContract.balanceOf(walletAddress);
-  const decimals = await usdcContract.decimals();
+  // Verify contract exists and is valid (check if code exists)
+  try {
+    const code = await signer.provider.getCode(usdcAddress);
+    if (!code || code === "0x") {
+      throw new Error(
+        `Invalid USDC contract address: ${usdcAddress}\n\n` +
+        `No contract found at this address on ${paymentOption.network}.\n` +
+        `Please deploy a test USDC token or update NEXT_PUBLIC_USDC_CONTRACT_ADDRESS.`
+      );
+    }
+  } catch (codeError: any) {
+    throw new Error(
+      `Failed to verify USDC contract: ${codeError.message}\n\n` +
+      `Please check that NEXT_PUBLIC_USDC_CONTRACT_ADDRESS is set correctly.`
+    );
+  }
+  
+  // Check balance (with better error handling)
+  let balance: bigint;
+  let decimals: number;
+  
+  try {
+    balance = await usdcContract.balanceOf(walletAddress);
+    decimals = await usdcContract.decimals();
+  } catch (balanceError: any) {
+    // If balanceOf fails, the contract might not be a valid ERC20 token
+    throw new Error(
+      `Failed to read USDC balance from contract at ${usdcAddress}.\n\n` +
+      `Error: ${balanceError.message}\n\n` +
+      `This address may not be a valid ERC20 token. Please:\n` +
+      `1. Verify the contract is deployed and is an ERC20 token\n` +
+      `2. Check NEXT_PUBLIC_USDC_CONTRACT_ADDRESS is correct\n` +
+      `3. For Base Sepolia, deploy a test USDC token if needed`
+    );
+  }
+  
   const requiredAmount = BigInt(paymentOption.amount);
   
   if (balance < requiredAmount) {
@@ -178,7 +216,8 @@ function getUSDCAddress(network: string): string | null {
   // Check if custom USDC address is set in environment (client-side)
   if (typeof window !== "undefined") {
     const customAddress = process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS;
-    if (customAddress && customAddress.startsWith("0x")) {
+    if (customAddress && customAddress.startsWith("0x") && customAddress.length === 42) {
+      console.log(`✅ Using custom USDC address from env: ${customAddress}`);
       return customAddress;
     }
   }
@@ -191,10 +230,10 @@ function getUSDCAddress(network: string): string | null {
   // 2. Use a test token from Base Sepolia faucet
   // 3. Use a different testnet that has USDC (like Sepolia)
   if (network === "base-sepolia" || network === "base") {
-    // Default: Try to read from environment or use placeholder
-    // IMPORTANT: Replace this with your deployed test USDC address
-    // You can set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS in Vercel environment variables
-    return "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia test USDC (UPDATE THIS or set env var!)
+    // Base Sepolia'da resmi USDC yok - return null to show proper error
+    // Kullanıcı NEXT_PUBLIC_USDC_CONTRACT_ADDRESS environment variable'ını set etmeli
+    console.warn(`⚠️ Base Sepolia does not have official USDC. NEXT_PUBLIC_USDC_CONTRACT_ADDRESS must be set.`);
+    return null; // Return null to trigger proper error message
   }
   
   // Base Mainnet USDC

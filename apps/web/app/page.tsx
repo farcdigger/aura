@@ -417,7 +417,20 @@ function HomePageContent() {
           await mintNFT(permitData);
         } catch (paymentError: any) {
           console.error("❌ Payment failed:", paymentError);
-          throw new Error(`Payment failed: ${paymentError.message || 'Unknown error'}`);
+          
+          // Provide helpful error message for USDC contract issues
+          const errorMessage = paymentError.message || 'Unknown error';
+          if (errorMessage.includes("USDC") || errorMessage.includes("contract") || errorMessage.includes("balanceOf")) {
+            throw new Error(
+              `Payment failed: ${errorMessage}\n\n` +
+              `For Base Sepolia testnet, you need to:\n` +
+              `1. Deploy a test USDC token (ERC20)\n` +
+              `2. Set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS in Vercel environment variables\n` +
+              `3. Fund your wallet with test USDC tokens`
+            );
+          }
+          
+          throw new Error(`Payment failed: ${errorMessage}`);
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
