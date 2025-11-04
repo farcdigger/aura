@@ -128,22 +128,30 @@ export async function verifyX402Payment(
 
       // Verify transaction is to USDC contract (we'll check Transfer event in logs)
       // For now, we trust the transaction receipt
+      // Format USDC amount for display
+      const amountBigInt = BigInt(paymentData.amount);
+      const usdcDecimals = 6; // USDC has 6 decimals
+      const divisor = BigInt(10 ** usdcDecimals);
+      const whole = amountBigInt / divisor;
+      const fraction = amountBigInt % divisor;
+      const formattedAmount = `${whole}.${fraction.toString().padStart(usdcDecimals, "0")}`;
+      
       console.log("✅ USDC transfer transaction verified on-chain:", receipt.hash);
       console.log(`   Block: ${receipt.blockNumber}, From: ${receipt.from}`);
-      console.log(`   Amount: ${paymentData.amount} USDC (${formatUSDC(BigInt(paymentData.amount), 6)})`);
+      console.log(`   Amount: ${formattedAmount} USDC`);
       
       console.log("✅ x402 payment verified successfully (on-chain USDC transfer)");
       
       return {
-        paymentId: paymentData.nonce || `payment_${timestamp}`,
+        paymentId: paymentData.nonce || `payment_${receipt.blockNumber}`,
         amount: paymentData.amount,
         asset: paymentData.asset,
         network: paymentData.network || "base",
         payer: paymentData.payer,
         recipient: paymentData.recipient,
       };
-    } catch (sigError: any) {
-      console.error("EIP-712 signature verification error:", sigError.message);
+    } catch (txError: any) {
+      console.error("Transaction verification error:", txError.message);
       return null;
     }
   } catch (error: any) {
