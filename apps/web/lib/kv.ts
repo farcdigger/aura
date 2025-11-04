@@ -232,9 +232,20 @@ const supabaseKvClient = {
 const vercelKvClient = {
   get: async (key: string) => {
     try {
-      return await vercelKv.get<string>(key);
+      const result = await vercelKv.get<string>(key);
+      if (result === null) {
+        console.log(`ℹ️ Vercel KV get: key "${key}" not found (this is OK if key doesn't exist)`);
+      } else {
+        console.log(`✅ Vercel KV get: key "${key}" found, length: ${result.length}`);
+      }
+      return result;
     } catch (error: any) {
-      console.error("Vercel KV get error:", error);
+      console.error("❌ Vercel KV get error:", {
+        key: key.substring(0, 50) + "...",
+        error: error?.message || "Unknown error",
+        code: error?.code,
+        note: "This may indicate KV connection issue - check KV_REST_API_URL and KV_REST_API_TOKEN"
+      });
       return null;
     }
   },
@@ -250,9 +261,15 @@ const vercelKvClient = {
   setex: async (key: string, seconds: number, value: string) => {
     try {
       await vercelKv.set(key, value, { ex: seconds });
+      console.log(`✅ Vercel KV setex: key "${key}" stored for ${seconds} seconds`);
       return "OK";
-    } catch (error) {
-      console.error("Vercel KV setex error:", error);
+    } catch (error: any) {
+      console.error("❌ Vercel KV setex error:", {
+        key: key.substring(0, 50) + "...",
+        error: error?.message || "Unknown error",
+        code: error?.code,
+        note: "This may indicate KV connection issue - check KV_REST_API_URL and KV_REST_API_TOKEN"
+      });
       throw error;
     }
   },

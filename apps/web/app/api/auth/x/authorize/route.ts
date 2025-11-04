@@ -111,12 +111,26 @@ export async function GET(request: NextRequest) {
   let verifierStored = false;
   try {
     const kv = await import("@/lib/kv");
+    const { isVercelKv, isSupabaseKv, isKvAvailable } = await import("@/lib/kv");
+    
+    console.log("🔍 KV Status:", {
+      isKvAvailable,
+      isVercelKv,
+      isSupabaseKv,
+      kvType: isVercelKv ? "Vercel KV" : isSupabaseKv ? "Supabase KV" : "Mock KV",
+    });
+    
     const stateKey = `x_oauth_verifier:${state}`;
     await kv.kv.setex(stateKey, 600, verifier); // Store for 10 minutes
     console.log("✅ PKCE verifier stored in KV for state:", state.substring(0, 5) + "...");
     verifierStored = true;
-  } catch (error) {
-    console.error("⚠️ Failed to store PKCE verifier in KV:", error);
+  } catch (error: any) {
+    console.error("⚠️ Failed to store PKCE verifier in KV:", {
+      error: error?.message || "Unknown error",
+      code: error?.code,
+      note: "Will use encrypted cookie as fallback",
+      suggestion: "Check KV_REST_API_URL and KV_REST_API_TOKEN in Vercel environment variables"
+    });
     console.log("⚠️ KV not available - will use encrypted cookie as fallback");
   }
   
