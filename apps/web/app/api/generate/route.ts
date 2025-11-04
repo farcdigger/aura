@@ -199,11 +199,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`Image generation failed: ${imageError?.message || "Unknown error"}`);
       }
       
-      // Convert image buffer to base64 for preview
-      const imageBase64 = imageBuffer.toString("base64");
-      const previewDataUrl = `data:image/png;base64,${imageBase64}`;
-      
-      // Pin image to Pinata (IPFS)
+      // Pin image to Pinata (IPFS) FIRST - we'll use Pinata gateway URL for preview
       console.log(`📤 Pinning generated image to Pinata for user ${x_user_id}...`);
       let imageUrl: string;
       try {
@@ -219,6 +215,12 @@ export async function POST(request: NextRequest) {
           },
           { status: 500 }
         );
+      }
+      
+      // Convert IPFS URL to Pinata gateway URL for preview (more reliable than base64)
+      let previewUrl = imageUrl;
+      if (imageUrl.startsWith("ipfs://")) {
+        previewUrl = `https://gateway.pinata.cloud/ipfs/${imageUrl.replace("ipfs://", "")}`;
       }
       
       // Create metadata with Pinata IPFS URL for image
@@ -420,8 +422,15 @@ export async function POST(request: NextRequest) {
         traits,
         imageUrl,
         metadataUrl,
-        preview: previewDataUrl, // Base64 preview for immediate display
+        preview: previewUrl, // Use Pinata gateway URL (more reliable than base64)
       };
+      
+      console.log("✅ Generation complete. Response:", {
+        seed,
+        imageUrl,
+        metadataUrl,
+        preview: previewUrl.substring(0, 100) + "...",
+      });
       
       return NextResponse.json(response);
     } finally {
