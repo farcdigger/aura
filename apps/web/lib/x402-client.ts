@@ -172,13 +172,29 @@ export async function executeX402Payment(
 
 /**
  * Get USDC contract address for a network
+ * Uses environment variable if set, otherwise defaults
  */
 function getUSDCAddress(network: string): string | null {
+  // Check if custom USDC address is set in environment (client-side)
+  if (typeof window !== "undefined") {
+    const customAddress = process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS;
+    if (customAddress && customAddress.startsWith("0x")) {
+      return customAddress;
+    }
+  }
+  
   // Base Sepolia USDC (testnet)
+  // Note: Base Sepolia does NOT have official USDC
+  // You need to deploy a test ERC20 token or use a faucet token
+  // Common options:
+  // 1. Deploy your own test USDC token
+  // 2. Use a test token from Base Sepolia faucet
+  // 3. Use a different testnet that has USDC (like Sepolia)
   if (network === "base-sepolia" || network === "base") {
-    // Base Sepolia testnet USDC - you may need to deploy or use a test token
-    // For now, return a placeholder - replace with actual USDC address
-    return "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC (verify this address)
+    // Default: Try to read from environment or use placeholder
+    // IMPORTANT: Replace this with your deployed test USDC address
+    // You can set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS in Vercel environment variables
+    return "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia test USDC (UPDATE THIS or set env var!)
   }
   
   // Base Mainnet USDC
