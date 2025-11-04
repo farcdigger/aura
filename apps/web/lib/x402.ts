@@ -30,15 +30,15 @@ export interface X402PaymentVerification {
  */
 export function createX402Response(recipient: string): X402PaymentResponse {
   // Determine network from chain ID
-  const chainId = parseInt(env.NEXT_PUBLIC_CHAIN_ID || "84532");
-  let network = "base";
+  const chainId = parseInt(env.NEXT_PUBLIC_CHAIN_ID || "8453");
+  let network = "base"; // Base Mainnet
   
-  // Base Sepolia testnet
-  if (chainId === 84532) {
-    network = "base-sepolia";
-  } else if (chainId === 8453) {
-    // Base Mainnet
+  // Base Mainnet (default)
+  if (chainId === 8453) {
     network = "base";
+  } else if (chainId === 84532) {
+    // Base Sepolia testnet (legacy support)
+    network = "base-sepolia";
   }
   
   return {

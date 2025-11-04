@@ -423,10 +423,10 @@ function HomePageContent() {
           if (errorMessage.includes("USDC") || errorMessage.includes("contract") || errorMessage.includes("balanceOf")) {
             throw new Error(
               `Payment failed: ${errorMessage}\n\n` +
-              `For Base Sepolia testnet, you need to:\n` +
-              `1. Deploy a test USDC token (ERC20)\n` +
-              `2. Set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS in Vercel environment variables\n` +
-              `3. Fund your wallet with test USDC tokens`
+              `For Base Mainnet, ensure:\n` +
+              `1. Your wallet is connected to Base Mainnet (Chain ID: 8453)\n` +
+              `2. You have sufficient USDC balance (contract: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)\n` +
+              `3. You have enough ETH for gas fees`
             );
           }
           

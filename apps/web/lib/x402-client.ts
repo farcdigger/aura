@@ -123,9 +123,8 @@ export async function executeX402Payment(
   if (!usdcAddress) {
     throw new Error(
       `USDC not configured for network: ${paymentOption.network}\n\n` +
-      `For Base Sepolia, you need to:\n` +
-      `1. Deploy a test USDC token (ERC20), or\n` +
-      `2. Set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS environment variable with a valid test token address`
+      `For Base Mainnet, USDC is automatically configured.\n` +
+      `If you're using a testnet, set NEXT_PUBLIC_USDC_CONTRACT_ADDRESS environment variable.`
     );
   }
 
@@ -169,7 +168,7 @@ export async function executeX402Payment(
       `This address may not be a valid ERC20 token. Please:\n` +
       `1. Verify the contract is deployed and is an ERC20 token\n` +
       `2. Check NEXT_PUBLIC_USDC_CONTRACT_ADDRESS is correct\n` +
-      `3. For Base Sepolia, deploy a test USDC token if needed`
+      `3. For Base Mainnet, USDC should be at 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
     );
   }
   
@@ -222,23 +221,16 @@ function getUSDCAddress(network: string): string | null {
     }
   }
   
-  // Base Sepolia USDC (testnet)
-  // Note: Base Sepolia does NOT have official USDC
-  // You need to deploy a test ERC20 token or use a faucet token
-  // Common options:
-  // 1. Deploy your own test USDC token
-  // 2. Use a test token from Base Sepolia faucet
-  // 3. Use a different testnet that has USDC (like Sepolia)
-  if (network === "base-sepolia" || network === "base") {
-    // Base Sepolia'da resmi USDC yok - return null to show proper error
-    // Kullanıcı NEXT_PUBLIC_USDC_CONTRACT_ADDRESS environment variable'ını set etmeli
-    console.warn(`⚠️ Base Sepolia does not have official USDC. NEXT_PUBLIC_USDC_CONTRACT_ADDRESS must be set.`);
-    return null; // Return null to trigger proper error message
+  // Base Mainnet USDC (official)
+  if (network === "base" || network === "base-mainnet") {
+    return "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
   }
   
-  // Base Mainnet USDC
-  if (network === "base-mainnet") {
-    return "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
+  // Base Sepolia USDC (testnet - legacy support)
+  // Note: Base Sepolia does NOT have official USDC
+  if (network === "base-sepolia") {
+    console.warn(`⚠️ Base Sepolia does not have official USDC. NEXT_PUBLIC_USDC_CONTRACT_ADDRESS must be set.`);
+    return null; // Return null to trigger proper error message
   }
   
   return null;

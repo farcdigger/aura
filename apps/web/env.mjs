@@ -4,7 +4,7 @@ import { z } from "zod";
 const isDevelopment = process.env.NODE_ENV === "development";
 
 const envSchema = z.object({
-  NEXT_PUBLIC_CHAIN_ID: z.string().default("84532"), // Base Sepolia testnet
+  NEXT_PUBLIC_CHAIN_ID: z.string().default("8453"), // Base Mainnet
   RPC_URL: z.string().url().optional().or(z.literal("http://localhost:8545")),
   CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")),
   NEXT_PUBLIC_CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")),
@@ -44,9 +44,9 @@ const envSchema = z.object({
 // Development için default değerler ekle
 // NOTE: In production, all environment variables must be explicitly set
 const envDefaults = isDevelopment ? {
-  RPC_URL: "https://sepolia.base.org",
-  CONTRACT_ADDRESS: "0x82866D704fa3203EAD035c1FD339ce916cbC11A1", // Base Sepolia deployed contract
-  NEXT_PUBLIC_CONTRACT_ADDRESS: "0x82866D704fa3203EAD035c1FD339ce916cbC11A1", // Base Sepolia deployed contract
+  RPC_URL: "https://mainnet.base.org",
+  CONTRACT_ADDRESS: "0xE0b735225971a8126f7f53A6cA1014984cA7fefb", // Base Mainnet deployed contract
+  NEXT_PUBLIC_CONTRACT_ADDRESS: "0xE0b735225971a8126f7f53A6cA1014984cA7fefb", // Base Mainnet deployed contract
   SERVER_SIGNER_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001",
   X_CLIENT_ID: "mock_client_id",
   X_CLIENT_SECRET: "mock_client_secret",
