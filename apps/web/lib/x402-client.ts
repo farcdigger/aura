@@ -174,9 +174,8 @@ export async function generateX402PaymentHeader(
     );
   }
 
-  // Create x402 payment commitment (signed message)
+  // Step 1: Create x402 payment commitment (signed message)
   // This follows the x402 protocol: create a signed payment commitment
-  // The server will verify this signature and execute the payment
   const paymentData = {
     amount: paymentOption.amount,
     asset: paymentOption.asset,
@@ -208,12 +207,32 @@ export async function generateX402PaymentHeader(
   };
 
   const signature = await signer.signTypedData(domain, types, paymentData);
+  console.log("✅ Payment commitment signed");
 
-  // Create x402-compliant payment header
-  // Format: JSON with payment data and signature
+  // Step 2: Execute REAL USDC transfer (x402 requires actual payment)
+  // The payment header includes both the commitment AND the transaction proof
+  console.log(`💸 Executing USDC transfer: ${formatUSDC(requiredAmount, decimals)} to ${paymentOption.recipient}`);
+  
+  // Create contract with signer for transfer
+  const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
+    "function transfer(address to, uint256 amount) returns (bool)",
+  ], signer);
+
+  // Execute USDC transfer
+  const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
+  console.log(`📝 Transaction sent: ${tx.hash}`);
+  
+  // Wait for confirmation
+  const receipt = await tx.wait();
+  console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+  // Step 3: Create x402-compliant payment header with transaction proof
+  // Format: JSON with payment data, signature, AND transaction hash
   const paymentHeader = JSON.stringify({
     ...paymentData,
     signature,
+    transactionHash: receipt.hash,
+    blockNumber: receipt.blockNumber,
   });
 
   return paymentHeader;
