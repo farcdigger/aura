@@ -236,10 +236,16 @@ export const db = {
                   console.log(`🔍 Applying filter: ${columnName} = ${value}`);
                   query = query.eq(columnName, value);
                 } else {
-                  console.warn(`⚠️ Could not parse condition for ${tableName}:`, {
+                  console.error(`❌ CRITICAL: Could not parse condition for ${tableName}!`, {
                     conditionKeys: Object.keys(condition),
-                    condition: JSON.stringify(condition, null, 2).substring(0, 200),
+                    condition: JSON.stringify(condition, null, 2).substring(0, 500),
+                    columnName,
+                    value,
                   });
+                  // SAFETY: If we can't parse the condition, return empty array to prevent false positives
+                  // This is safer than returning all records which could cause duplicate detection bugs
+                  console.warn(`⚠️ Returning empty array due to condition parsing failure (preventing false positives)`);
+                  return [];
                 }
               }
 
