@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       testQuery: {
         x_user_id,
         allTokensCount: allTokens.length,
-        allTokens: allTokens.map(t => ({
+        allTokens: allTokens.map((t: any) => ({
           id: t.id,
           x_user_id: t.x_user_id,
           token_id: t.token_id,
