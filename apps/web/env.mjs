@@ -15,10 +15,10 @@ const envSchema = z.object({
   WEB3_STORAGE_TOKEN: z.string().optional(),
   INFERENCE_API_KEY: z.string().optional(),
   DATABASE_URL: z.string().url().optional().or(z.literal("mock://localhost")),
-  // Vercel KV (optional - Supabase KV is preferred)
+  // Vercel KV (Redis) - Preferred for rate limiting (faster, more reliable)
+  // If Vercel KV is not configured, falls back to Supabase KV (PostgreSQL)
   KV_REST_API_URL: z.string().url().optional().or(z.literal("http://localhost:6379")),
   KV_REST_API_TOKEN: z.string().optional(),
-  // Note: If DATABASE_URL is set (Supabase), it will be used for KV storage instead of Vercel KV
   X402_FACILITATOR_URL: z.string().optional(),
   X402_PRICE_USDC: z.string().default("2000000"),
   COLLECTION_THEME: z.string().default("frog"),

@@ -1,6 +1,7 @@
 import { env, isMockMode } from "../env.mjs";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { kv as vercelKv } from "@vercel/kv";
 
 // Mock KV storage
 const mockKv: Map<string, string> = new Map();
@@ -226,20 +227,97 @@ const supabaseKvClient = {
   },
 };
 
-// Determine which KV client to use
-// Priority: Supabase (PostgreSQL) > Mock
-// Use Supabase if database is available and not in mock mode
-let kvClient: typeof mockKvClient | typeof supabaseKvClient = mockKvClient;
+// Vercel KV (Redis) client implementation
+// Vercel KV is preferred for rate limiting as it's faster and more reliable
+const vercelKvClient = {
+  get: async (key: string) => {
+    try {
+      return await vercelKv.get<string>(key);
+    } catch (error: any) {
+      console.error("Vercel KV get error:", error);
+      return null;
+    }
+  },
+  set: async (key: string, value: string) => {
+    try {
+      await vercelKv.set(key, value);
+      return "OK";
+    } catch (error) {
+      console.error("Vercel KV set error:", error);
+      throw error;
+    }
+  },
+  setex: async (key: string, seconds: number, value: string) => {
+    try {
+      await vercelKv.set(key, value, { ex: seconds });
+      return "OK";
+    } catch (error) {
+      console.error("Vercel KV setex error:", error);
+      throw error;
+    }
+  },
+  incr: async (key: string) => {
+    try {
+      return await vercelKv.incr(key);
+    } catch (error: any) {
+      console.error("Vercel KV incr error:", {
+        error: error?.message || "Unknown error",
+        code: error?.code,
+        note: "Rate limiting will fall back to allowing requests"
+      });
+      throw error;
+    }
+  },
+  exists: async (key: string) => {
+    try {
+      const result = await vercelKv.exists(key);
+      return result ? 1 : 0;
+    } catch (error) {
+      console.error("Vercel KV exists error:", error);
+      return 0;
+    }
+  },
+  del: async (key: string) => {
+    try {
+      await vercelKv.del(key);
+      return 1;
+    } catch (error) {
+      console.error("Vercel KV del error:", error);
+      return 0;
+    }
+  },
+  expire: async (key: string, seconds: number) => {
+    try {
+      await vercelKv.expire(key, seconds);
+      return 1;
+    } catch (error) {
+      console.error("Vercel KV expire error:", error);
+      return 0;
+    }
+  },
+};
 
-// Check if we can use Supabase KV
-if (!isMockMode && env.DATABASE_URL && !env.DATABASE_URL.includes("mock://")) {
+// Determine which KV client to use
+// Priority: Vercel KV (Redis) > Supabase (PostgreSQL) > Mock
+// Vercel KV is preferred for rate limiting as it's faster and avoids connection issues
+let kvClient: typeof mockKvClient | typeof supabaseKvClient | typeof vercelKvClient = mockKvClient;
+
+// Check if Vercel KV is available (preferred for rate limiting)
+// Vercel KV is checked synchronously - actual connection will be tested on first use
+if (env.KV_REST_API_URL && env.KV_REST_API_TOKEN && !env.KV_REST_API_URL.includes("localhost")) {
+  // Use Vercel KV - connection will be tested on first use (lazy connection)
+  kvClient = vercelKvClient;
+  console.log("✅ Vercel KV (Redis) will be used for rate limiting");
+}
+
+// Fallback to Supabase KV if Vercel KV is not available
+if (kvClient === mockKvClient && !isMockMode && env.DATABASE_URL && !env.DATABASE_URL.includes("mock://")) {
   // Validate DATABASE_URL format
   try {
     const dbUrl = new URL(env.DATABASE_URL);
     if (dbUrl.protocol === "postgresql:" || dbUrl.protocol === "postgres:") {
-      // Test if we can access db (lazy connection - will fail on first use if wrong)
       kvClient = supabaseKvClient;
-      console.log("✅ Supabase KV (PostgreSQL) will be used");
+      console.log("✅ Supabase KV (PostgreSQL) will be used for rate limiting");
     } else {
       console.warn("⚠️ Invalid DATABASE_URL protocol, using mock KV:", dbUrl.protocol);
       kvClient = mockKvClient;
@@ -248,19 +326,23 @@ if (!isMockMode && env.DATABASE_URL && !env.DATABASE_URL.includes("mock://")) {
     console.error("❌ Invalid DATABASE_URL format, using mock KV:", urlError);
     kvClient = mockKvClient;
   }
-} else {
+}
+
+// Final fallback to mock KV
+if (kvClient === mockKvClient) {
   if (isMockMode || !env.DATABASE_URL || env.DATABASE_URL.includes("mock://")) {
-    console.log("ℹ️ Using mock KV storage (development mode or DATABASE_URL not configured)");
+    console.log("ℹ️ Using mock KV storage (development mode or no KV configured)");
   } else {
-    console.warn("⚠️ DATABASE_URL not set in production - using mock KV (cookie fallback will be used for PKCE)");
-    kvClient = mockKvClient;
+    console.warn("⚠️ No KV storage configured - using mock KV (rate limiting will be permissive)");
   }
 }
 
 export const kv = kvClient as any;
 
 // Export KV status for debugging
-export const isKvAvailable = kvClient === supabaseKvClient;
+export const isKvAvailable = kvClient !== mockKvClient;
+export const isVercelKv = kvClient === vercelKvClient;
+export const isSupabaseKv = kvClient === supabaseKvClient;
 
 export async function rateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
   const count = await kv.incr(key);
