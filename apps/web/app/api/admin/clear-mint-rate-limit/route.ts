@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         wallet,
         mintRateLimitKey,
         currentCount: currentCount ? parseInt(currentCount) : 0,
-        limit: 10,
+        limit: 30,
         window: "1 hour",
       });
     } else {

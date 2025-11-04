@@ -405,7 +405,7 @@ function HomePageContent() {
             if (mintResponse.status === 429) {
               const errorMessage = errorData.error || "Rate limit exceeded";
               throw new Error(
-                `${errorMessage}\n\nRate limit: 10 mints per hour. You can clear your rate limit by calling:\nPOST /api/admin/clear-mint-rate-limit\nBody: { "wallet": "${wallet}", "action": "clear" }`
+                `${errorMessage}\n\nRate limit: 30 mints per hour. You can clear your rate limit by calling:\nPOST /api/admin/clear-mint-rate-limit\nBody: { "wallet": "${wallet}", "action": "clear" }`
               );
             }
             

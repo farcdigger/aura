@@ -21,8 +21,9 @@ export async function checkGenerateRateLimit(xUserId: string): Promise<boolean> 
 }
 
 export async function checkMintRateLimit(wallet: string): Promise<boolean> {
-  // Rate limit: 10 per hour (increased for better testing experience)
+  // Rate limit: 30 per hour (increased for testing)
   // You can adjust this limit or use admin endpoint to clear rate limits
-  return checkRateLimit(`mint:${wallet}`, 10, 3600000); // 10 per hour (1 hour window)
+  // Admin endpoint: POST /api/admin/clear-mint-rate-limit with { wallet, action: "clear" }
+  return checkRateLimit(`mint:${wallet}`, 30, 3600000); // 30 per hour (1 hour window)
 }
 
