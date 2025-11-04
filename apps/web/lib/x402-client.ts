@@ -7,7 +7,8 @@
  */
 
 import { ethers } from "ethers";
-import { generateX402PaymentBrowser } from "@daydreamsai/ai-sdk-provider";
+// Dynamic import to avoid bundling Node.js-only modules (ws) in client bundle
+// @daydreamsai/ai-sdk-provider contains ws which is Node.js-only
 
 export interface X402PaymentRequest {
   asset: string;
@@ -171,12 +172,16 @@ export async function generateX402PaymentHeader(
   }
 
   // Generate x402 payment header using Daydreams SDK
+  // Dynamic import to avoid bundling Node.js-only modules in client bundle
   // This creates EIP-712 payment commitment - user signs ONCE in wallet
   // The signature IS the payment authorization - server will execute USDC transfer
   // NO separate USDC transfer transaction needed - x402 handles it
   const signTypedDataAsync = async (data: { domain: any; types: any; message: any }) => {
     return await signer.signTypedData(data.domain, data.types, data.message);
   };
+  
+  // Dynamic import to avoid bundling ws and other Node.js modules
+  const { generateX402PaymentBrowser } = await import("@daydreamsai/ai-sdk-provider");
   
   const sdkNetwork = paymentOption.network === "base-sepolia" ? "base-sepolia" : "base";
   const paymentHeader = await generateX402PaymentBrowser(

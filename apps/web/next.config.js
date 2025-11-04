@@ -36,6 +36,21 @@ const nextConfig = {
         'bufferutil': 'commonjs bufferutil',
         'utf-8-validate': 'commonjs utf-8-validate',
       });
+      
+      // Ignore ws and related packages completely in client bundle
+      const webpack = require('webpack');
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^ws$/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^bufferutil$/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^utf-8-validate$/,
+        })
+      );
     }
     
     return config;
