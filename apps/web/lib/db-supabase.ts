@@ -190,8 +190,34 @@ export const db = {
                 let columnName: string | undefined;
                 let value: any;
                 
-                // Method 1: Direct _column access
-                if (condition._column) {
+                // Method 1: Try queryChunks format (newer Drizzle format)
+                if (condition.queryChunks && Array.isArray(condition.queryChunks)) {
+                  // Parse queryChunks: [..., { name: "column_name" }, ..., "value", ...]
+                  for (let i = 0; i < condition.queryChunks.length; i++) {
+                    const chunk = condition.queryChunks[i];
+                    // Look for object with name property (column name)
+                    if (typeof chunk === 'object' && chunk !== null && chunk.name) {
+                      columnName = chunk.name;
+                    }
+                    // Look for string value (after column name)
+                    if (columnName && typeof chunk === 'string' && chunk.length > 0 && !chunk.includes('=') && !chunk.includes(' ')) {
+                      value = chunk;
+                      break;
+                    }
+                  }
+                  // Also try direct string value in queryChunks
+                  if (columnName && !value) {
+                    for (const chunk of condition.queryChunks) {
+                      if (typeof chunk === 'string' && chunk.length > 0 && chunk !== ' = ' && !chunk.match(/^[\s=]*$/)) {
+                        value = chunk;
+                        break;
+                      }
+                    }
+                  }
+                }
+                
+                // Method 2: Direct _column access
+                if (!columnName && condition._column) {
                   columnName = condition._column.name || 
                                condition._column._?.name || 
                                condition._column._?.column?.name ||
@@ -203,13 +229,13 @@ export const db = {
                   }
                 }
                 
-                // Method 2: Try column property
+                // Method 3: Try column property
                 if (!columnName && condition.column) {
                   columnName = condition.column.name || condition.column._?.name;
                   value = condition.value;
                 }
                 
-                // Method 3: Try to extract from Drizzle's internal structure
+                // Method 4: Try to extract from Drizzle's internal structure
                 if (!columnName && typeof condition === 'object') {
                   // Drizzle might store column name in different places
                   const keys = Object.keys(condition);
@@ -224,10 +250,12 @@ export const db = {
                   }
                   
                   // Try to find value
-                  if (condition._value !== undefined) {
-                    value = condition._value.value ?? condition._value;
-                  } else if ((condition as any).value !== undefined) {
-                    value = (condition as any).value;
+                  if (!value) {
+                    if (condition._value !== undefined) {
+                      value = condition._value.value ?? condition._value;
+                    } else if ((condition as any).value !== undefined) {
+                      value = (condition as any).value;
+                    }
                   }
                 }
                 

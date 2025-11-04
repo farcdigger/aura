@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       
       // Get token URI from database (from generate step)
       console.log(`Looking for token with x_user_id: ${x_user_id}`);
-      const tokenData = await db
+      let tokenData = await db
         .select()
         .from(tokens)
         .where(eq(tokens.x_user_id, x_user_id))
@@ -114,11 +114,35 @@ export async function POST(request: NextRequest) {
       
       console.log(`Found ${tokenData.length} tokens for x_user_id: ${x_user_id}`);
       
+      // Fallback: If Drizzle query failed, try direct Supabase query
+      if (!tokenData || tokenData.length === 0) {
+        console.log(`⚠️ Drizzle query returned no results, trying direct Supabase query...`);
+        try {
+          const { supabaseClient } = await import("@/lib/db-supabase");
+          if (supabaseClient) {
+            const { data, error } = await supabaseClient
+              .from("tokens")
+              .select("*")
+              .eq("x_user_id", x_user_id)
+              .limit(1);
+            
+            if (error) {
+              console.error(`Direct Supabase query error:`, error);
+            } else if (data && data.length > 0) {
+              console.log(`✅ Found token via direct Supabase query`);
+              tokenData = data;
+            }
+          }
+        } catch (supabaseError: any) {
+          console.error(`Direct Supabase query failed:`, supabaseError.message);
+        }
+      }
+      
       if (!tokenData || tokenData.length === 0) {
         return NextResponse.json({ error: "Token not generated. Please generate first." }, { status: 400 });
       }
       
-      const tokenURI = tokenData[0].token_uri;
+      const tokenURI = tokenData[0].token_uri || tokenData[0].image_uri;
       const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour (number)
     
       // Convert values to proper types for EIP-712
