@@ -1,13 +1,117 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { env } from "../env.mjs";
+
+// Database schema type (for type safety)
+type Database = {
+  public: {
+    Tables: {
+      tokens: {
+        Row: {
+          id: number;
+          x_user_id: string;
+          token_id: number;
+          seed: string;
+          token_uri: string;
+          metadata_uri: string;
+          image_uri: string;
+          traits: any;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          x_user_id: string;
+          token_id?: number;
+          seed: string;
+          token_uri: string;
+          metadata_uri: string;
+          image_uri: string;
+          traits: any;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          x_user_id?: string;
+          token_id?: number;
+          seed?: string;
+          token_uri?: string;
+          metadata_uri?: string;
+          image_uri?: string;
+          traits?: any;
+          created_at?: string | null;
+        };
+      };
+      users: {
+        Row: {
+          id: number;
+          x_user_id: string;
+          username: string;
+          profile_image_url: string | null;
+          wallet_address: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          x_user_id: string;
+          username: string;
+          profile_image_url?: string | null;
+          wallet_address?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          x_user_id?: string;
+          username?: string;
+          profile_image_url?: string | null;
+          wallet_address?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
+      payments: {
+        Row: {
+          id: number;
+          x_user_id: string;
+          wallet_address: string;
+          amount: string;
+          transaction_hash: string | null;
+          status: string;
+          x402_payment_id: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          x_user_id: string;
+          wallet_address: string;
+          amount: string;
+          transaction_hash?: string | null;
+          status: string;
+          x402_payment_id?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          x_user_id?: string;
+          wallet_address?: string;
+          amount?: string;
+          transaction_hash?: string | null;
+          status?: string;
+          x402_payment_id?: string | null;
+          created_at?: string | null;
+        };
+      };
+    };
+  };
+};
 
 // Supabase client using REST API (no PostgreSQL connection string needed)
 // This is more reliable on Vercel and doesn't require DATABASE_URL
-let supabaseClient: ReturnType<typeof createClient> | null = null;
+let supabaseClient: SupabaseClient<Database> | null = null;
 
 if (env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
   try {
-    supabaseClient = createClient(
+    supabaseClient = createClient<Database>(
       env.NEXT_PUBLIC_SUPABASE_URL,
       env.SUPABASE_SERVICE_ROLE_KEY,
       {
@@ -69,8 +173,8 @@ export const db = {
             }
 
             try {
-              // Parse Drizzle eq() condition to Supabase filter
-              let query = supabaseClient.from(tableName).select("*");
+              // Type assertion needed because tableName is dynamic
+              let query = supabaseClient.from(tableName as any).select("*");
               
               if (condition && condition._column) {
                 const columnName = condition._column.name || condition._column._?.name;
@@ -102,8 +206,9 @@ export const db = {
           }
 
           try {
+            // Type assertion needed because tableName is dynamic
             const { data, error } = await supabaseClient
-              .from(tableName)
+              .from(tableName as any)
               .select("*")
               .limit(n);
 
@@ -133,9 +238,10 @@ export const db = {
         }
 
         try {
+          // Type assertion needed because tableName is dynamic
           const { data, error } = await supabaseClient
-            .from(tableName)
-            .insert(values)
+            .from(tableName as any)
+            .insert(values as any)
             .select()
             .single();
 
@@ -166,7 +272,8 @@ export const db = {
             }
 
             try {
-              let query = supabaseClient.from(tableName).update(values);
+              // Type assertion needed because tableName is dynamic
+              let query = supabaseClient.from(tableName as any).update(values as any);
 
               // Parse Drizzle eq() condition
               if (condition && condition._column) {
