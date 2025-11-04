@@ -106,32 +106,30 @@ export async function createX402PaymentProof(
 }
 
 /**
- * Generate x402 payment header with signature + transaction (immediate payment)
- * Uses Daydreams SDK's generateX402PaymentBrowser for payment commitment
- * AND executes actual USDC transfer transaction in single approval flow
- * Reference: https://docs.daydreams.systems/docs/tutorials/x402/server
- * 
- * x402 Protocol (immediate): User signs payment commitment AND sends USDC transfer
- * Single approval: Both signature and transaction happen with user's approval
- * This follows the x402-fetch pattern from Daydreams tutorial
+ * Generate x402 payment header using Daydreams SDK
+ * x402 Protocol: User signs payment commitment (permit) - server executes USDC transfer
+ * Single approval: User only signs payment commitment, NO separate USDC transfer transaction
+ * Server uses the signature/permit to execute the USDC transfer
+ * Reference: https://docs.daydreams.systems/docs/router/dreams-sdk
  * 
  * @param walletAddress - User's wallet address
  * @param signer - ethers signer (from wallet)
  * @param paymentOption - Payment option from 402 response
- * @returns x402-compliant payment header string with signature + transaction hash
+ * @returns x402-compliant payment header string with payment commitment signature
  */
 export async function generateX402PaymentHeader(
   walletAddress: string,
   signer: ethers.Signer,
   paymentOption: X402PaymentRequest
 ): Promise<string> {
-  console.log(`💰 Generating x402 payment (signature + transaction):`);
+  console.log(`💰 Generating x402 payment using Daydreams SDK:`);
   console.log(`   Amount: ${paymentOption.amount} ${paymentOption.asset}`);
   console.log(`   Network: ${paymentOption.network}`);
   console.log(`   Recipient: ${paymentOption.recipient}`);
-  console.log(`   ⚠️ User will approve: payment commitment + USDC transfer`);
+  console.log(`   ⚠️ User will sign payment commitment ONCE`);
+  console.log(`   ⚠️ Server will execute USDC transfer using the payment commitment`);
   
-  // Get USDC contract address
+  // Get USDC contract address for balance check
   const usdcAddress = getUSDCAddress(paymentOption.network);
   if (!usdcAddress) {
     throw new Error(
@@ -146,37 +144,42 @@ export async function generateX402PaymentHeader(
     throw new Error("Signer does not have a provider. Make sure wallet is connected.");
   }
 
-  // Check USDC balance
-  const usdcContract = new ethers.Contract(usdcAddress, [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function decimals() view returns (uint8)",
-    "function transfer(address to, uint256 amount) returns (bool)",
-  ], provider);
-  
-  const [balance, decimalsRaw] = await Promise.all([
-    usdcContract.balanceOf(walletAddress),
-    usdcContract.decimals(),
-  ]);
-  
-  const decimals = typeof decimalsRaw === 'bigint' ? Number(decimalsRaw) : Number(decimalsRaw);
-  const requiredAmount = BigInt(paymentOption.amount);
-  
-  if (balance < requiredAmount) {
-    throw new Error(
-      `Insufficient USDC balance. Required: ${formatUSDC(requiredAmount, decimals)}, Available: ${formatUSDC(balance, decimals)}`
-    );
+  // Check USDC balance (optional - just for user info)
+  try {
+    const usdcContract = new ethers.Contract(usdcAddress, [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+    ], provider);
+    
+    const [balance, decimalsRaw] = await Promise.all([
+      usdcContract.balanceOf(walletAddress),
+      usdcContract.decimals(),
+    ]);
+    
+    const decimals = typeof decimalsRaw === 'bigint' ? Number(decimalsRaw) : Number(decimalsRaw);
+    const requiredAmount = BigInt(paymentOption.amount);
+    
+    if (balance < requiredAmount) {
+      throw new Error(
+        `Insufficient USDC balance. Required: ${formatUSDC(requiredAmount, decimals)}, Available: ${formatUSDC(balance, decimals)}`
+      );
+    }
+    
+    console.log(`✅ USDC balance sufficient: ${formatUSDC(balance, decimals)}`);
+  } catch (balanceError: any) {
+    console.warn(`⚠️ Could not verify USDC balance: ${balanceError.message}`);
   }
-  
-  console.log(`✅ USDC balance sufficient: ${formatUSDC(balance, decimals)}`);
 
-  // Step 1: Generate x402 payment commitment using Daydreams SDK (EIP-712 signature)
-  // This creates the payment commitment - user signs in wallet
+  // Generate x402 payment header using Daydreams SDK
+  // This creates EIP-712 payment commitment - user signs ONCE in wallet
+  // The signature IS the payment authorization - server will execute USDC transfer
+  // NO separate USDC transfer transaction needed - x402 handles it
   const signTypedDataAsync = async (data: { domain: any; types: any; message: any }) => {
     return await signer.signTypedData(data.domain, data.types, data.message);
   };
   
   const sdkNetwork = paymentOption.network === "base-sepolia" ? "base-sepolia" : "base";
-  const paymentHeaderSignature = await generateX402PaymentBrowser(
+  const paymentHeader = await generateX402PaymentBrowser(
     walletAddress,
     signTypedDataAsync,
     {
@@ -185,41 +188,17 @@ export async function generateX402PaymentHeader(
     }
   );
   
-  if (!paymentHeaderSignature) {
-    throw new Error("Failed to generate x402 payment header signature");
+  if (!paymentHeader) {
+    throw new Error("Failed to generate x402 payment header");
   }
   
-  console.log(`✅ Payment commitment signed (x402 protocol)`);
+  console.log(`✅ x402 Payment Header created (Daydreams SDK)`);
+  console.log(`   User signed payment commitment - this authorizes USDC transfer`);
+  console.log(`   ⚠️ NO separate USDC transfer transaction - server will execute it`);
   
-  // Step 2: Execute USDC transfer transaction (user approves in wallet)
-  // This is the actual payment - USDC leaves user's wallet immediately
-  // Following x402-fetch pattern: signature + transaction in single flow
-  const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
-    "function transfer(address to, uint256 amount) returns (bool)",
-  ], signer);
-
-  console.log(`💸 Executing USDC transfer to server wallet...`);
-  console.log(`   ⚠️ User will approve USDC transfer transaction`);
-  
-  const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
-  console.log(`📝 Transaction sent: ${tx.hash}`);
-  
-  // Wait for confirmation
-  const receipt = await tx.wait();
-  console.log(`✅ USDC transfer confirmed in block ${receipt.blockNumber}`);
-  console.log(`   💰 ${formatUSDC(requiredAmount, decimals)} USDC transferred to server wallet`);
-
-  // Step 3: Combine payment header (signature) with transaction proof
-  // This follows x402-fetch pattern: signature + transaction hash in payment header
-  const paymentData = JSON.parse(paymentHeaderSignature);
-  paymentData.transactionHash = receipt.hash; // Proof of actual USDC transfer
-  paymentData.blockNumber = receipt.blockNumber;
-  paymentData.recipient = paymentOption.recipient; // Ensure recipient is set
-  
-  console.log(`💰 x402 Payment Header created:`);
-  console.log(`   - Payment commitment: Signed ✓`);
-  console.log(`   - USDC transfer: ${receipt.hash} ✓`);
-  console.log(`   ✅ Immediate payment: signature + transaction complete`);
+  // Ensure recipient is set in payment header
+  const paymentData = JSON.parse(paymentHeader);
+  paymentData.recipient = paymentOption.recipient;
   
   return JSON.stringify(paymentData);
 }
