@@ -211,14 +211,18 @@ export async function generateX402PaymentHeader(
 
   // Step 2: Execute REAL USDC transfer (x402 requires actual payment)
   // The payment header includes both the commitment AND the transaction proof
-  console.log(`💸 Executing USDC transfer: ${formatUSDC(requiredAmount, decimals)} to ${paymentOption.recipient}`);
+  // IMPORTANT: paymentOption.recipient is the SERVER wallet address (where USDC goes)
+  console.log(`💸 Executing USDC transfer:`);
+  console.log(`   Amount: ${formatUSDC(requiredAmount, decimals)} USDC`);
+  console.log(`   From: ${walletAddress} (user's wallet)`);
+  console.log(`   To: ${paymentOption.recipient} (SERVER wallet - project receives payment)`);
   
   // Create contract with signer for transfer
   const usdcContractWithSigner = new ethers.Contract(usdcAddress, [
     "function transfer(address to, uint256 amount) returns (bool)",
   ], signer);
 
-  // Execute USDC transfer
+  // Execute USDC transfer to SERVER wallet address
   const tx = await usdcContractWithSigner.transfer(paymentOption.recipient, requiredAmount);
   console.log(`📝 Transaction sent: ${tx.hash}`);
   

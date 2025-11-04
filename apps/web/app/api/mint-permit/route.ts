@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "SERVER_SIGNER_PRIVATE_KEY not configured" }, { status: 500 });
         }
         const serverWallet = new ethers.Wallet(env.SERVER_SIGNER_PRIVATE_KEY);
+        console.log(`💳 402 Payment Required - Server wallet (recipient): ${serverWallet.address}`);
         const x402Response = createX402Response(serverWallet.address);
         return NextResponse.json(x402Response, { status: 402 });
       }
