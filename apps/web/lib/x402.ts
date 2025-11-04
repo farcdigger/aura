@@ -91,18 +91,27 @@ export async function verifyX402Payment(
 
     // Verify EIP-712 signature
     // The signature proves the user committed to pay the specified amount
-    const chainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "8453");
-    const network = chainId === 8453 ? "base" : chainId === 84532 ? "base-sepolia" : "base";
+    // IMPORTANT: Use network from payment data, not environment variable
+    // This ensures client and server use the same network and USDC address
+    const network = paymentData.network || "base"; // Default to base if not specified
     
-    // Base Mainnet USDC
+    // Determine chain ID from network (must match client-side)
+    const chainId = network === "base" ? 8453 : 
+                    network === "base-sepolia" ? 84532 : 8453;
+    
+    // Get USDC address for network (must match client-side)
     const usdcAddress = network === "base" 
-      ? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-      : process.env.USDC_CONTRACT_ADDRESS || null;
+      ? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" // Base Mainnet USDC
+      : network === "base-sepolia"
+      ? (process.env.USDC_CONTRACT_ADDRESS || null) // Base Sepolia (testnet)
+      : null;
     
     if (!usdcAddress) {
-      console.error("USDC contract address not configured");
+      console.error(`USDC contract address not configured for network: ${network}`);
       return null;
     }
+    
+    console.log(`🔍 Payment verification - Network: ${network}, Chain ID: ${chainId}, USDC: ${usdcAddress}`);
 
     try {
       const { ethers } = await import("ethers");
