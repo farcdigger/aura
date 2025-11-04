@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createX402Response, verifyX402Payment } from "@/lib/x402";
 import { signMintAuth } from "@/lib/eip712";
-import { checkMintRateLimit } from "@/lib/rate-limit";
 import { db, tokens } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import { env, isMockMode } from "@/env.mjs";
@@ -36,11 +35,10 @@ export async function POST(request: NextRequest) {
     const xUserIdBigInt = BigInt(hash); // Convert to BigInt for uint256
     console.log(`Converting x_user_id "${x_user_id}" to uint256: ${hash}`);
     
-    // Rate limiting
-    const allowed = await checkMintRateLimit(wallet);
-    if (!allowed) {
-      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-    }
+    // NOTE: No rate limiting for mint permit requests
+    // - Mint requires payment (x402), so spam is naturally limited
+    // - Contract already prevents duplicate mints (usedXUserId check)
+    // - Existing NFT mint is a legitimate operation, shouldn't be rate limited
     
     // Check X-PAYMENT header (only in production)
     const paymentHeader = request.headers.get("X-PAYMENT");

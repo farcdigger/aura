@@ -401,11 +401,11 @@ function HomePageContent() {
             const errorData = await mintResponse.json();
             console.error("Mint permit failed after payment:", errorData);
             
-            // Handle rate limit error with helpful message
+            // Handle rate limit error (should not occur for mint, but keep for compatibility)
             if (mintResponse.status === 429) {
               const errorMessage = errorData.error || "Rate limit exceeded";
               throw new Error(
-                `${errorMessage}\n\nRate limit: 30 mints per hour. You can clear your rate limit by calling:\nPOST /api/admin/clear-mint-rate-limit\nBody: { "wallet": "${wallet}", "action": "clear" }`
+                `${errorMessage}\n\nNote: Mint rate limiting has been removed. If you see this error, please report it.`
               );
             }
             
