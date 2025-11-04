@@ -12,6 +12,57 @@ import type { GenerateRequest, GenerateResponse } from "@/lib/types";
 // DEĞİŞİKLİK: Yeni Vision AI (AI #1) fonksiyonumuzu import ediyoruz.
 import { analyzeProfileImage } from "@/lib/vision";
 
+// GET endpoint: Retrieve existing NFT for user
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const x_user_id = searchParams.get("x_user_id");
+    
+    if (!x_user_id) {
+      return NextResponse.json({ error: "Missing x_user_id parameter" }, { status: 400 });
+    }
+    
+    // Fetch existing token from database
+    const existingToken = await db
+      .select()
+      .from(tokens)
+      .where(eq(tokens.x_user_id, x_user_id))
+      .limit(1);
+    
+    if (existingToken.length === 0) {
+      return NextResponse.json({ 
+        error: "No NFT found for this user",
+        exists: false 
+      }, { status: 404 });
+    }
+    
+    const token = existingToken[0];
+    
+    // Convert IPFS URL to preview URL for display
+    let previewUrl = token.image_uri;
+    if (token.image_uri.startsWith("ipfs://")) {
+      previewUrl = `https://gateway.pinata.cloud/ipfs/${token.image_uri.replace("ipfs://", "")}`;
+    }
+    
+    const response: GenerateResponse = {
+      seed: token.seed,
+      traits: token.traits as any,
+      imageUrl: token.image_uri,
+      metadataUrl: token.metadata_uri,
+      preview: previewUrl,
+      alreadyExists: true,
+    };
+    
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error("Get NFT error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to retrieve NFT" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
@@ -47,6 +98,29 @@ export async function POST(request: NextRequest) {
    }
     
     try {
+      // Check if user already has a generated NFT (prevent duplicate generation and cost)
+      const existingToken = await db
+        .select()
+        .from(tokens)
+        .where(eq(tokens.x_user_id, x_user_id))
+        .limit(1);
+      
+      if (existingToken.length > 0) {
+        console.log(`⚠️ User ${x_user_id} already has a generated NFT. Returning existing data.`);
+        const existing = existingToken[0];
+        return NextResponse.json({
+          seed: existing.seed,
+          traits: existing.traits,
+          imageUrl: existing.image_uri,
+          metadataUrl: existing.metadata_uri,
+          preview: existing.image_uri.startsWith("ipfs://") 
+            ? `https://gateway.pinata.cloud/ipfs/${existing.image_uri.replace("ipfs://", "")}` 
+            : existing.image_uri,
+          alreadyExists: true,
+          message: "NFT already generated for this user",
+        });
+      }
+      
       // --- DEĞİŞİKLİK BAŞLANGICI ---
       
       // ESKİ KOD (SİLİNDİ):
@@ -154,42 +228,62 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Save to database (OPTIONAL - for tracking/preventing duplicates)
-      // ... (Bu kısım aynı kaldı) ...
+      // Save to database (REQUIRED - for preventing duplicate generation)
+      // This must succeed to prevent duplicate generation and cost
       try {
-        const existingToken = await db
+        console.log(`💾 Saving generated NFT to database for x_user_id: ${x_user_id}`);
+        const insertResult = await db.insert(tokens).values({
+          x_user_id,
+          token_id: 0, // Will be updated after mint
+          seed,
+          token_uri: metadataUrl,
+          metadata_uri: metadataUrl,
+          image_uri: imageUrl,
+          traits: traits as any, // 'traits' objesi JSON olarak DB'ye kaydedilir
+        });
+        console.log("✅ Token saved to database:", insertResult);
+        
+        // Verify insert worked
+        const verifyToken = await db
           .select()
           .from(tokens)
           .where(eq(tokens.x_user_id, x_user_id))
           .limit(1);
+        console.log(`✅ Verification: ${verifyToken.length} token(s) found after insert`);
         
-        console.log(`Checking for existing token with x_user_id: ${x_user_id}`, existingToken.length);
-        
-        if (existingToken.length === 0) {
-          // Token not minted yet, save generation data
-          console.log(`Inserting token for x_user_id: ${x_user_id}`);
-          const insertResult = await db.insert(tokens).values({
-            x_user_id,
-            token_id: 0, // Will be updated after mint
-            seed,
-            token_uri: metadataUrl,
-            metadata_uri: metadataUrl,
-            image_uri: imageUrl,
-            traits: traits as any, // 'traits' objesi JSON olarak DB'ye kaydedilir
-          });
-          console.log("Insert result:", insertResult);
-          
-          // Verify insert worked
-          const verifyToken = await db
+        if (verifyToken.length === 0) {
+          console.error("❌ CRITICAL: Token was not saved to database despite insert success!");
+          throw new Error("Failed to verify token save to database");
+        }
+      } catch (dbError: any) {
+        // If it's a unique constraint violation, user already has a token
+        if (dbError?.code === "23505" || dbError?.message?.includes("unique") || dbError?.message?.includes("duplicate")) {
+          console.warn("⚠️ User already has a token (unique constraint violation)");
+          // Fetch existing token and return it
+          const existingToken = await db
             .select()
             .from(tokens)
             .where(eq(tokens.x_user_id, x_user_id))
             .limit(1);
-          console.log(`Verification: ${verifyToken.length} tokens found after insert`);
+          
+          if (existingToken.length > 0) {
+            const existing = existingToken[0];
+            return NextResponse.json({
+              seed: existing.seed,
+              traits: existing.traits,
+              imageUrl: existing.image_uri,
+              metadataUrl: existing.metadata_uri,
+              preview: existing.image_uri.startsWith("ipfs://") 
+                ? `https://gateway.pinata.cloud/ipfs/${existing.image_uri.replace("ipfs://", "")}` 
+                : existing.image_uri,
+              alreadyExists: true,
+              message: "NFT already generated for this user",
+            });
+          }
         }
-      } catch (dbError) {
-        console.warn("⚠️ Failed to save token to database (non-critical):", dbError);
-        console.warn("💡 Image generation succeeded - database save is optional");
+        
+        console.error("❌ CRITICAL: Failed to save token to database:", dbError);
+        throw new Error(`Failed to save NFT to database: ${dbError?.message || "Unknown error"}`);
       }
       
       const response: GenerateResponse = {

@@ -36,6 +36,8 @@ export interface GenerateResponse {
   imageUrl: string;
   metadataUrl: string;
   preview?: string; // Base64 encoded image for immediate preview
+  alreadyExists?: boolean; // True if NFT was already generated for this user
+  message?: string; // Optional message (e.g., "NFT already generated for this user")
 }
 
 export interface MintPermitRequest {
