@@ -213,31 +213,95 @@ export async function executeX402Payment(
     );
   }
 
-  // Transfer USDC
-  console.log(`💸 Transferring ${formatUSDC(requiredAmount, decimals)} USDC to ${paymentOption.recipient}`);
-  const tx = await usdcContract.transfer(paymentOption.recipient, requiredAmount);
-  console.log(`📝 Transaction sent: ${tx.hash}`);
-  
-  // Wait for confirmation
-  const receipt = await tx.wait();
-  console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+  // Execute x402 payment through facilitator
+  // Step 1: Request payment from facilitator
+  try {
+    const facilitatorResponse = await fetch(`${facilitatorUrl}/payment/initiate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentRequest: paymentOption,
+        payer: walletAddress,
+      }),
+    });
 
-  // Create payment proof
-  const proof: X402PaymentProof = {
-    paymentId: `payment_${receipt.blockNumber}_${tx.hash.substring(2, 10)}`,
-    amount: paymentOption.amount,
-    asset: paymentOption.asset,
-    network: paymentOption.network,
-    payer: walletAddress,
-    recipient: paymentOption.recipient,
-    transactionHash: receipt.hash,
-    blockNumber: receipt.blockNumber,
-  };
+    if (!facilitatorResponse.ok) {
+      throw new Error(`Facilitator payment initiation failed: ${facilitatorResponse.statusText}`);
+    }
 
-  return {
-    txHash: receipt.hash,
-    proof,
-  };
+    const facilitatorData = await facilitatorResponse.json();
+    console.log(`💳 Payment initiated with facilitator: ${facilitatorData.paymentId}`);
+    
+    // Step 2: Execute USDC transfer to facilitator's payment address
+    // The facilitator will forward the payment to the recipient
+    const facilitatorPaymentAddress = facilitatorData.paymentAddress || paymentOption.recipient;
+    
+    console.log(`💸 Transferring ${formatUSDC(requiredAmount, decimals)} USDC to facilitator`);
+    const tx = await usdcContract.transfer(facilitatorPaymentAddress, requiredAmount);
+    console.log(`📝 Transaction sent: ${tx.hash}`);
+    
+    // Wait for confirmation
+    const receipt = await tx.wait();
+    console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+    // Step 3: Notify facilitator of payment completion
+    const confirmResponse = await fetch(`${facilitatorUrl}/payment/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentId: facilitatorData.paymentId,
+        transactionHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+      }),
+    });
+
+    if (!confirmResponse.ok) {
+      console.warn(`⚠️ Facilitator confirmation failed, but payment was successful`);
+    }
+
+    // Create payment proof (x402 format)
+    const proof: X402PaymentProof = {
+      paymentId: facilitatorData.paymentId || `payment_${receipt.blockNumber}_${tx.hash.substring(2, 10)}`,
+      amount: paymentOption.amount,
+      asset: paymentOption.asset,
+      network: paymentOption.network,
+      payer: walletAddress,
+      recipient: paymentOption.recipient,
+      transactionHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+    };
+
+    return {
+      txHash: receipt.hash,
+      proof,
+    };
+  } catch (facilitatorError: any) {
+    // Fallback: If facilitator is unavailable, use direct transfer
+    console.warn(`⚠️ Facilitator unavailable, using direct transfer: ${facilitatorError.message}`);
+    
+    console.log(`💸 Transferring ${formatUSDC(requiredAmount, decimals)} USDC directly to ${paymentOption.recipient}`);
+    const tx = await usdcContract.transfer(paymentOption.recipient, requiredAmount);
+    console.log(`📝 Transaction sent: ${tx.hash}`);
+    
+    const receipt = await tx.wait();
+    console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+    const proof: X402PaymentProof = {
+      paymentId: `payment_${receipt.blockNumber}_${tx.hash.substring(2, 10)}`,
+      amount: paymentOption.amount,
+      asset: paymentOption.asset,
+      network: paymentOption.network,
+      payer: walletAddress,
+      recipient: paymentOption.recipient,
+      transactionHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+    };
+
+    return {
+      txHash: receipt.hash,
+      proof,
+    };
+  }
 }
 
 /**
