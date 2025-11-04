@@ -40,36 +40,35 @@ export async function signMintAuth(auth: MintAuth): Promise<string> {
   const signer = new ethers.Wallet(env.SERVER_SIGNER_PRIVATE_KEY);
   
   // Convert values to proper types for EIP-712 uint256
-  // ethers.js v6 signTypedData can handle number, string, or BigInt for uint256
-  // To avoid BigInt mixing issues, we use ethers utilities to convert values
-  // IMPORTANT: Use ethers.getBytes() and ethers.toBigInt() for consistent conversion
+  // CRITICAL FIX: To avoid BigInt mixing, we must ensure ALL uint256 values are the SAME type
+  // ethers.js signTypedData accepts string, number, or BigInt for uint256
+  // Problem: Mixing these types causes "Cannot mix BigInt and other types" error
+  // Solution: Use hex strings (0x...) for ALL uint256 values - ethers handles them consistently
   
-  let xUserIdValue: string | number | bigint;
+  // xUserId is already a hex string (0x...) from ethers.id()
+  // Convert nonce and deadline to hex strings as well to ensure type consistency
+  let nonceHex: string;
+  let deadlineHex: string;
+  
   try {
-    // Convert hex string (0x...) to decimal string for uint256
-    // ethers.id() returns hex string (0x...), convert using ethers utilities
-    if (auth.xUserId.startsWith('0x')) {
-      // Use ethers.toBigInt() to convert hex string to BigInt, then to string
-      // This ensures proper conversion without type mixing
-      const bigIntValue = ethers.toBigInt(auth.xUserId);
-      xUserIdValue = bigIntValue.toString(); // Convert BigInt to decimal string
-    } else {
-      // Already a decimal string
-      xUserIdValue = auth.xUserId;
-    }
+    // Convert number to hex string for nonce
+    // Use ethers.toBeHex() to ensure proper formatting
+    nonceHex = ethers.toBeHex(auth.nonce);
+    
+    // Convert number to hex string for deadline
+    deadlineHex = ethers.toBeHex(auth.deadline);
   } catch (convertError: any) {
-    throw new Error(`Failed to convert xUserId to uint256: ${convertError.message}`);
+    throw new Error(`Failed to convert nonce/deadline to hex: ${convertError.message}`);
   }
   
-  // Convert nonce and deadline to strings as well
-  // Use explicit String() conversion to avoid BigInt mixing
+  // All uint256 values are now hex strings - this ensures type consistency
   const eip712Auth = {
     to: auth.to,
     payer: auth.payer,
-    xUserId: xUserIdValue, // Decimal string for uint256
+    xUserId: auth.xUserId, // Hex string (0x...) - already correct
     tokenURI: auth.tokenURI,
-    nonce: String(auth.nonce), // Convert number to string for uint256
-    deadline: String(auth.deadline), // Convert number to string for uint256
+    nonce: nonceHex, // Hex string (0x...) - converted from number
+    deadline: deadlineHex, // Hex string (0x...) - converted from number
   };
   
   console.log("EIP-712 Auth values (all strings for uint256):", {
