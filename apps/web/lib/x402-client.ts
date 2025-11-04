@@ -109,7 +109,7 @@ export async function createX402PaymentProof(
  */
 export async function executeX402Payment(
   paymentRequest: X402PaymentResponse,
-  signer: ethers.Signer
+  signer: ethers.Signer & { provider: ethers.Provider }
 ): Promise<{ txHash: string; proof: X402PaymentProof }> {
   if (!paymentRequest.accepts || paymentRequest.accepts.length === 0) {
     throw new Error("No payment options in 402 response");
@@ -137,8 +137,16 @@ export async function executeX402Payment(
   const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, signer);
   
   // Verify contract exists and is valid (check if code exists)
+  // Note: This check is done at runtime (client-side), not at build time
   try {
-    const code = await signer.provider.getCode(usdcAddress);
+    // Get provider from signer - type assertion ensures provider exists
+    const provider = signer.provider;
+    if (!provider) {
+      throw new Error("Signer does not have a provider. Make sure wallet is connected.");
+    }
+    
+    // getCode is async, so we await it
+    const code = await provider.getCode(usdcAddress);
     if (!code || code === "0x") {
       throw new Error(
         `Invalid USDC contract address: ${usdcAddress}\n\n` +
@@ -147,8 +155,13 @@ export async function executeX402Payment(
       );
     }
   } catch (codeError: any) {
+    // If it's already our custom error, rethrow it
+    if (codeError?.message && codeError.message.includes("Invalid USDC contract address")) {
+      throw codeError;
+    }
+    // Otherwise, wrap in a more helpful error
     throw new Error(
-      `Failed to verify USDC contract: ${codeError.message}\n\n` +
+      `Failed to verify USDC contract: ${codeError?.message || 'Unknown error'}\n\n` +
       `Please check that NEXT_PUBLIC_USDC_CONTRACT_ADDRESS is set correctly.`
     );
   }

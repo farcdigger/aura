@@ -3,6 +3,9 @@ import { db, tokens } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
 // Debug endpoint to test database queries
+// Mark as dynamic to avoid static generation issues
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
