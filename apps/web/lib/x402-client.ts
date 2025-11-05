@@ -116,6 +116,9 @@ export async function generateX402PaymentHeader(
   
   console.log(`✅ Payment header created`);
   console.log(`   Signature: ${signature.substring(0, 20)}...`);
+  console.log(`📤 FULL PAYMENT HEADER (for debugging):`);
+  console.log(paymentHeader);
+  console.log(`📤 Payment header length: ${paymentHeader.length} chars`);
   
   return paymentHeader;
 }

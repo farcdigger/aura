@@ -487,6 +487,8 @@ function HomePageContent() {
           console.log(`✅ Payment header generated (EIP-712 signature)`);
           console.log(`   Facilitator will execute USDC transfer automatically`);
           console.log(`   Recipient: ${paymentOptionWithRecipient.recipient}`);
+          console.log(`📤 Sending payment header to middleware...`);
+          console.log(`   Payment header preview: ${paymentHeader.substring(0, 100)}...`);
           
           // Retry mint permit request with payment proof
           console.log("📝 Requesting mint permit with payment proof...");
