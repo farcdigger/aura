@@ -205,8 +205,53 @@ export async function POST(request: NextRequest) {
         console.warn(`⚠️ Could not verify contract owner: ${ownerError.message}`);
       }
       
-      // Sign mint auth
+      // Sign mint auth with detailed logging
+      console.log("🔐 Signing MintAuth with server wallet...");
+      console.log("🔐 MintAuth values being signed:", {
+        to: auth.to,
+        payer: auth.payer,
+        xUserId: auth.xUserId,
+        tokenURI: auth.tokenURI?.substring(0, 50) + "...",
+        nonce: auth.nonce,
+        deadline: auth.deadline,
+      });
+      
       const signature = await signMintAuth(auth);
+      
+      console.log("✅ MintAuth signature generated:", signature.substring(0, 20) + "...");
+      console.log("🔐 Full signature length:", signature.length);
+      
+      // Verify signature can be recovered (double-check)
+      try {
+        const { verifyMintAuth } = await import("@/lib/eip712");
+        const recoveredAddress = await verifyMintAuth(auth, signature);
+        if (!recoveredAddress) {
+          console.error("❌ CRITICAL: Generated signature verification failed!");
+          return NextResponse.json({ 
+            error: "Signature verification failed after generation",
+            hint: "Check EIP-712 domain name and contract address"
+          }, { status: 500 });
+        }
+        console.log("✅ Signature self-verification passed, recovered address:", recoveredAddress);
+        
+        // Verify recovered address matches contract owner
+        if (recoveredAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+          console.error(`❌ CRITICAL: Recovered address does NOT match contract owner!`);
+          console.error(`   Recovered: ${recoveredAddress}`);
+          console.error(`   Owner: ${ownerAddress}`);
+          return NextResponse.json({ 
+            error: `Signature verification failed: recovered address does not match owner`,
+            hint: "Check EIP-712 domain name matches contract name ('Aura Creatures')"
+          }, { status: 500 });
+        }
+        console.log("✅ Recovered address matches contract owner");
+      } catch (verifyError: any) {
+        console.error(`❌ Signature self-verification error: ${verifyError.message}`);
+        return NextResponse.json({ 
+          error: `Signature verification failed: ${verifyError.message}`,
+          hint: "Check EIP-712 domain configuration"
+        }, { status: 500 });
+      }
       
       return NextResponse.json({
         auth,

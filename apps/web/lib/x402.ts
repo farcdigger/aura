@@ -214,17 +214,52 @@ export async function verifyX402Payment(
       console.log(`   Recipient: ${paymentData.recipient}`);
       console.log(`   ⚠️ Payment commitment verified - signature IS the payment authorization`);
       
-      // Optional: If facilitator URL is provided, send payment commitment to facilitator
-      // The facilitator will execute the actual USDC transfer
+      // Execute USDC transfer via facilitator
+      // x402 Protocol: Signature authorizes payment, facilitator executes transfer
       if (facilitatorUrl) {
         try {
-          console.log(`📤 Sending payment commitment to facilitator: ${facilitatorUrl}`);
-          // TODO: Send payment header to facilitator API to execute USDC transfer
-          // For now, we just log it - facilitator integration would go here
+          console.log(`📤 Executing USDC transfer via facilitator: ${facilitatorUrl}`);
+          
+          // Send payment commitment to facilitator to execute USDC transfer
+          // Facilitator will use the signed payment commitment to execute the transfer
+          const facilitatorResponse = await fetch(`${facilitatorUrl}/execute`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              paymentHeader: paymentHeader, // Full payment header with signature
+              network: paymentData.network || "base",
+              asset: paymentData.asset || "USDC",
+              amount: paymentData.amount,
+              payer: paymentData.payer,
+              recipient: paymentData.recipient,
+            }),
+          });
+          
+          if (!facilitatorResponse.ok) {
+            const errorText = await facilitatorResponse.text();
+            console.error(`❌ Facilitator execution failed: ${facilitatorResponse.status} - ${errorText}`);
+            // Continue anyway - signature is verified, payment is authorized
+            // In production, you might want to retry or handle this differently
+            console.warn(`⚠️ USDC transfer via facilitator failed, but payment signature is verified`);
+          } else {
+            const facilitatorData = await facilitatorResponse.json();
+            console.log(`✅ Facilitator executed USDC transfer:`, facilitatorData);
+            if (facilitatorData.transactionHash) {
+              console.log(`   Transaction hash: ${facilitatorData.transactionHash}`);
+            }
+          }
         } catch (facilitatorError: any) {
-          console.warn(`⚠️ Facilitator communication failed: ${facilitatorError.message}`);
+          console.error(`❌ Facilitator communication failed: ${facilitatorError.message}`);
           // Continue anyway - signature is verified, payment is authorized
+          // In production, you might want to retry or handle this differently
+          console.warn(`⚠️ USDC transfer via facilitator failed, but payment signature is verified`);
         }
+      } else {
+        console.warn(`⚠️ No facilitator URL configured - USDC transfer not executed`);
+        console.warn(`   Payment signature is verified, but actual USDC transfer requires facilitator`);
+        console.warn(`   Set NEXT_PUBLIC_X402_FACILITATOR_URL or X402_FACILITATOR_URL environment variable`);
       }
       
       return {
