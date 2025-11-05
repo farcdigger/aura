@@ -179,7 +179,7 @@ export async function verifyX402Payment(
       console.log("✅ Signature verification successful!");
 
       // Verify payment amount matches expected
-      const expectedAmount = process.env.X402_PRICE_USDC || "2000000";
+      const expectedAmount = process.env.X402_PRICE_USDC || "100000";
       if (paymentData.amount !== expectedAmount) {
         console.error(`Payment amount mismatch: expected ${expectedAmount}, got ${paymentData.amount}`);
         return null;
