@@ -650,8 +650,12 @@ function HomePageContent() {
       console.log("⏳ Waiting for transaction confirmation...");
       
       const receipt = await tx.wait();
-      console.log("✅ Transaction confirmed:", receipt.hash);
-      console.log("✅ NFT minted successfully!");
+      if (receipt) {
+        console.log("✅ Transaction confirmed:", receipt.hash);
+        console.log("✅ NFT minted successfully!");
+      } else {
+        throw new Error("Transaction receipt is null");
+      }
       
       setStep("mint");
       setError(null);
