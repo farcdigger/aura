@@ -572,7 +572,7 @@ function HomePageContent() {
         payer: authForContract[1],
         xUserId: authForContract[2].toString(),
         xUserIdType: typeof authForContract[2],
-        tokenURI: authForContract[3] ? authForContract[3].substring(0, 50) + "..." : "N/A",
+        tokenURI: (authForContract[3] as string)?.substring(0, 50) + "..." || "N/A",
         nonce: authForContract[4].toString(),
         nonceType: typeof authForContract[4],
         deadline: authForContract[5].toString(),
