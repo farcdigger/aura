@@ -25,6 +25,16 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
     // Track used nonces to prevent replay attacks
     mapping(address => uint256) public nonces;
     
+    // MintAuth struct for EIP-712 signing
+    struct MintAuth {
+        address to;
+        address payer;
+        uint256 xUserId;
+        string tokenURI;
+        uint256 nonce;
+        uint256 deadline;
+    }
+    
     event Minted(
         address indexed to,
         address indexed payer,
@@ -49,6 +59,8 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
         require(!usedXUserId[auth.xUserId], "X user already minted");
         require(block.timestamp <= auth.deadline, "Signature expired");
         require(auth.nonce == nonces[auth.to], "Invalid nonce");
+        require(auth.to != address(0), "Invalid recipient");
+        require(bytes(auth.tokenURI).length > 0, "Token URI cannot be empty");
         
         // Verify signature
         bytes32 structHash = keccak256(
@@ -64,6 +76,7 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
         );
         bytes32 hash = _hashTypedDataV4(structHash);
         address signer = hash.recover(signature);
+        require(signer != address(0), "Invalid signature: null signer");
         require(signer == owner(), "Invalid signature");
         
         // Increment nonce
@@ -92,15 +105,6 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
     ) internal override(ERC721) returns (address) {
         return super._update(to, tokenId, auth);
     }
-}
-
-struct MintAuth {
-    address to;
-    address payer;
-    uint256 xUserId;
-    string tokenURI;
-    uint256 nonce;
-    uint256 deadline;
 }
 
 
