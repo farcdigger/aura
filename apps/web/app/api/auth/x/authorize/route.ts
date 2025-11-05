@@ -109,28 +109,54 @@ export async function GET(request: NextRequest) {
   // Store code_verifier server-side using KV (keyed by state)
   // This ensures security - verifier never exposed to client
   let verifierStored = false;
+  let kvError: any = null;
+  
   try {
     const kv = await import("@/lib/kv");
     const { isVercelKv, isSupabaseKv, isKvAvailable } = await import("@/lib/kv");
     
-    console.log("🔍 KV Status:", {
+    console.log("🔍 KV Status at authorize:", {
       isKvAvailable,
       isVercelKv,
       isSupabaseKv,
       kvType: isVercelKv ? "Vercel KV" : isSupabaseKv ? "Supabase KV" : "Mock KV",
+      hasKvUrl: !!env.KV_REST_API_URL,
+      hasKvToken: !!env.KV_REST_API_TOKEN,
+      state: state.substring(0, 6) + "...",
     });
     
+    if (!isKvAvailable) {
+      console.warn("⚠️ KV not available (using Mock KV), will use cookie fallback");
+      throw new Error("KV not available - using cookie fallback");
+    }
+    
     const stateKey = `x_oauth_verifier:${state}`;
+    console.log(`📝 Attempting to store PKCE verifier with key: ${stateKey}`);
+    
     const setexResult = await kv.kv.setex(stateKey, 600, verifier); // Store for 10 minutes
+    console.log(`📝 KV setex result:`, setexResult);
+    
     if (setexResult === "OK") {
-      console.log("✅ PKCE verifier stored in KV for state:", state.substring(0, 5) + "...");
-      // Verify it was actually stored by reading it back
+      console.log("✅ PKCE verifier stored in KV for state:", state);
+      
+      // Verify it was actually stored by reading it back immediately
+      console.log(`🔍 Verifying PKCE verifier storage with get: ${stateKey}`);
       const verifyResult = await kv.kv.get(stateKey);
+      console.log(`📝 KV get result:`, {
+        found: !!verifyResult,
+        lengthMatches: verifyResult?.length === verifier.length,
+        valueMatches: verifyResult === verifier,
+      });
+      
       if (verifyResult === verifier) {
-        console.log("✅ PKCE verifier verified in KV");
+        console.log("✅ PKCE verifier verified in KV - storage successful!");
         verifierStored = true;
       } else {
-        console.warn("⚠️ PKCE verifier stored but verification failed, using cookie fallback");
+        console.error("❌ PKCE verifier stored but verification failed!", {
+          expected: verifier.substring(0, 10) + "...",
+          got: verifyResult?.substring(0, 10) + "..." || "null",
+          willUseCookieFallback: true,
+        });
         verifierStored = false;
       }
     } else {
@@ -138,13 +164,16 @@ export async function GET(request: NextRequest) {
       verifierStored = false;
     }
   } catch (error: any) {
+    kvError = error;
     console.error("⚠️ Failed to store PKCE verifier in KV:", {
       error: error?.message || "Unknown error",
       code: error?.code,
+      stack: error?.stack?.split("\n")[0],
       note: "Will use encrypted cookie as fallback",
       suggestion: "Check KV_REST_API_URL and KV_REST_API_TOKEN in Vercel environment variables"
     });
     console.log("⚠️ KV not available - will use encrypted cookie as fallback");
+    verifierStored = false;
   }
   
   // Fallback: If KV is not available, use encrypted HTTP-only cookie
@@ -176,7 +205,7 @@ export async function GET(request: NextRequest) {
     // Set HTTP-only, secure cookie with 10 minute expiration
     // IMPORTANT: Cookie settings for Vercel deployment
     // - secure: true (required for HTTPS)
-    // - sameSite: "lax" (allows OAuth redirects from x.com)
+    // - sameSite: "none" (CRITICAL: allows OAuth redirects from x.com to work reliably)
     // - path: "/" (available site-wide)
     // - maxAge: 600 (10 minutes - enough for OAuth flow)
     // - Do NOT set domain (let browser use current domain)
@@ -184,7 +213,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set(cookieName, cookieValue, {
       httpOnly: true,
       secure: true, // Required for HTTPS (Vercel)
-      sameSite: "lax", // Allows OAuth redirects from x.com
+      sameSite: "none", // CRITICAL: allows cross-site OAuth redirects from x.com
       maxAge: 600, // 10 minutes
       path: "/",
       // Don't set domain - let browser use current domain (Vercel)
@@ -194,15 +223,17 @@ export async function GET(request: NextRequest) {
       cookieName,
       cookieValueLength: cookieValue.length,
       stateLength: state.length,
-      statePreview: state.substring(0, 5) + "...",
+      state: state, // Full state for debugging
+      kvError: kvError?.message || "N/A",
       cookieSettings: {
         httpOnly: true,
         secure: true,
-        sameSite: "lax",
+        sameSite: "none", // Changed from "lax" to "none" for cross-site OAuth
         maxAge: 600,
         path: "/",
       },
       note: "Cookie will be available for OAuth callback",
+      warning: "If cookie is not found in callback, check browser DevTools → Application → Cookies",
     });
     
     return response;
