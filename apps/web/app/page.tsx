@@ -569,54 +569,53 @@ function HomePageContent() {
         hexMatch: BigInt(permit.auth.xUserId).toString(16),
       });
       
-      // ULTIMATE FIX: Manual ABI encoding using defaultAbiCoder
-      // ethers.js CANNOT properly encode BigInt in structs/tuples
-      // We must use defaultAbiCoder to ensure proper 32-byte padding for uint256
+      // ABSOLUTE FIX: 100% Manual encoding - NO ethers.js helpers for struct!
+      // Problem: contract.interface.encodeFunctionData() re-encodes and breaks BigInt
+      // Solution: Manually build entire transaction data from scratch
       
-      const authStruct = {
+      console.log("🔧 Using 100% manual ABI encoding (no ethers.js struct helpers)");
+      console.log("📝 Auth values for encoding:", {
         to: permit.auth.to,
         payer: permit.auth.payer,
-        xUserId: xUserIdBigInt,                  // BigInt
-        tokenURI: permit.auth.tokenURI,
-        nonce: BigInt(permit.auth.nonce),        // BigInt
-        deadline: BigInt(permit.auth.deadline),  // BigInt
-      };
-      
-      console.log("🔧 Using manual ABI encoding for guaranteed uint256 padding");
-      console.log("📝 Auth struct values:", {
-        to: authStruct.to,
-        payer: authStruct.payer,
-        xUserId: authStruct.xUserId.toString(),
-        tokenURI: authStruct.tokenURI?.substring(0, 50) + "...",
-        nonce: authStruct.nonce.toString(),
-        deadline: authStruct.deadline.toString(),
+        xUserId: xUserIdBigInt.toString(),
+        xUserIdHex: "0x" + xUserIdBigInt.toString(16).padStart(64, "0"),
+        tokenURI: permit.auth.tokenURI?.substring(0, 50) + "...",
+        nonce: permit.auth.nonce,
+        deadline: permit.auth.deadline,
       });
       
-      // Create ABI coder for manual encoding
+      // Create ABI coder
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       
-      // Encode the struct manually - this GUARANTEES proper uint256 encoding
+      // Encode ONLY the struct - this is correct
       const encodedAuth = abiCoder.encode(
         ["tuple(address,address,uint256,string,uint256,uint256)"],
         [[
-          authStruct.to,
-          authStruct.payer,
-          authStruct.xUserId,      // Will be properly padded to 32 bytes
-          authStruct.tokenURI,
-          authStruct.nonce,        // Will be properly padded to 32 bytes
-          authStruct.deadline      // Will be properly padded to 32 bytes
+          permit.auth.to,
+          permit.auth.payer,
+          xUserIdBigInt,                       // BigInt - will be padded
+          permit.auth.tokenURI,
+          BigInt(permit.auth.nonce),           // BigInt
+          BigInt(permit.auth.deadline)         // BigInt
         ]]
       );
       
       console.log("📝 Manually encoded auth (first 100 chars):", encodedAuth.substring(0, 100));
       
-      // Now use contract.interface to create the full transaction data
-      const mintData = contract.interface.encodeFunctionData("mintWithSig", [
-        authStruct,  // Pass as object - interface will use our manual encoding
-        permit.signature
-      ]);
+      // Encode signature separately
+      const encodedSignature = abiCoder.encode(["bytes"], [permit.signature]);
+      console.log("📝 Encoded signature (first 100 chars):", encodedSignature.substring(0, 100));
       
-      console.log("📝 Full mint transaction data (first 200 chars):", mintData.substring(0, 200));
+      // Get function selector for mintWithSig
+      const functionSelector = contract.interface.getFunction("mintWithSig")!.selector;
+      console.log("📝 Function selector:", functionSelector);
+      
+      // Build complete transaction data manually
+      // Format: selector + encoded_auth + encoded_signature
+      const mintData = functionSelector + encodedAuth.slice(2) + encodedSignature.slice(2);
+      
+      console.log("📝 Complete mint data length:", mintData.length);
+      console.log("📝 Complete mint data (first 200 chars):", mintData.substring(0, 200));
       
       let tx;
       try {
