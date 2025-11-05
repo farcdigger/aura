@@ -546,7 +546,7 @@ function HomePageContent() {
       
       // Convert xUserId from hex string to BigInt for contract call
       // Backend stores xUserId as hex string (0x...), but contract expects uint256
-      // CRITICAL: Must explicitly construct the tuple to ensure proper encoding
+      // CRITICAL: ethers.js requires struct object format for proper ABI encoding
       const xUserIdBigInt = BigInt(permit.auth.xUserId);
       
       console.log("📝 xUserId conversion check:", {
@@ -557,30 +557,31 @@ function HomePageContent() {
         hexMatch: BigInt(permit.auth.xUserId).toString(16),
       });
       
-      // Explicitly construct the auth tuple with all BigInt conversions
-      const authForContract = [
-        permit.auth.to,           // address to
-        permit.auth.payer,        // address payer
-        xUserIdBigInt,           // uint256 xUserId - MUST be BigInt
-        permit.auth.tokenURI,    // string tokenURI
-        BigInt(permit.auth.nonce),    // uint256 nonce
-        BigInt(permit.auth.deadline), // uint256 deadline
-      ];
+      // Construct auth struct object (NOT array!) for proper ABI encoding
+      // ethers.js encodes struct objects correctly with proper padding
+      const authForContract = {
+        to: permit.auth.to,
+        payer: permit.auth.payer,
+        xUserId: xUserIdBigInt,           // uint256 - MUST be BigInt
+        tokenURI: permit.auth.tokenURI,
+        nonce: BigInt(permit.auth.nonce),      // uint256 - MUST be BigInt
+        deadline: BigInt(permit.auth.deadline), // uint256 - MUST be BigInt
+      };
       
-      console.log("📝 Auth tuple for contract:", {
-        to: authForContract[0],
-        payer: authForContract[1],
-        xUserId: authForContract[2].toString(),
-        xUserIdType: typeof authForContract[2],
-        tokenURI: (authForContract[3] as string)?.substring(0, 50) + "..." || "N/A",
-        nonce: authForContract[4].toString(),
-        nonceType: typeof authForContract[4],
-        deadline: authForContract[5].toString(),
-        deadlineType: typeof authForContract[5],
+      console.log("📝 Auth struct for contract:", {
+        to: authForContract.to,
+        payer: authForContract.payer,
+        xUserId: authForContract.xUserId.toString(),
+        xUserIdType: typeof authForContract.xUserId,
+        tokenURI: authForContract.tokenURI?.substring(0, 50) + "..." || "N/A",
+        nonce: authForContract.nonce.toString(),
+        nonceType: typeof authForContract.nonce,
+        deadline: authForContract.deadline.toString(),
+        deadlineType: typeof authForContract.deadline,
       });
       
-      // Call mintWithSig with explicit tuple encoding
-      console.log("📝 Calling mintWithSig with tuple...");
+      // Call mintWithSig with struct object (ethers.js will encode correctly)
+      console.log("📝 Calling mintWithSig with struct object...");
       const tx = await contract.mintWithSig(authForContract, permit.signature);
       console.log("✅ Transaction sent:", tx.hash);
       console.log("⏳ Waiting for transaction confirmation...");
