@@ -437,75 +437,17 @@ function HomePageContent() {
           const signer = await provider.getSigner();
           const walletAddress = await signer.getAddress();
           
-          // Generate payment header using Daydreams pattern
-          // Note: We're using our own implementation since we're not using Daydreams SDK for minting
-          // But we follow the same x402 protocol
+          // Generate x402 payment header using EIP-712 signature
+          // x402 Protocol: User signs payment commitment, facilitator executes USDC transfer
+          // Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
           const paymentHeader = await generateX402PaymentHeader(
             walletAddress,
             signer,
             paymentOption
           );
           
-          console.log(`✅ Payment header generated`);
-          
-          // Execute actual USDC transfer
-          console.log("💰 Executing USDC transfer...");
-          const usdcAddress = paymentOption.network === "base" 
-            ? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" // Base Mainnet USDC
-            : paymentOption.network === "base-sepolia"
-            ? (process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || null)
-            : null;
-          
-          if (!usdcAddress) {
-            throw new Error(`USDC contract address not configured for network: ${paymentOption.network}`);
-          }
-          
-          // USDC ABI for transfer
-          const usdcAbi = [
-            "function transfer(address to, uint256 amount) returns (bool)",
-            "function decimals() view returns (uint8)",
-            "function balanceOf(address owner) view returns (uint256)",
-          ];
-          
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, signer);
-          
-          // Check balance before transfer
-          const balance = await usdcContract.balanceOf(walletAddress);
-          const requiredAmount = BigInt(paymentOption.amount);
-          
-          if (balance < requiredAmount) {
-            const decimals = await usdcContract.decimals();
-            const decimalsNum = typeof decimals === 'bigint' ? Number(decimals) : Number(decimals);
-            const divisor = BigInt(10 ** decimalsNum);
-            const whole = requiredAmount / divisor;
-            const fraction = requiredAmount % divisor;
-            const formattedRequired = `${whole}.${fraction.toString().padStart(decimalsNum, "0")}`;
-            
-            const wholeBalance = balance / divisor;
-            const fractionBalance = balance % divisor;
-            const formattedBalance = `${wholeBalance}.${fractionBalance.toString().padStart(decimalsNum, "0")}`;
-            
-            throw new Error(
-              `Insufficient USDC balance. Required: ${formattedRequired} USDC, Available: ${formattedBalance} USDC`
-            );
-          }
-          
-          // Execute USDC transfer
-          console.log(`💸 Transferring ${paymentOption.amount} USDC to ${paymentOption.recipient}...`);
-          const transferTx = await usdcContract.transfer(paymentOption.recipient, paymentOption.amount);
-          console.log(`📝 Transfer transaction sent: ${transferTx.hash}`);
-          
-          // Wait for transaction confirmation
-          console.log("⏳ Waiting for transfer confirmation...");
-          const receipt = await transferTx.wait();
-          console.log(`✅ USDC transfer confirmed! Transaction hash: ${receipt.hash}`);
-          console.log(`   Block number: ${receipt.blockNumber}`);
-          
-          // Add transaction hash to payment header for verification
-          const paymentData = JSON.parse(paymentHeader);
-          paymentData.transactionHash = receipt.hash;
-          paymentData.blockNumber = receipt.blockNumber;
-          const updatedPaymentHeader = JSON.stringify(paymentData);
+          console.log(`✅ Payment header generated (EIP-712 signature)`);
+          console.log(`   Facilitator will execute USDC transfer automatically`);
           
           // Retry mint permit request with payment proof
           console.log("📝 Requesting mint permit with payment proof...");
@@ -513,7 +455,7 @@ function HomePageContent() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-PAYMENT": updatedPaymentHeader,
+              "X-PAYMENT": paymentHeader,
             },
             body: JSON.stringify({
               wallet,
