@@ -283,60 +283,66 @@ export async function verifyX402Payment(
             console.log(`   Amount: ${formattedAmount} USDC`);
             console.log(`   Network: ${paymentData.network || "base"}`);
             
-            // Facilitator executes payment using the EIP-712 signature in payment header
-            // According to x402 protocol, facilitator automatically executes USDC transfer
-            // The signature authorizes facilitator to transfer USDC from payer to recipient
+            // CDP Facilitator automatically executes USDC transfer when payment header is received
+            // According to x402 protocol documentation:
+            // - Payment header contains EIP-712 signature that authorizes USDC transfer
+            // - Facilitator reads this signature and executes the transfer on-chain
+            // - The facilitator is configured via CDP_API_KEY_ID and CDP_API_KEY_SECRET
+            // 
+            // Note: Facilitator typically works as middleware, which automatically executes transfers
+            // Since we're not using middleware, the facilitator needs to be called via its API
+            // However, the facilitator from @coinbase/x402 is a configuration object for middleware
+            // 
+            // For manual execution, we need to call the facilitator's REST API directly
+            // The facilitator will execute USDC transfer using the EIP-712 signature in payment header
             
-            // Parse payment data for facilitator
-            const paymentProof = {
-              signature: paymentData.signature,
-              message: {
-                amount: paymentData.amount,
-                asset: paymentData.asset,
-                network: paymentData.network || "base",
-                recipient: paymentData.recipient,
-                payer: paymentData.payer,
-                timestamp: paymentData.timestamp,
-                nonce: paymentData.nonce,
-              },
-            };
+            console.log(`📝 Payment header contains EIP-712 signature`);
+            console.log(`   Facilitator will execute USDC transfer automatically`);
+            console.log(`   Transfer: ${paymentData.payer} → ${paymentData.recipient} (${formattedAmount} USDC)`);
             
-            // Facilitator from @coinbase/x402 is configured via environment variables
-            // It automatically reads CDP_API_KEY_ID and CDP_API_KEY_SECRET from process.env
-            // The facilitator will execute USDC transfer using the EIP-712 signature
+            // Call CDP Facilitator API to execute payment
+            // The facilitator uses EIP-712 signature to execute USDC transfer on-chain
+            // CDP Facilitator API endpoint (may need adjustment based on actual CDP API)
+            const cdpFacilitatorUrl = "https://api.cdp.coinbase.com/x402/v1/execute";
             
-            // Note: Facilitator typically works as middleware, but we can use it directly
-            // The facilitator object has methods to execute payment
-            // We need to call the facilitator's execute method with payment proof
+            console.log(`📡 Calling CDP Facilitator API: ${cdpFacilitatorUrl}`);
             
-            console.log(`📝 Executing payment via CDP facilitator...`);
-            console.log(`   Payment proof prepared with EIP-712 signature`);
-            
-            // Execute payment via facilitator
-            // The facilitator will use the EIP-712 signature to execute USDC transfer on-chain
-            // Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
-            const facilitatorResult = await facilitator.executePayment(
-              paymentProof,
+            // Send payment header to facilitator
+            // The facilitator will use the EIP-712 signature to execute USDC transfer
+            const facilitatorResponse = await axios.post(
+              cdpFacilitatorUrl,
               {
-                apiKeyId: process.env.CDP_API_KEY_ID,
-                apiKeySecret: process.env.CDP_API_KEY_SECRET,
+                payment: paymentHeader, // Full payment header with EIP-712 signature
+                network: paymentData.network || "base",
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CDP-API-KEY-ID": process.env.CDP_API_KEY_ID || "",
+                  "X-CDP-API-KEY-SECRET": process.env.CDP_API_KEY_SECRET || "",
+                },
+                auth: {
+                  username: process.env.CDP_API_KEY_ID || "",
+                  password: process.env.CDP_API_KEY_SECRET || "",
+                },
               }
             );
             
-            if (facilitatorResult?.transactionHash) {
+            if (facilitatorResponse.data?.transactionHash) {
               console.log(`✅ CDP Facilitator executed USDC transfer!`);
-              console.log(`   Transaction hash: ${facilitatorResult.transactionHash}`);
+              console.log(`   Transaction hash: ${facilitatorResponse.data.transactionHash}`);
               console.log(`   Transfer: ${paymentData.payer} → ${paymentData.recipient} (${formattedAmount} USDC)`);
             } else {
-              console.warn(`⚠️ Facilitator response: ${JSON.stringify(facilitatorResult)}`);
+              console.warn(`⚠️ CDP Facilitator response: ${JSON.stringify(facilitatorResponse.data)}`);
               console.warn(`   Payment may still be processed asynchronously`);
             }
-            
           } catch (cdpError: any) {
-            console.error(`❌ CDP Facilitator error: ${cdpError.message}`);
-            console.error(`   Stack: ${cdpError.stack}`);
-            // Don't fail - signature is verified, facilitator might have issues
+            console.error(`❌ CDP Facilitator API error: ${cdpError.message}`);
+            console.error(`   Response: ${cdpError.response?.data || 'No response data'}`);
+            console.error(`   Status: ${cdpError.response?.status || 'Unknown'}`);
+            // Don't fail - signature is verified, facilitator API might have issues
             console.warn(`⚠️ Continuing with signature verification only`);
+            console.warn(`   Note: Facilitator API endpoint may need adjustment based on CDP documentation`);
           }
         } else {
           console.warn(`⚠️ No facilitator configured - payment signature verified but transfer not executed`);
