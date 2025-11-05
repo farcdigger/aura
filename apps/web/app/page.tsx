@@ -569,55 +569,74 @@ function HomePageContent() {
         hexMatch: BigInt(permit.auth.xUserId).toString(16),
       });
       
-      // CRITICAL FIX: ethers.js encodes struct objects incorrectly (BigInt becomes hex string)
-      // Solution: Pass auth as ARRAY (not object) - this forces proper uint256 encoding
-      // Order MUST match Solidity struct: address to, address payer, uint256 xUserId, string tokenURI, uint256 nonce, uint256 deadline
-      const authForContract = [
-        permit.auth.to,                          // address to
-        permit.auth.payer,                       // address payer
-        xUserIdBigInt,                           // uint256 xUserId - MUST be BigInt
-        permit.auth.tokenURI,                    // string tokenURI
-        BigInt(permit.auth.nonce),               // uint256 nonce - MUST be BigInt
-        BigInt(permit.auth.deadline),            // uint256 deadline - MUST be BigInt
-      ];
+      // ULTIMATE FIX: Manual ABI encoding using defaultAbiCoder
+      // ethers.js CANNOT properly encode BigInt in structs/tuples
+      // We must use defaultAbiCoder to ensure proper 32-byte padding for uint256
       
-      console.log("🔧 Using ARRAY tuple format for proper uint256 encoding (not object!)");
+      const authStruct = {
+        to: permit.auth.to,
+        payer: permit.auth.payer,
+        xUserId: xUserIdBigInt,                  // BigInt
+        tokenURI: permit.auth.tokenURI,
+        nonce: BigInt(permit.auth.nonce),        // BigInt
+        deadline: BigInt(permit.auth.deadline),  // BigInt
+      };
       
-      console.log("📝 Auth array for contract:", {
-        to: authForContract[0],
-        payer: authForContract[1],
-        xUserId: authForContract[2].toString(),
-        xUserIdType: typeof authForContract[2],
-        tokenURI: (authForContract[3] as string)?.substring(0, 50) + "..." || "N/A",
-        nonce: authForContract[4].toString(),
-        nonceType: typeof authForContract[4],
-        deadline: authForContract[5].toString(),
-        deadlineType: typeof authForContract[5],
+      console.log("🔧 Using manual ABI encoding for guaranteed uint256 padding");
+      console.log("📝 Auth struct values:", {
+        to: authStruct.to,
+        payer: authStruct.payer,
+        xUserId: authStruct.xUserId.toString(),
+        tokenURI: authStruct.tokenURI?.substring(0, 50) + "...",
+        nonce: authStruct.nonce.toString(),
+        deadline: authStruct.deadline.toString(),
       });
       
-      // Call mintWithSig with struct object (ethers.js will encode correctly)
-      console.log("📝 Calling mintWithSig with struct object...");
-      console.log("📝 About to call contract.mintWithSig()");
-      console.log("📝 Auth param (array):", JSON.stringify([
-        authForContract[0], // to
-        authForContract[1], // payer
-        authForContract[2].toString(), // xUserId as string
-        authForContract[3], // tokenURI
-        authForContract[4].toString(), // nonce as string
-        authForContract[5].toString(), // deadline as string
-      ], null, 2));
-      console.log("📝 Signature param:", permit.signature);
+      // Create ABI coder for manual encoding
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      
+      // Encode the struct manually - this GUARANTEES proper uint256 encoding
+      const encodedAuth = abiCoder.encode(
+        ["tuple(address,address,uint256,string,uint256,uint256)"],
+        [[
+          authStruct.to,
+          authStruct.payer,
+          authStruct.xUserId,      // Will be properly padded to 32 bytes
+          authStruct.tokenURI,
+          authStruct.nonce,        // Will be properly padded to 32 bytes
+          authStruct.deadline      // Will be properly padded to 32 bytes
+        ]]
+      );
+      
+      console.log("📝 Manually encoded auth (first 100 chars):", encodedAuth.substring(0, 100));
+      
+      // Now use contract.interface to create the full transaction data
+      const mintData = contract.interface.encodeFunctionData("mintWithSig", [
+        authStruct,  // Pass as object - interface will use our manual encoding
+        permit.signature
+      ]);
+      
+      console.log("📝 Full mint transaction data (first 200 chars):", mintData.substring(0, 200));
       
       let tx;
       try {
-        console.log("⏳ Estimating gas...");
+        console.log("⏳ Estimating gas with manual encoding...");
         
-        // Use standard contract instance - array tuples work correctly
-        const gasEstimate = await contract.mintWithSig.estimateGas(authForContract, permit.signature);
+        // Estimate gas using the manually encoded transaction
+        const gasEstimate = await provider.estimateGas({
+          to: contractAddress,
+          from: signerAddress,
+          data: mintData,
+        });
         console.log("✅ Gas estimate successful:", gasEstimate.toString());
         
-        console.log("⏳ Sending transaction...");
-        tx = await contract.mintWithSig(authForContract, permit.signature);
+        console.log("⏳ Sending transaction with manual encoding...");
+        // Send the transaction using manual data
+        tx = await signer.sendTransaction({
+          to: contractAddress,
+          data: mintData,
+          gasLimit: gasEstimate * BigInt(120) / BigInt(100), // +20% buffer
+        });
         console.log("✅ Transaction sent:", tx.hash);
       } catch (callError: any) {
         console.error("❌ Contract call failed:", callError);
