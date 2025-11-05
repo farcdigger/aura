@@ -621,14 +621,38 @@ function HomePageContent() {
       let tx;
       try {
         console.log("⏳ Estimating gas with manual encoding...");
-        
-        // Estimate gas using the manually encoded transaction
-        const gasEstimate = await provider.estimateGas({
+        console.log("📝 Estimate params:", {
           to: contractAddress,
           from: signerAddress,
-          data: mintData,
+          dataLength: mintData.length,
         });
-        console.log("✅ Gas estimate successful:", gasEstimate.toString());
+        
+        // Estimate gas using the manually encoded transaction
+        let gasEstimate;
+        try {
+          gasEstimate = await provider.estimateGas({
+            to: contractAddress,
+            from: signerAddress,
+            data: mintData,
+          });
+          console.log("✅ Gas estimate successful:", gasEstimate.toString());
+        } catch (gasError: any) {
+          console.error("❌ Gas estimation failed:", gasError);
+          console.error("❌ Gas error message:", gasError.message);
+          console.error("❌ Gas error code:", gasError.code);
+          console.error("❌ Gas error data:", gasError.data);
+          
+          // Try to decode the revert reason
+          if (gasError.data) {
+            try {
+              const reason = contract.interface.parseError(gasError.data);
+              console.error("❌ Revert reason:", reason);
+            } catch (e) {
+              console.error("❌ Could not decode revert reason");
+            }
+          }
+          throw gasError;
+        }
         
         console.log("⏳ Sending transaction with manual encoding...");
         // Send the transaction using manual data
