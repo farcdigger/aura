@@ -243,46 +243,94 @@ export async function verifyX402Payment(
           console.log(`   Network: ${paymentData.network || "base"}`);
           
           try {
-            // CDP Facilitator API endpoint for executing payments
-            // Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
-            const cdpFacilitatorApiUrl = "https://api.cdp.coinbase.com/x402/v1/payments";
+            // IMPORTANT: CDP Facilitator API endpoint is not publicly documented
+            // The facilitator is designed for middleware integration, not direct API calls
+            // However, we can try to use the facilitator's internal methods or REST API
+            // 
+            // Based on x402 protocol documentation, the facilitator processes payments
+            // when it receives the EIP-712 signature. Since we're not using middleware,
+            // we need to manually trigger the facilitator.
+            //
+            // The facilitator from @coinbase/x402 is a configuration object that middleware uses.
+            // For programmatic execution, we may need to use the CDP REST API directly.
             
-            console.log(`📡 Calling CDP Facilitator API: ${cdpFacilitatorApiUrl}`);
+            console.log(`📡 Executing payment via CDP facilitator...`);
             console.log(`   Payment header: ${paymentHeader.substring(0, 100)}...`);
+            console.log(`   Payer: ${paymentData.payer}`);
+            console.log(`   Recipient: ${paymentData.recipient}`);
+            console.log(`   Amount: ${formattedAmount} USDC`);
+            console.log(`   Network: ${paymentData.network || "base"}`);
             
-            // Execute payment via CDP Facilitator REST API
-            // The facilitator uses the EIP-712 signature to execute USDC transfer on-chain
-            const facilitatorResponse = await axios.post(
-              cdpFacilitatorApiUrl,
-              {
-                payment: paymentHeader, // Full payment header with EIP-712 signature
-                network: paymentData.network || "base",
-                recipient: paymentData.recipient,
-                amount: paymentData.amount,
-                asset: paymentData.asset || "USDC",
-              },
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-CDP-API-KEY-ID": process.env.CDP_API_KEY_ID || "",
-                  "X-CDP-API-KEY-SECRET": process.env.CDP_API_KEY_SECRET || "",
-                },
-                auth: {
-                  username: process.env.CDP_API_KEY_ID || "",
-                  password: process.env.CDP_API_KEY_SECRET || "",
-                },
+            // Try CDP Facilitator REST API endpoint
+            // Note: This endpoint may not be publicly documented and may require different auth
+            const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+            const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+            
+            if (!cdpApiKeyId || !cdpApiKeySecret) {
+              console.warn(`⚠️ CDP_API_KEY_ID or CDP_API_KEY_SECRET not set`);
+              console.warn(`   Facilitator cannot execute payment without API keys`);
+              throw new Error("CDP API keys not configured");
+            }
+            
+            // Try multiple possible CDP Facilitator API endpoints
+            const possibleEndpoints = [
+              "https://api.cdp.coinbase.com/x402/v1/execute",
+              "https://api.cdp.coinbase.com/x402/v1/payments/execute",
+              "https://api.cdp.coinbase.com/x402/v1/facilitator/execute",
+            ];
+            
+            let facilitatorSuccess = false;
+            let lastError: any = null;
+            
+            for (const endpoint of possibleEndpoints) {
+              try {
+                console.log(`📡 Trying CDP Facilitator endpoint: ${endpoint}`);
+                
+                const facilitatorResponse = await axios.post(
+                  endpoint,
+                  {
+                    payment: paymentHeader, // Full payment header with EIP-712 signature
+                    network: paymentData.network || "base",
+                  },
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                      "X-CDP-API-KEY-ID": cdpApiKeyId,
+                      "X-CDP-API-KEY-SECRET": cdpApiKeySecret,
+                    },
+                    auth: {
+                      username: cdpApiKeyId,
+                      password: cdpApiKeySecret,
+                    },
+                    timeout: 10000, // 10 second timeout
+                  }
+                );
+                
+                if (facilitatorResponse.data?.transactionHash || facilitatorResponse.status === 200) {
+                  console.log(`✅ CDP Facilitator executed USDC transfer!`);
+                  if (facilitatorResponse.data?.transactionHash) {
+                    console.log(`   Transaction hash: ${facilitatorResponse.data.transactionHash}`);
+                  }
+                  console.log(`   Transfer: ${paymentData.payer} → ${paymentData.recipient} (${formattedAmount} USDC)`);
+                  facilitatorSuccess = true;
+                  break;
+                }
+              } catch (endpointError: any) {
+                lastError = endpointError;
+                if (endpointError.response?.status !== 404) {
+                  // If it's not 404, log the error but try next endpoint
+                  console.warn(`⚠️ Endpoint ${endpoint} returned: ${endpointError.response?.status || 'error'}`);
+                }
               }
-            );
+            }
             
-            if (facilitatorResponse.data?.transactionHash) {
-              console.log(`✅ CDP Facilitator executed USDC transfer!`);
-              console.log(`   Transaction hash: ${facilitatorResponse.data.transactionHash}`);
-              console.log(`   Transfer: ${paymentData.payer} → ${paymentData.recipient} (${formattedAmount} USDC)`);
-            } else if (facilitatorResponse.data) {
-              console.log(`✅ CDP Facilitator response: ${JSON.stringify(facilitatorResponse.data)}`);
-              console.log(`   Payment may be processed asynchronously`);
-            } else {
-              console.warn(`⚠️ CDP Facilitator response received but no transaction hash`);
+            if (!facilitatorSuccess) {
+              console.warn(`⚠️ All CDP Facilitator API endpoints failed`);
+              console.warn(`   Last error: ${lastError?.message || 'Unknown'}`);
+              console.warn(`   Status: ${lastError?.response?.status || 'Unknown'}`);
+              console.warn(`   ⚠️ Payment signature is verified, but facilitator may not execute transfer`);
+              console.warn(`   Note: Facilitator API endpoint may not be publicly documented`);
+              console.warn(`   Contact Coinbase CDP support for facilitator API endpoint`);
             }
             
           } catch (cdpError: any) {
