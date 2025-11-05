@@ -440,6 +440,7 @@ function HomePageContent() {
           // Generate x402 payment header using EIP-712 signature
           // x402 Protocol: User signs payment commitment, facilitator executes USDC transfer
           // Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
+          // The facilitator will automatically execute USDC transfer when payment header is received
           const paymentHeader = await generateX402PaymentHeader(
             walletAddress,
             signer,
@@ -448,6 +449,7 @@ function HomePageContent() {
           
           console.log(`✅ Payment header generated (EIP-712 signature)`);
           console.log(`   Facilitator will execute USDC transfer automatically`);
+          console.log(`   Recipient: ${paymentOption.recipient}`);
           
           // Retry mint permit request with payment proof
           console.log("📝 Requesting mint permit with payment proof...");
