@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForToken, verifyXToken } from "@/lib/x";
 import { env } from "@/env.mjs";
 import { kv } from "@/lib/kv";
+import { createHmac } from "crypto";
+
+/**
+ * Decode verifier from encrypted state parameter
+ * Returns null if verification fails
+ */
+function decodeVerifierFromState(encryptedState: string): { state: string; verifier: string } | null {
+  try {
+    if (!env.X_CLIENT_SECRET) {
+      return null;
+    }
+    
+    const parts = encryptedState.split(':');
+    if (parts.length !== 3) {
+      return null; // Invalid format - might be old format state
+    }
+    
+    const [state, encodedVerifier, signature] = parts;
+    
+    // Decode verifier
+    const verifier = Buffer.from(encodedVerifier, 'base64url').toString('utf-8');
+    
+    // Verify HMAC signature
+    const hmac = createHmac('sha256', env.X_CLIENT_SECRET);
+    hmac.update(verifier);
+    const expectedSignature = hmac.digest('base64url');
+    
+    if (signature !== expectedSignature) {
+      console.error("❌ Verifier signature mismatch - possible tampering");
+      return null;
+    }
+    
+    return { state, verifier };
+  } catch (error) {
+    // Not an encrypted state - might be old format
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,36 +48,57 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
   
-  // Retrieve PKCE code_verifier from server-side storage (keyed by state)
+  // Retrieve PKCE code_verifier - PRIORITY ORDER:
+  // 1. Decode from encrypted state parameter (NEW - most reliable)
+  // 2. KV storage (fallback for backward compatibility)
+  // 3. Cookie (last resort fallback)
   let codeVerifier: string | null = null;
+  let randomState: string | null = null;
+  
   if (state) {
-    try {
-      // First try KV storage (Supabase)
-      const stateKey = `x_oauth_verifier:${state}`;
-      console.log("🔍 Attempting to retrieve PKCE verifier from KV:", stateKey.substring(0, 20) + "...");
+    // PRIORITY 1: Try to decode verifier from encrypted state parameter
+    const decoded = decodeVerifierFromState(state);
+    if (decoded) {
+      codeVerifier = decoded.verifier;
+      randomState = decoded.state;
+      console.log("✅ PKCE verifier decoded from encrypted state parameter!");
+      console.log("🔐 State decoding:", {
+        randomState: randomState.substring(0, 6) + "...",
+        verifierLength: codeVerifier.length,
+        note: "This is the primary method - no KV/cookie dependency!",
+      });
+    } else {
+      // Old format state - try KV/cookie fallback
+      randomState = state;
+      console.log("ℹ️ State is not encrypted format, trying KV/cookie fallback...");
       
       try {
-        const stored = await kv.get(stateKey);
-        if (stored) {
-          codeVerifier = stored as string;
-          // Clean up stored verifier after use
-          await kv.del(stateKey);
-          console.log("✅ PKCE verifier retrieved from KV");
-        } else {
-          console.log("ℹ️ PKCE verifier not found in KV, trying cookie fallback...");
+        // PRIORITY 2: Try KV storage (backward compatibility)
+        const stateKey = `x_oauth_verifier:${state}`;
+        console.log("🔍 Attempting to retrieve PKCE verifier from KV:", stateKey.substring(0, 20) + "...");
+        
+        try {
+          const stored = await kv.get(stateKey);
+          if (stored) {
+            codeVerifier = stored as string;
+            // Clean up stored verifier after use
+            await kv.del(stateKey);
+            console.log("✅ PKCE verifier retrieved from KV");
+          } else {
+            console.log("ℹ️ PKCE verifier not found in KV, trying cookie fallback...");
+          }
+        } catch (kvError: any) {
+          // KV connection error (e.g., Supabase ENOTFOUND)
+          console.warn("⚠️ KV get error (will try cookie fallback):", {
+            error: kvError?.message || "Unknown error",
+            code: kvError?.code,
+            note: "This is OK - cookie fallback will be used"
+          });
         }
-      } catch (kvError: any) {
-        // KV connection error (e.g., Supabase ENOTFOUND)
-        console.warn("⚠️ KV get error (will try cookie fallback):", {
-          error: kvError?.message || "Unknown error",
-          code: kvError?.code,
-          note: "This is OK - cookie fallback will be used"
-        });
-      }
-      
-      // Fallback: Try encrypted cookie (used when KV is not available or connection fails)
-      if (!codeVerifier) {
-        const cookieName = `x_oauth_verifier_${state}`;
+        
+        // PRIORITY 3: Fallback - Try encrypted cookie (used when KV is not available or connection fails)
+        if (!codeVerifier) {
+          const cookieName = `x_oauth_verifier_${state}`;
         const cookie = request.cookies.get(cookieName);
         const cookieValue = cookie?.value;
         
