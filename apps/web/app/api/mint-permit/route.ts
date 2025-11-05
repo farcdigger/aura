@@ -179,8 +179,9 @@ export async function POST(request: NextRequest) {
       });
       
       // Check contract owner before signing
+      let ownerAddress: string | null = null;
       try {
-        const ownerAddress = await contract.owner();
+        ownerAddress = await contract.owner();
         console.log(`📋 Contract owner: ${ownerAddress}`);
         
         // Get server signer address
@@ -235,16 +236,20 @@ export async function POST(request: NextRequest) {
         console.log("✅ Signature self-verification passed, recovered address:", recoveredAddress);
         
         // Verify recovered address matches contract owner
-        if (recoveredAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
-          console.error(`❌ CRITICAL: Recovered address does NOT match contract owner!`);
-          console.error(`   Recovered: ${recoveredAddress}`);
-          console.error(`   Owner: ${ownerAddress}`);
-          return NextResponse.json({ 
-            error: `Signature verification failed: recovered address does not match owner`,
-            hint: "Check EIP-712 domain name matches contract name ('Aura Creatures')"
-          }, { status: 500 });
+        if (ownerAddress) {
+          if (recoveredAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+            console.error(`❌ CRITICAL: Recovered address does NOT match contract owner!`);
+            console.error(`   Recovered: ${recoveredAddress}`);
+            console.error(`   Owner: ${ownerAddress}`);
+            return NextResponse.json({ 
+              error: `Signature verification failed: recovered address does not match owner`,
+              hint: "Check EIP-712 domain name matches contract name ('Aura Creatures')"
+            }, { status: 500 });
+          }
+          console.log("✅ Recovered address matches contract owner");
+        } else {
+          console.warn(`⚠️ Could not verify recovered address against contract owner (owner address not available)`);
         }
-        console.log("✅ Recovered address matches contract owner");
       } catch (verifyError: any) {
         console.error(`❌ Signature self-verification error: ${verifyError.message}`);
         return NextResponse.json({ 
