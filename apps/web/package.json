@@ -11,6 +11,7 @@
     "setup:supabase": "tsx scripts/setup-supabase.ts"
   },
   "dependencies": {
+    "@coinbase/x402": "^0.7.1",
     "@google/generative-ai": "0.24.1",
     "@supabase/supabase-js": "^2.78.0",
     "@vercel/kv": "^1.0.0",
