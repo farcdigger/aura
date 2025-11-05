@@ -15,6 +15,8 @@ function HomePageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   // Handle OAuth callback
   useEffect(() => {
@@ -663,6 +665,27 @@ function HomePageContent() {
       const receipt = await tx.wait();
       if (receipt) {
         console.log("✅ Transaction confirmed:", receipt.hash);
+        console.log("✅ Receipt:", receipt);
+        
+        // Extract tokenId from Minted event
+        // Event signature: Minted(address indexed to, address indexed payer, uint256 indexed tokenId, uint256 xUserId, string tokenURI)
+        const mintedEvent = receipt.logs.find((log: any) => {
+          try {
+            const parsed = contract.interface.parseLog(log);
+            return parsed && parsed.name === "Minted";
+          } catch {
+            return false;
+          }
+        });
+        
+        if (mintedEvent) {
+          const parsed = contract.interface.parseLog(mintedEvent);
+          const tokenId = parsed?.args?.tokenId?.toString();
+          console.log("✅ Token ID:", tokenId);
+          setMintedTokenId(tokenId || null);
+        }
+        
+        setTransactionHash(receipt.hash);
         console.log("✅ NFT minted successfully!");
       } else {
         throw new Error("Transaction receipt is null");
@@ -854,10 +877,96 @@ function HomePageContent() {
             </div>
           )}
           
-          {step === "mint" && (
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
-              <h2 className="text-2xl font-bold mb-4">Success!</h2>
-              <p className="text-lg text-gray-300">Your NFT has been minted successfully!</p>
+          {step === "mint" && generated && (
+            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8">
+              {/* Success Header */}
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-3xl font-bold mb-2">Congratulations!</h2>
+                <p className="text-lg text-gray-300">Your Aura Creature NFT has been minted successfully!</p>
+              </div>
+              
+              {/* NFT Image */}
+              <div className="mb-6">
+                {generated.imageUrl ? (
+                  <div className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={generated.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/")} 
+                      alt="Your Minted NFT" 
+                      className="w-full rounded-lg border-4 border-yellow-500/50 shadow-2xl" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ) : null}
+              </div>
+              
+              {/* Token Info */}
+              <div className="bg-black/30 rounded-lg p-4 mb-6 space-y-3">
+                {mintedTokenId && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Token ID:</span>
+                    <span className="font-mono font-bold text-yellow-400">#{mintedTokenId}</span>
+                  </div>
+                )}
+                {transactionHash && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Transaction:</span>
+                    <a 
+                      href={`https://basescan.org/tx/${transactionHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm text-blue-400 hover:text-blue-300 underline truncate max-w-[200px]"
+                    >
+                      {transactionHash.slice(0, 10)}...{transactionHash.slice(-8)}
+                    </a>
+                  </div>
+                )}
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {/* OpenSea Link */}
+                <a
+                  href={`https://opensea.io/assets/base/0x3ACA7E83B208E5243FE31eB3690c6781aB3010bb/${mintedTokenId || ""}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center transition-colors"
+                >
+                  🌊 View on OpenSea
+                </a>
+                
+                {/* BaseScan Link */}
+                {transactionHash && (
+                  <a
+                    href={`https://basescan.org/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-center transition-colors"
+                  >
+                    🔍 View Transaction
+                  </a>
+                )}
+                
+                {/* Mint Another Button */}
+                <button
+                  onClick={() => {
+                    setStep("connect");
+                    setGenerated(null);
+                    setMintedTokenId(null);
+                    setTransactionHash(null);
+                    setError(null);
+                  }}
+                  className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-center transition-colors"
+                >
+                  ✨ Create Another NFT
+                </button>
+              </div>
+              
+              {/* Share Message */}
+              <div className="mt-6 text-center text-sm text-gray-400">
+                <p>Share your Aura Creature with the world! 🚀</p>
+              </div>
             </div>
           )}
         </div>
