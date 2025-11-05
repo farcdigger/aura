@@ -269,6 +269,10 @@ export async function generateX402PaymentHeader(
   console.log(`✅ x402 Payment Header created (Coinbase CDP x402 protocol)`);
   console.log(`   User signed payment commitment - facilitator will execute USDC transfer`);
   console.log(`   ⚠️ NO separate USDC transfer transaction - facilitator handles it`);
+  console.log(`   Payment header (first 200 chars):`, paymentHeader.substring(0, 200));
+  console.log(`   Full payment data keys:`, Object.keys(paymentData));
+  console.log(`   Signature present:`, !!paymentData.signature);
+  console.log(`   Signature length:`, paymentData.signature?.length || 0);
   
   return paymentHeader;
 }

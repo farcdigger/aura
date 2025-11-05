@@ -517,15 +517,29 @@ function HomePageContent() {
               
               console.error("❌ 402 Payment Required after payment header:", errorData);
               console.error("   This means middleware did not verify the payment header");
-              console.error("   Payment header sent:", paymentHeader.substring(0, 100) + "...");
+              console.error("   Payment header sent:", paymentHeader.substring(0, 200) + "...");
+              
+              // Format error message properly
+              let errorMessage = "Middleware could not verify payment header";
+              if (errorData.error) {
+                errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+              } else if (errorData.message) {
+                errorMessage = typeof errorData.message === 'string' ? errorData.message : JSON.stringify(errorData.message);
+              } else if (typeof errorData === 'object') {
+                errorMessage = JSON.stringify(errorData);
+              } else if (typeof errorData === 'string') {
+                errorMessage = errorData;
+              }
               
               throw new Error(
-                `Payment verification failed: ${errorData.error || errorData.message || 'Middleware could not verify payment header'}\n\n` +
+                `Payment verification failed: ${errorMessage}\n\n` +
                 `Please check:\n` +
                 `1. Payment header format is correct\n` +
                 `2. EIP-712 signature is valid\n` +
-                `3. Facilitator is configured correctly\n` +
-                `4. Network matches (Base Mainnet: 8453)`
+                `3. Facilitator is configured correctly (CDP_API_KEY_ID and CDP_API_KEY_SECRET)\n` +
+                `4. Network matches (Base Mainnet: 8453)\n` +
+                `5. Wallet is connected to Base Mainnet\n\n` +
+                `Full error: ${JSON.stringify(errorData, null, 2)}`
               );
             }
             
