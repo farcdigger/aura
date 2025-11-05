@@ -184,8 +184,8 @@ export async function POST(request: NextRequest) {
         ownerAddress = await contract.owner();
         console.log(`📋 Contract owner: ${ownerAddress}`);
         
-        // Get server signer address
-        if (env.SERVER_SIGNER_PRIVATE_KEY) {
+        // Get server signer address and verify it matches contract owner
+        if (env.SERVER_SIGNER_PRIVATE_KEY && ownerAddress) {
           const serverWallet = new ethers.Wallet(env.SERVER_SIGNER_PRIVATE_KEY);
           const serverAddress = serverWallet.address;
           console.log(`🔐 Server signer address: ${serverAddress}`);
