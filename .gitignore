@@ -8,7 +8,7 @@ out/
 **/out/
 **/dist/
 
-# Environment files
+# Environment files 
 .env
 .env.local
 .env*.local
