@@ -569,53 +569,55 @@ function HomePageContent() {
         hexMatch: BigInt(permit.auth.xUserId).toString(16),
       });
       
-      // ABSOLUTE FIX: 100% Manual encoding - NO ethers.js helpers for struct!
-      // Problem: contract.interface.encodeFunctionData() re-encodes and breaks BigInt
-      // Solution: Manually build entire transaction data from scratch
+      // NUCLEAR OPTION: Use viem or manual uint256 conversion
+      // Problem: ethers.js AbiCoder ALSO breaks BigInt in nested structures!
+      // Solution: Convert xUserId to hex string with proper padding BEFORE encoding
       
-      console.log("🔧 Using 100% manual ABI encoding (no ethers.js struct helpers)");
-      console.log("📝 Auth values for encoding:", {
-        to: permit.auth.to,
-        payer: permit.auth.payer,
-        xUserId: xUserIdBigInt.toString(),
-        xUserIdHex: "0x" + xUserIdBigInt.toString(16).padStart(64, "0"),
-        tokenURI: permit.auth.tokenURI?.substring(0, 50) + "...",
-        nonce: permit.auth.nonce,
-        deadline: permit.auth.deadline,
+      console.log("🔧 Nuclear option: Pre-pad uint256 values as hex strings");
+      
+      // Convert BigInt to properly padded hex string (32 bytes = 64 hex chars)
+      const xUserIdPadded = "0x" + xUserIdBigInt.toString(16).padStart(64, "0");
+      const noncePadded = "0x" + BigInt(permit.auth.nonce).toString(16).padStart(64, "0");
+      const deadlinePadded = "0x" + BigInt(permit.auth.deadline).toString(16).padStart(64, "0");
+      
+      console.log("📝 Padded uint256 values:", {
+        xUserId: xUserIdPadded,
+        nonce: noncePadded,
+        deadline: deadlinePadded,
       });
       
-      // Create ABI coder
-      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      // Build auth struct with PADDED hex strings
+      const authForContract = {
+        to: permit.auth.to,
+        payer: permit.auth.payer,
+        xUserId: xUserIdPadded,              // Pre-padded hex string
+        tokenURI: permit.auth.tokenURI,
+        nonce: noncePadded,                  // Pre-padded hex string
+        deadline: deadlinePadded,            // Pre-padded hex string
+      };
       
-      // Encode ONLY the struct - this is correct
-      const encodedAuth = abiCoder.encode(
-        ["tuple(address,address,uint256,string,uint256,uint256)"],
-        [[
-          permit.auth.to,
-          permit.auth.payer,
-          xUserIdBigInt,                       // BigInt - will be padded
-          permit.auth.tokenURI,
-          BigInt(permit.auth.nonce),           // BigInt
-          BigInt(permit.auth.deadline)         // BigInt
-        ]]
-      );
+      console.log("📝 Auth struct for contract (with padded hex):", {
+        to: authForContract.to,
+        payer: authForContract.payer,
+        xUserId: authForContract.xUserId,
+        tokenURI: authForContract.tokenURI?.substring(0, 50) + "...",
+        nonce: authForContract.nonce,
+        deadline: authForContract.deadline,
+      });
       
-      console.log("📝 Manually encoded auth (first 100 chars):", encodedAuth.substring(0, 100));
-      
-      // Encode signature separately
-      const encodedSignature = abiCoder.encode(["bytes"], [permit.signature]);
-      console.log("📝 Encoded signature (first 100 chars):", encodedSignature.substring(0, 100));
-      
-      // Get function selector for mintWithSig
-      const functionSelector = contract.interface.getFunction("mintWithSig")!.selector;
-      console.log("📝 Function selector:", functionSelector);
-      
-      // Build complete transaction data manually
-      // Format: selector + encoded_auth + encoded_signature
-      const mintData = functionSelector + encodedAuth.slice(2) + encodedSignature.slice(2);
-      
-      console.log("📝 Complete mint data length:", mintData.length);
-      console.log("📝 Complete mint data (first 200 chars):", mintData.substring(0, 200));
+      // Now use contract.interface - it should keep our hex strings as-is
+      let mintData;
+      try {
+        mintData = contract.interface.encodeFunctionData("mintWithSig", [
+          authForContract,
+          permit.signature
+        ]);
+        console.log("✅ Transaction data encoded successfully");
+        console.log("📝 First 300 chars:", mintData.substring(0, 300));
+      } catch (encodeError: any) {
+        console.error("❌ Encoding failed:", encodeError);
+        throw new Error(`Failed to encode transaction: ${encodeError.message}`);
+      }
       
       let tx;
       try {
