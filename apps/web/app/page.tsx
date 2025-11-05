@@ -504,7 +504,38 @@ function HomePageContent() {
           console.log("Mint permit response status:", mintResponse.status);
           
           if (!mintResponse.ok) {
-            const errorData = await mintResponse.json();
+            // Handle 402 Payment Required - payment might not have been verified
+            if (mintResponse.status === 402) {
+              const errorText = await mintResponse.text();
+              let errorData: any;
+              try {
+                errorData = JSON.parse(errorText);
+              } catch {
+                errorData = { error: errorText || "Payment verification failed" };
+              }
+              
+              console.error("❌ 402 Payment Required after payment header:", errorData);
+              console.error("   This means middleware did not verify the payment header");
+              console.error("   Payment header sent:", paymentHeader.substring(0, 100) + "...");
+              
+              throw new Error(
+                `Payment verification failed: ${errorData.error || errorData.message || 'Middleware could not verify payment header'}\n\n` +
+                `Please check:\n` +
+                `1. Payment header format is correct\n` +
+                `2. EIP-712 signature is valid\n` +
+                `3. Facilitator is configured correctly\n` +
+                `4. Network matches (Base Mainnet: 8453)`
+              );
+            }
+            
+            const errorText = await mintResponse.text();
+            let errorData: any;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { error: errorText || "Unknown error" };
+            }
+            
             console.error("Mint permit failed after payment:", errorData);
             
             // Handle rate limit error (should not occur for mint, but keep for compatibility)
@@ -515,7 +546,8 @@ function HomePageContent() {
               );
             }
             
-            throw new Error(`Mint permit failed: ${errorData.error || 'Unknown error'}`);
+            const errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+            throw new Error(`Mint permit failed: ${errorMessage}`);
           }
           
           const permitData: MintPermitResponse = await mintResponse.json();

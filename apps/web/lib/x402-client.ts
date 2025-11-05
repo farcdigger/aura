@@ -225,15 +225,33 @@ export async function generateX402PaymentHeader(
   const normalizedRecipient = ethers.getAddress(paymentOption.recipient);
   const normalizedPayer = ethers.getAddress(walletAddress);
   
+  // Normalize asset: if it's a contract address, use "USDC" string instead
+  // Middleware may expect "USDC" string rather than contract address
+  const assetString = paymentOption.asset === normalizedUsdcAddress || 
+                     paymentOption.asset === usdcAddress ||
+                     (paymentOption.asset.startsWith("0x") && paymentOption.asset.length === 42)
+                     ? "USDC" 
+                     : paymentOption.asset;
+  
   const message = {
     amount: paymentOption.amount,
-    asset: paymentOption.asset,
+    asset: assetString, // Use "USDC" string instead of contract address
     network: paymentOption.network,
     recipient: normalizedRecipient, // Normalized address (no ENS resolution)
     payer: normalizedPayer, // Normalized address (no ENS resolution)
     timestamp: timestamp,
     nonce: nonce,
   };
+  
+  console.log(`📋 Payment message:`, {
+    amount: message.amount,
+    asset: message.asset,
+    network: message.network,
+    recipient: message.recipient,
+    payer: message.payer,
+    timestamp: message.timestamp,
+    nonce: message.nonce,
+  });
 
   // Sign EIP-712 payment commitment
   console.log(`📝 Signing payment commitment (EIP-712)...`);
