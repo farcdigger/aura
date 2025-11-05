@@ -56,21 +56,32 @@ export function createX402Response(recipient: string): X402PaymentResponse {
 }
 
 /**
- * Verify x402 payment for mint
- * This verifies the payment header following Coinbase CDP x402 protocol
- * The payment header contains a signed EIP-712 message that commits to a payment
- * Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
+ * @deprecated REMOVED: verifyX402Payment() function has been removed.
  * 
- * This verification:
- * 1. Verifies the EIP-712 signature
- * 2. Checks payment commitment matches the expected amount/recipient
- * 3. Facilitator executes the payment on-chain (via facilitator API)
+ * Payment verification is now handled AUTOMATICALLY by x402-next middleware (middleware.ts).
+ * The middleware automatically:
+ * 1. Verifies payment signature via facilitator
+ * 2. Facilitator executes USDC transfer automatically  
+ * 3. Only allows request to proceed if payment is valid
+ * 
+ * DO NOT implement manual payment verification - middleware handles everything!
+ * See middleware.ts for the correct implementation.
+ * 
+ * This function body has been removed to prevent accidental usage.
+ * If you need payment verification, use x402-next middleware instead.
  */
 export async function verifyX402Payment(
-  paymentHeader: string,
-  facilitatorUrl?: string,
-  rpcUrl?: string
+  _paymentHeader: string,
+  _facilitatorUrl?: string,
+  _rpcUrl?: string
 ): Promise<X402PaymentVerification | null> {
+  throw new Error(
+    "verifyX402Payment() has been removed. " +
+    "Payment verification is handled automatically by x402-next middleware. " +
+    "See middleware.ts for the correct implementation."
+  );
+  
+  /* REMOVED: Original implementation removed because middleware handles everything automatically.
   try {
     // Parse X-PAYMENT header (contains payment commitment with EIP-712 signature)
     // x402 Protocol: Signature is payment authorization - server executes USDC transfer
@@ -429,9 +440,10 @@ export async function verifyX402Payment(
       console.error("EIP-712 signature verification error:", sigError.message);
       return null;
     }
-  } catch (error: any) {
+    } catch (error: any) {
     console.error("x402 verification error:", error.message);
     return null;
   }
+  */
 }
 
