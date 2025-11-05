@@ -569,34 +569,35 @@ function HomePageContent() {
         hexMatch: BigInt(permit.auth.xUserId).toString(16),
       });
       
-      // NUCLEAR OPTION: Use viem or manual uint256 conversion
-      // Problem: ethers.js AbiCoder ALSO breaks BigInt in nested structures!
-      // Solution: Convert xUserId to hex string with proper padding BEFORE encoding
+      // FINAL FIX: Use DECIMAL STRING representation (not hex!)
+      // Backend signs with BigInt, frontend must send as BigInt-compatible format
+      // ethers.js accepts decimal strings for uint256 and converts properly
       
-      console.log("🔧 Nuclear option: Pre-pad uint256 values as hex strings");
+      console.log("🔧 Final fix: Use decimal string representation for uint256");
       
-      // Convert BigInt to properly padded hex string (32 bytes = 64 hex chars)
-      const xUserIdPadded = "0x" + xUserIdBigInt.toString(16).padStart(64, "0");
-      const noncePadded = "0x" + BigInt(permit.auth.nonce).toString(16).padStart(64, "0");
-      const deadlinePadded = "0x" + BigInt(permit.auth.deadline).toString(16).padStart(64, "0");
+      // Convert BigInt to DECIMAL string (not hex!)
+      // This is what ethers.js expects for uint256 in structs
+      const xUserIdDecimal = xUserIdBigInt.toString(10); // Decimal string
+      const nonceDecimal = BigInt(permit.auth.nonce).toString(10);
+      const deadlineDecimal = BigInt(permit.auth.deadline).toString(10);
       
-      console.log("📝 Padded uint256 values:", {
-        xUserId: xUserIdPadded,
-        nonce: noncePadded,
-        deadline: deadlinePadded,
+      console.log("📝 Decimal uint256 values:", {
+        xUserId: xUserIdDecimal,
+        nonce: nonceDecimal,
+        deadline: deadlineDecimal,
       });
       
-      // Build auth struct with PADDED hex strings
+      // Build auth struct with DECIMAL strings
       const authForContract = {
         to: permit.auth.to,
         payer: permit.auth.payer,
-        xUserId: xUserIdPadded,              // Pre-padded hex string
+        xUserId: xUserIdDecimal,             // Decimal string (uint256)
         tokenURI: permit.auth.tokenURI,
-        nonce: noncePadded,                  // Pre-padded hex string
-        deadline: deadlinePadded,            // Pre-padded hex string
+        nonce: nonceDecimal,                 // Decimal string (uint256)
+        deadline: deadlineDecimal,           // Decimal string (uint256)
       };
       
-      console.log("📝 Auth struct for contract (with padded hex):", {
+      console.log("📝 Auth struct for contract (decimal strings):", {
         to: authForContract.to,
         payer: authForContract.payer,
         xUserId: authForContract.xUserId,
@@ -605,37 +606,20 @@ function HomePageContent() {
         deadline: authForContract.deadline,
       });
       
-      // Now use contract.interface - it should keep our hex strings as-is
-      let mintData;
-      try {
-        mintData = contract.interface.encodeFunctionData("mintWithSig", [
-          authForContract,
-          permit.signature
-        ]);
-        console.log("✅ Transaction data encoded successfully");
-        console.log("📝 First 300 chars:", mintData.substring(0, 300));
-      } catch (encodeError: any) {
-        console.error("❌ Encoding failed:", encodeError);
-        throw new Error(`Failed to encode transaction: ${encodeError.message}`);
-      }
+      // Use contract method directly - ethers.js handles decimal strings correctly
+      console.log("📝 Calling contract.mintWithSig directly...");
       
       let tx;
       try {
-        console.log("⏳ Estimating gas with manual encoding...");
-        console.log("📝 Estimate params:", {
-          to: contractAddress,
-          from: signerAddress,
-          dataLength: mintData.length,
-        });
+        console.log("⏳ Estimating gas...");
         
-        // Estimate gas using the manually encoded transaction
+        // Estimate gas using contract method directly
         let gasEstimate;
         try {
-          gasEstimate = await provider.estimateGas({
-            to: contractAddress,
-            from: signerAddress,
-            data: mintData,
-          });
+          gasEstimate = await contract.mintWithSig.estimateGas(
+            authForContract,
+            permit.signature
+          );
           console.log("✅ Gas estimate successful:", gasEstimate.toString());
         } catch (gasError: any) {
           console.error("❌ Gas estimation failed:", gasError);
@@ -655,13 +639,15 @@ function HomePageContent() {
           throw gasError;
         }
         
-        console.log("⏳ Sending transaction with manual encoding...");
-        // Send the transaction using manual data
-        tx = await signer.sendTransaction({
-          to: contractAddress,
-          data: mintData,
-          gasLimit: gasEstimate * BigInt(120) / BigInt(100), // +20% buffer
-        });
+        console.log("⏳ Sending transaction...");
+        // Call contract method with decimal string values
+        tx = await contract.mintWithSig(
+          authForContract,
+          permit.signature,
+          {
+            gasLimit: (gasEstimate * BigInt(120)) / BigInt(100), // +20% buffer
+          }
+        );
         console.log("✅ Transaction sent:", tx.hash);
       } catch (callError: any) {
         console.error("❌ Contract call failed:", callError);
