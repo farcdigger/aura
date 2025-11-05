@@ -7,6 +7,9 @@ const RECIPIENT_ADDRESS = "0x5305538F1922B69722BBE2C1B84869Fd27Abb4BF";
 // Configure the payment middleware for /api/mint-permit endpoint
 // Using CDP facilitator for mainnet (configured via CDP_API_KEY_ID and CDP_API_KEY_SECRET)
 // Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers#running-on-mainnet
+// 
+// NOTE: The facilitator from @coinbase/x402 automatically reads CDP_API_KEY_ID and CDP_API_KEY_SECRET
+// from environment variables. Make sure these are set in Vercel environment variables.
 export const middleware = paymentMiddleware(
   RECIPIENT_ADDRESS, // Your receiving wallet address
   {
@@ -36,7 +39,7 @@ export const middleware = paymentMiddleware(
       },
     },
   },
-  facilitator // CDP facilitator for mainnet (this was previously { url: "https://x402.org/facilitator" } for testnet)
+  facilitator // CDP facilitator for mainnet - automatically configured via CDP_API_KEY_ID and CDP_API_KEY_SECRET env vars
 );
 
 // Configure which paths the middleware should run on
