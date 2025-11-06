@@ -24,6 +24,7 @@ function HomePageContent() {
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [alreadyMinted, setAlreadyMinted] = useState(false);
+  const [recentNFTs, setRecentNFTs] = useState<any[]>([]);
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -40,7 +41,23 @@ function HomePageContent() {
         localStorage.removeItem("xUser");
       }
     }
+    
+    // Load recent minted NFTs
+    loadRecentNFTs();
   }, []);
+  
+  // Load recent minted NFTs from backend
+  const loadRecentNFTs = async () => {
+    try {
+      const response = await fetch("/api/recent-nfts");
+      if (response.ok) {
+        const data = await response.json();
+        setRecentNFTs(data.nfts || []);
+      }
+    } catch (error) {
+      console.error("Failed to load recent NFTs:", error);
+    }
+  };
 
   // Handle OAuth callback
   useEffect(() => {
@@ -1117,22 +1134,29 @@ function HomePageContent() {
         </div>
         
         {/* NFT Preview - Show after generation */}
-        {generated && (
-          <div className="max-w-4xl mx-auto mb-12">
+        {generated && !alreadyMinted && (
+          <div className="max-w-4xl mx-auto mb-12 animate-fade-in">
             <div className="card text-center">
               <h3 className="text-2xl font-bold mb-4">Your Aura Creature</h3>
-              {generated.preview && (
+              {(generated.preview || generated.imageUrl) && (
                 <div className="max-w-md mx-auto mb-6">
                   <img
-                    src={generated.preview}
+                    src={(generated.imageUrl || generated.preview || "").replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")}
                     alt="Generated NFT"
                     className="w-full rounded-lg shadow-2xl"
+                    onError={(e) => {
+                      console.error("Image load error:", e);
+                      // Fallback to preview if imageUrl fails
+                      if (generated.preview && e.currentTarget.src !== generated.preview) {
+                        e.currentTarget.src = generated.preview;
+                      }
+                    }}
                   />
                 </div>
               )}
               {generated.traits && (
-                <div className="text-left max-w-md mx-auto">
-                  <h4 className="font-semibold mb-2">Traits:</h4>
+                <div className="text-left max-w-md mx-auto bg-white/5 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-purple-400">Traits:</h4>
                   <p className="text-sm text-gray-300">{generated.traits.description}</p>
                 </div>
               )}
@@ -1142,7 +1166,7 @@ function HomePageContent() {
         
         {/* Success Screen */}
         {step === "mint" && alreadyMinted && (
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto animate-fade-in">
             <div className="card text-center">
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-3xl font-bold mb-4">Success!</h2>
@@ -1154,39 +1178,50 @@ function HomePageContent() {
                 </div>
               )}
               
-              {generated?.preview && (
+              {(generated?.preview || generated?.imageUrl) && (
                 <div className="max-w-sm mx-auto mb-6">
                   <img
-                    src={generated.preview}
+                    src={(generated.imageUrl || generated.preview || "").replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")}
                     alt="Minted NFT"
                     className="w-full rounded-lg shadow-2xl"
+                    onError={(e) => {
+                      console.error("Minted image load error:", e);
+                      if (generated.preview && e.currentTarget.src !== generated.preview) {
+                        e.currentTarget.src = generated.preview.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+                      }
+                    }}
                   />
                 </div>
               )}
               
               <div className="flex flex-col gap-3">
+                {/* OpenSea Link - PRIMARY */}
+                {mintedTokenId && env.NEXT_PUBLIC_CONTRACT_ADDRESS && (
+                  <a
+                    href={`https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary flex items-center justify-center gap-2"
+                  >
+                    <span className="text-xl">🌊</span>
+                    View on OpenSea
+                  </a>
+                )}
+                
+                {/* BaseScan Link - SECONDARY */}
                 {transactionHash && (
                   <a
                     href={`https://basescan.org/tx/${transactionHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-primary"
+                    className="btn-secondary flex items-center justify-center gap-2"
                   >
-                    View on BaseScan
+                    <span className="text-xl">🔍</span>
+                    View Transaction
                   </a>
                 )}
                 
-                {generated?.metadataUrl && (
-                  <a
-                    href={generated.metadataUrl.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary"
-                  >
-                    View Metadata
-                  </a>
-                )}
-                
+                {/* Back to Home */}
                 <button
                   onClick={resetToHome}
                   className="btn-secondary"
@@ -1199,7 +1234,7 @@ function HomePageContent() {
         )}
         
         {/* Previous Creations */}
-        <PreviousCreations />
+        <PreviousCreations creations={recentNFTs} />
         
         {/* OLD STEP-BASED UI - Hidden but kept for logic */}
         <div className="hidden">
