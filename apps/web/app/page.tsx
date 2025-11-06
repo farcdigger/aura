@@ -22,6 +22,23 @@ function HomePageContent() {
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [alreadyMinted, setAlreadyMinted] = useState(false);
 
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem("xUser");
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        console.log("🔄 Restoring user from localStorage:", user.username);
+        setXUser(user);
+        // Check their NFT status
+        checkExistingNFT(user.x_user_id);
+      } catch (e) {
+        console.error("Failed to parse saved user:", e);
+        localStorage.removeItem("xUser");
+      }
+    }
+  }, []);
+
   // Handle OAuth callback
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -34,12 +51,18 @@ function HomePageContent() {
       if (errorParam) {
         setError(decodeURIComponent(errorParam));
       } else if (xUserId && username) {
-        setXUser({
+        const userData = {
           x_user_id: xUserId,
           username,
           profile_image_url: profileImageUrl || "",
           bio: bio || undefined,
-        });
+        };
+        
+        setXUser(userData);
+        
+        // 💾 Save to localStorage for persistence
+        localStorage.setItem("xUser", JSON.stringify(userData));
+        console.log("💾 User saved to localStorage:", username);
         
         // X connected - check for existing NFT FIRST, then set step accordingly
         await checkExistingNFT(xUserId);
@@ -306,7 +329,12 @@ function HomePageContent() {
     setMintedTokenId(null);
     setTransactionHash(null);
     setError(null);
+    setAlreadyMinted(false);
     setStep("connect");
+    
+    // 🗑️ Clear localStorage
+    localStorage.removeItem("xUser");
+    console.log("🗑️ User data cleared from localStorage");
     
     // Clear URL parameters
     if (typeof window !== "undefined") {
@@ -329,7 +357,12 @@ function HomePageContent() {
     setMintedTokenId(null);
     setTransactionHash(null);
     setError(null);
+    setAlreadyMinted(false);
     setStep("connect");
+    
+    // 🗑️ Clear localStorage
+    localStorage.removeItem("xUser");
+    console.log("🗑️ User data cleared from localStorage");
     
     // Clear URL parameters
     if (typeof window !== "undefined") {
@@ -891,6 +924,12 @@ function HomePageContent() {
         
         setTransactionHash(receipt.hash);
         console.log("✅ NFT minted successfully!");
+        
+        // 💾 Update localStorage to persist mint success
+        if (xUser) {
+          localStorage.setItem("xUser", JSON.stringify(xUser));
+          console.log("💾 User data persisted to localStorage");
+        }
       } else {
         throw new Error("Transaction receipt is null");
       }
