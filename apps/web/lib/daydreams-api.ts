@@ -90,7 +90,7 @@ export async function generateImageViaDaydreamsAPI(
             n: 1,
             size: "1024x1024",
             response_format: "b64_json",
-            quality: "medium", // Medium quality: $0.04-0.06 per image (balance between quality and cost)
+            quality: "low", // Lower quality to reduce file size and cost
             style: "natural",
           },
           {
