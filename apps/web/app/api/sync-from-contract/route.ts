@@ -29,86 +29,93 @@ export async function GET(request: NextRequest) {
       provider
     );
     
-    // Get total supply
+    // Get total supply from contract
     const totalSupply = await contract.totalSupply();
-    console.log(`📊 Total minted: ${totalSupply}`);
+    console.log(`📊 Contract total minted: ${totalSupply}`);
     
-    if (totalSupply === 0n) {
+    // Get all records from Supabase that need sync (status != 'minted' or token_id is null)
+    console.log("📦 Getting records from Supabase that need sync...");
+    const recordsToSync = await db
+      .select()
+      .from(tokens)
+      .where(eq(tokens.status, "generated"));
+    
+    console.log(`📝 Found ${recordsToSync.length} records to check`);
+    
+    if (recordsToSync.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "No NFTs minted yet",
+        message: "All records already synced",
+        totalSupply: totalSupply.toString(),
         synced: 0,
       });
     }
     
-    // Get all Minted events from contract
-    const filter = contract.filters.Minted();
-    const events = await contract.queryFilter(filter, 0, "latest");
-    
-    console.log(`📝 Found ${events.length} Minted events`);
-    
     const updates = [];
     const errors = [];
     
-    for (const event of events) {
+    // For each record, check if it was minted on-chain
+    for (const record of recordsToSync) {
       try {
-        // Type guard for EventLog
-        if (!('args' in event)) {
-          console.warn("⚠️ Skipping non-EventLog");
-          continue;
-        }
+        console.log(`🔍 Checking x_user_id=${record.x_user_id}...`);
         
-        const args = event.args as any;
-        const tokenId = args.tokenId.toString();
-        const xUserId = args.xUserId.toString();
-        const tokenURI = args.tokenURI;
-        const txHash = event.transactionHash;
+        // Check contract's usedXUserId mapping
+        const hash = ethers.id(record.x_user_id);
+        const xUserIdBigInt = BigInt(hash);
+        const isMinted = await contract.usedXUserId(xUserIdBigInt);
         
-        console.log(`🔍 Processing tokenId=${tokenId}, xUserId=${xUserId}`);
-        
-        // Convert xUserId (uint256) back to x_user_id (string)
-        // xUserId is keccak256 hash of x_user_id string
-        // We need to find the original x_user_id in database
-        
-        // First, try to find by metadata_uri
-        const existingToken = await db
-          .select()
-          .from(tokens)
-          .where(eq(tokens.metadata_uri, tokenURI))
-          .limit(1);
-        
-        if (existingToken.length > 0) {
-          const token = existingToken[0];
+        if (isMinted) {
+          console.log(`✅ Found minted NFT for x_user_id=${record.x_user_id}`);
           
-          // Update token_id and status
-          await db
-            .update(tokens)
-            .set({
-              token_id: Number(tokenId),
-              tx_hash: txHash,
-              status: "minted",
-            })
-            .where(eq(tokens.metadata_uri, tokenURI));
+          // We know it's minted, but we need to find the token_id
+          // Search through recent token IDs
+          const supply = Number(totalSupply);
+          let foundTokenId: number | null = null;
           
-          console.log(`✅ Updated tokenId=${tokenId} for x_user_id=${token.x_user_id}`);
+          for (let tokenId = 1; tokenId <= supply; tokenId++) {
+            try {
+              const tokenURI = await contract.tokenURI(tokenId);
+              if (tokenURI === record.metadata_uri) {
+                foundTokenId = tokenId;
+                console.log(`✅ Found tokenId=${tokenId} for metadata=${tokenURI}`);
+                break;
+              }
+            } catch {
+              // Token doesn't exist or error, continue
+            }
+          }
           
-          updates.push({
-            tokenId,
-            x_user_id: token.x_user_id,
-            txHash,
-          });
+          if (foundTokenId) {
+            // Update database
+            await db
+              .update(tokens)
+              .set({
+                token_id: foundTokenId,
+                status: "minted",
+              })
+              .where(eq(tokens.x_user_id, record.x_user_id));
+            
+            console.log(`✅ Updated token_id=${foundTokenId} for x_user_id=${record.x_user_id}`);
+            
+            updates.push({
+              x_user_id: record.x_user_id,
+              token_id: foundTokenId,
+            });
+          } else {
+            console.warn(`⚠️ Minted but token_id not found for x_user_id=${record.x_user_id}`);
+            errors.push({
+              x_user_id: record.x_user_id,
+              reason: "Minted but token_id not found",
+            });
+          }
         } else {
-          console.warn(`⚠️ No matching record found for tokenURI=${tokenURI}`);
-          errors.push({
-            tokenId,
-            tokenURI,
-            reason: "No matching record in database",
-          });
+          console.log(`ℹ️ Not minted yet: x_user_id=${record.x_user_id}`);
         }
-      } catch (eventError) {
-        console.error(`❌ Error processing event:`, eventError);
+      } catch (recordError) {
+        console.error(`❌ Error processing record:`, recordError);
         errors.push({
-          error: String(eventError),
+          x_user_id: record.x_user_id,
+          error: String(recordError),
         });
       }
     }
@@ -116,7 +123,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       totalSupply: totalSupply.toString(),
-      eventsFound: events.length,
+      recordsChecked: recordsToSync.length,
       updated: updates.length,
       updates,
       errors: errors.length > 0 ? errors : undefined,
