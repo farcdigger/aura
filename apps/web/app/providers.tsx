@@ -11,6 +11,7 @@ import {
 import { env } from "@/env.mjs";
 import { base } from "wagmi/chains";
 import { WagmiProvider } from "wagmi";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const projectId = env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
@@ -33,7 +34,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={client}>
-        <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
+        <RainbowKitProvider modalSize="compact">
+          <ThemeProvider>{children}</ThemeProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

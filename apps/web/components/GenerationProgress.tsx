@@ -32,15 +32,15 @@ export default function GenerationProgress() {
   const currentPhrase = PHRASES[index] || PHRASES[PHRASES.length - 1];
 
   return (
-    <div className="text-center text-sm text-gray-700 mt-4 space-y-3">
-      <div className="relative h-2 bg-white/60 rounded-full overflow-hidden">
+    <div className="text-center text-sm text-gray-700 mt-4 space-y-3 dark:text-slate-200">
+      <div className="relative h-2 bg-white/60 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
           className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 via-blue-500 to-teal-400 transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-xs uppercase tracking-[0.2em] text-purple-500">Generating xFrora</p>
-      <p className="font-medium text-gray-800">{currentPhrase}</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-purple-500 dark:text-purple-300">Generating xFrora</p>
+      <p className="font-medium text-gray-800 dark:text-slate-100">{currentPhrase}</p>
     </div>
   );
 }

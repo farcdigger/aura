@@ -11,6 +11,7 @@ import Hero from "@/components/Hero";
 import StepCard from "@/components/StepCard";
 import PreviousCreations from "@/components/PreviousCreations";
 import GenerationProgress from "@/components/GenerationProgress";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAccount, useWalletClient } from "wagmi";
 
 function HomePageContent() {
@@ -1000,9 +1001,9 @@ function HomePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 transition-colors">
       {/* Navbar - Top */}
-      <nav className="bg-white/70 backdrop-blur-md shadow-md sticky top-0 z-50">
+      <nav className="bg-white/70 backdrop-blur-md shadow-md sticky top-0 z-50 dark:bg-slate-900/80 dark:border-b dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -1012,11 +1013,12 @@ function HomePageContent() {
                 alt="XFRORA Logo" 
                 className="w-10 h-10 rounded-full object-cover"
               />
-              <span className="text-xl font-bold text-gray-800 uppercase">XFRORA</span>
+              <span className="text-xl font-bold text-gray-800 uppercase dark:text-slate-100">XFRORA</span>
             </div>
             
             {/* Right: User Info & Buttons */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               {/* X Account Button */}
               <a
                 href="https://x.com/XFroraNFT"
