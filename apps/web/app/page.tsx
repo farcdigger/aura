@@ -766,12 +766,19 @@ function HomePageContent() {
           const parsed = contract.interface.parseLog(mintedEvent);
           const tokenId = parsed?.args?.tokenId?.toString();
           console.log("✅ Token ID:", tokenId);
+          console.log("🔍 Debug - xUser:", xUser ? `${xUser.username} (${xUser.x_user_id})` : "NULL");
+          console.log("🔍 Debug - tokenId:", tokenId || "NULL");
           setMintedTokenId(tokenId || null);
           
           // 💾 Update token_id in database
           if (tokenId && xUser) {
             try {
               console.log("💾 Updating token_id in database...");
+              console.log("📤 Request body:", {
+                x_user_id: xUser.x_user_id,
+                token_id: tokenId,
+                transaction_hash: receipt.hash
+              });
               const updateResponse = await fetch("/api/update-token-id", {
                 method: "POST",
                 headers: {
@@ -794,7 +801,15 @@ function HomePageContent() {
               console.error("⚠️ Database update error (non-critical):", updateError);
               // Non-critical error, continue with success
             }
+          } else {
+            console.warn("⚠️ Cannot update token_id in database:", {
+              hasTokenId: !!tokenId,
+              hasXUser: !!xUser,
+              reason: !tokenId ? "tokenId is null/undefined" : "xUser is null/undefined"
+            });
           }
+        } else {
+          console.error("❌ Minted event not found in transaction receipt!");
         }
         
         setTransactionHash(receipt.hash);
