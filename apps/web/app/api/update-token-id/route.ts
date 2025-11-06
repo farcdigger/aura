@@ -1,7 +1,8 @@
 /**
  * Update Token ID API
  * 
- * Mint başarılı olduktan sonra token_id'yi günceller
+ * Mint başarılı olduktan sonra token_id, tx_hash ve status'u günceller
+ * STATUS: 'generated' → 'paid' → 'minted'
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,25 +29,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update token in database
+    // Update token in database with FULL mint data
     if (!isMockMode && db) {
       try {
         const result = await db
           .update(tokens)
           .set({
             token_id: Number(token_id),
+            tx_hash: transaction_hash || null,
+            status: "minted", // ✅ Status: minted!
           })
           .where(eq(tokens.x_user_id, x_user_id));
 
-        console.log("✅ Token ID updated in database:", {
+        console.log("✅ Token ID + TX Hash + Status updated:", {
           x_user_id,
           token_id: Number(token_id),
+          tx_hash: transaction_hash?.substring(0, 20) + "...",
+          status: "minted",
         });
 
         return NextResponse.json({
           success: true,
           x_user_id,
           token_id: Number(token_id),
+          tx_hash: transaction_hash,
+          status: "minted",
         });
       } catch (dbError) {
         console.error("❌ Database update error:", dbError);

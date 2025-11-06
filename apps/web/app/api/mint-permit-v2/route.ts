@@ -401,7 +401,19 @@ export async function POST(request: NextRequest) {
           status: "completed",
           created_at: new Date().toISOString()
         });
-        console.log("💾 Transaction recorded in database");
+        console.log("💾 Transaction recorded in payments table");
+        
+        // ✅ UPDATE tokens status to 'paid' (payment successful, ready to mint)
+        try {
+          await db
+            .update(tokens)
+            .set({ status: "paid" })
+            .where(eq(tokens.x_user_id, x_user_id));
+          console.log("✅ Token status updated to 'paid' (ready to mint)");
+        } catch (statusError) {
+          console.error("⚠️ Failed to update token status:", statusError);
+          // Continue anyway - not critical
+        }
       } catch (dbError) {
         console.error("⚠️ Database transaction check failed:", dbError);
         // Continue anyway for now, but log the error

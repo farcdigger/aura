@@ -371,12 +371,14 @@ export async function POST(request: NextRequest) {
         
         const insertResult = await db.insert(tokens).values({
           x_user_id,
-          token_id: 0, // Will be updated after mint
+          token_id: null, // NULL until minted (not 0!)
           seed,
           token_uri: metadataUrl,
           metadata_uri: metadataUrl,
           image_uri: imageUrl,
+          image_id: metadataUrl, // Use metadata URL as unique image_id
           traits: traits as any, // 'traits' objesi JSON olarak DB'ye kaydedilir
+          status: "generated", // ✅ Initial status
         });
         
         console.log("✅ Token insert completed. Insert result:", {

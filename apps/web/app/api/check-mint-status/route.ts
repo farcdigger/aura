@@ -34,22 +34,30 @@ export async function POST(request: NextRequest) {
 
         const tokenData = existingToken?.[0];
         const tokenId = tokenData?.token_id;
+        const status = tokenData?.status || "unknown";
         
-        // hasMinted = true ONLY if token_id is set (not NULL and > 0)
-        const hasMinted = existingToken && existingToken.length > 0 && tokenId != null && tokenId > 0;
+        // hasMinted = true if status='minted' OR token_id > 0
+        const hasMinted = (status === "minted") || (tokenId != null && tokenId > 0);
+        
+        // hasPaid = true if status='paid' (payment done, waiting for mint)
+        const hasPaid = status === "paid";
 
         console.log("✅ Mint status checked:", {
           x_user_id,
+          status,
           hasMinted,
+          hasPaid,
           token_id: tokenId,
           has_metadata: !!tokenData?.metadata_uri,
-          logic: `hasMinted = ${!!existingToken?.length} && tokenId(${tokenId}) > 0 = ${hasMinted}`
+          logic: `status=${status}, hasMinted=${hasMinted}, hasPaid=${hasPaid}`
         });
 
         return NextResponse.json({
           hasMinted,
+          hasPaid,
           hasMetadata: !!tokenData?.metadata_uri,
           tokenId: tokenId || 0,  // Return 0 if NULL for backward compatibility
+          status,
           imageUri: tokenData?.image_uri || null,
           metadataUri: tokenData?.metadata_uri || null,
         });

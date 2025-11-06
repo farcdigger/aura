@@ -432,6 +432,9 @@ export const tokens = {
   token_id: { name: "token_id" },
   seed: { name: "seed" },
   id: { name: "id" },
+  status: { name: "status" },
+  tx_hash: { name: "tx_hash" },
+  image_id: { name: "image_id" },
 } as any;
 
 export const users = {
