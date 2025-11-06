@@ -57,9 +57,8 @@ export async function generateX402PaymentHeader(
   const normalizedPayer = ethers.getAddress(walletAddress);
   const normalizedAsset = ethers.getAddress(paymentOption.asset);
   
-  // Determine chain ID
-  const chainId = paymentOption.network === "base" ? 8453 : 
-                  paymentOption.network === "base-sepolia" ? 84532 : 8453;
+  // Base mainnet chain ID
+  const chainId = 8453; // Always use Base mainnet
   
   // EIP-712 domain - Use values from middleware's 402 response
   const domain = {

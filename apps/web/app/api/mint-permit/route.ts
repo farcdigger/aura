@@ -9,8 +9,11 @@ import { env, isMockMode } from "@/env.mjs";
 import { ethers } from "ethers";
 import type { MintAuth } from "@/lib/types";
 
-// Recipient wallet address
+// Recipient wallet address - Ödeme alınacak adres
 const RECIPIENT_ADDRESS = "0x5305538F1922B69722BBE2C1B84869Fd27Abb4BF";
+
+// Base mainnet USDC contract address
+const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 // Contract ABI for querying nonce and owner
 const CONTRACT_ABI = [
@@ -25,18 +28,19 @@ const CONTRACT_ABI = [
 const app = new Hono();
 
 // Apply x402 payment middleware to ALL routes in this file
+// CDP facilitator ile Base mainnet üzerinde 0.1 USDC ödemesi alınacak
 app.use("*", paymentMiddleware(
   RECIPIENT_ADDRESS,
   {
     "*": {
-      price: "$0.1",
-      network: "base" as Network,
+      price: "$0.1", // 0.1 USDC ödeme
+      network: "base" as Network, // Base mainnet
       config: {
-        description: "Mint permit for Aura Creatures NFT"
+        description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT"
       }
     }
   },
-  facilitator // CDP facilitator for mainnet
+  facilitator // CDP facilitator for mainnet - Vercel'de CDP_API_KEY_ID ve CDP_API_KEY_SECRET olmalı
 ));
 
 // GET request - return method not allowed
