@@ -117,10 +117,9 @@ async function settlePaymentWithCDPFacilitator(paymentPayload: any): Promise<{
       maxTimeoutSeconds: 300,
       asset: BASE_USDC_ADDRESS,
       outputSchema: {
-        input: {
-          type: "http",
-          method: "POST"
-        }
+        success: "boolean",
+        mintAuth: "object",
+        payment: "object"
       }
     };
     
