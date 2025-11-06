@@ -7,6 +7,7 @@ import type { GenerateResponse, MintPermitResponse } from "@/lib/types";
 import { wrapFetchWithPayment } from "x402-fetch";
 import { createWalletClient, custom } from "viem";
 import { base } from "viem/chains";
+import { env } from "@/env.mjs";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
