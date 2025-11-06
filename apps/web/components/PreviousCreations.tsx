@@ -11,15 +11,15 @@ interface PreviousCreationsProps {
 }
 
 export default function PreviousCreations({ creations = [] }: PreviousCreationsProps) {
-  // Frora example creations - always show these beautiful examples
-  const froraExamples = [
+  // xFrora example creations - always show these beautiful examples
+  const xFroraExamples = [
     { id: 1, image: "/frora-1.png", tokenId: undefined },
     { id: 2, image: "/frora-2.png", tokenId: undefined },
     { id: 3, image: "/frora-3.png", tokenId: undefined },
     { id: 4, image: "/frora-4.png", tokenId: undefined },
   ];
 
-  const displayCreations = creations.length > 0 ? creations : froraExamples;
+  const displayCreations = creations.length > 0 ? creations : xFroraExamples;
 
   return (
     <div className="mt-16 animate-fade-in">
@@ -34,7 +34,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
             className="card hover:scale-105 cursor-pointer transition-all duration-300"
           >
             <div className="aspect-square rounded-lg bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center overflow-hidden">
-              {/* Frora image or real NFT image */}
+              {/* xFrora image or real NFT image */}
               {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
                 <img
                   src={creation.image}

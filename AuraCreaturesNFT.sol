@@ -6,16 +6,18 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
+contract XFroraNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
     using ECDSA for bytes32;
 
-    uint256 public constant MAX_SUPPLY = 10000;
+    uint256 public constant MAX_SUPPLY = 5555;
     uint256 public totalSupply;
     
     // Track which X user IDs have already minted
     mapping(uint256 => bool) public usedXUserId;
+    mapping(uint256 => uint256) public tokenToXUserId;
+    mapping(uint256 => uint256) public xUserIdToTokenId;
     
     // EIP-712 typehash for MintAuth
     bytes32 public constant MINT_AUTH_TYPEHASH = keccak256(
@@ -40,7 +42,9 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
         address indexed payer,
         uint256 indexed tokenId,
         uint256 xUserId,
-        string tokenURI
+        string tokenURI,
+        uint256 totalMinted,
+        uint256 remainingSupply
     );
 
     constructor(
@@ -91,11 +95,28 @@ contract XAnimalNFT is ERC721URIStorage, Ownable, EIP712, ReentrancyGuard {
         _safeMint(auth.to, tokenId);
         _setTokenURI(tokenId, auth.tokenURI);
         
-        emit Minted(auth.to, auth.payer, tokenId, auth.xUserId, auth.tokenURI);
+        tokenToXUserId[tokenId] = auth.xUserId;
+        xUserIdToTokenId[auth.xUserId] = tokenId;
+        
+        uint256 remaining = MAX_SUPPLY - totalSupply;
+        emit Minted(auth.to, auth.payer, tokenId, auth.xUserId, auth.tokenURI, totalSupply, remaining);
     }
 
     function getNonce(address user) external view returns (uint256) {
         return nonces[user];
+    }
+
+    function remainingSupply() external view returns (uint256) {
+        return MAX_SUPPLY - totalSupply;
+    }
+
+    function getTokenIdForXUser(uint256 xUserId) external view returns (uint256) {
+        return xUserIdToTokenId[xUserId];
+    }
+
+    function getMintDetails(uint256 tokenId) external view returns (uint256 xUserId, string memory tokenURI_) {
+        require(_exists(tokenId), "Token does not exist");
+        return (tokenToXUserId[tokenId], tokenURI(tokenId));
     }
 
     function _update(

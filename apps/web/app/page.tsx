@@ -2,15 +2,15 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
 import type { GenerateResponse, MintPermitResponse } from "@/lib/types";
 import { wrapFetchWithPayment } from "x402-fetch";
-import { createWalletClient, custom } from "viem";
-import { base } from "viem/chains";
 import { env } from "@/env.mjs";
 import Hero from "@/components/Hero";
 import StepCard from "@/components/StepCard";
 import PreviousCreations from "@/components/PreviousCreations";
+import { useAccount, useWalletClient } from "wagmi";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -24,6 +24,57 @@ function HomePageContent() {
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [alreadyMinted, setAlreadyMinted] = useState(false);
+  const [mintStats, setMintStats] = useState<{ minted: number; remaining: number; maxSupply: number } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
+  useEffect(() => {
+    setWallet(address ?? null);
+  }, [address]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/contract-stats");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch stats: ${response.status}`);
+        }
+        const data = await response.json();
+        if (ignore) return;
+        const minted = Number(data.minted ?? data.totalMinted ?? 0);
+        const remaining =
+          data.remaining !== undefined
+            ? Number(data.remaining)
+            : Math.max(Number(data.maxSupply ?? 0) - minted, 0);
+        const maxSupply = Number(data.maxSupply ?? minted + remaining);
+        setMintStats({
+          minted: Number.isNaN(minted) ? 0 : minted,
+          remaining: Number.isNaN(remaining) ? 0 : remaining,
+          maxSupply: Number.isNaN(maxSupply) ? 0 : maxSupply,
+        });
+      } catch (error) {
+        console.error("Failed to load mint stats:", error);
+        if (!ignore) {
+          setMintStats(null);
+        }
+      } finally {
+        if (!ignore) {
+          setStatsLoading(false);
+        }
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -211,7 +262,7 @@ function HomePageContent() {
     }
   };
 
-  // Check for existing X session and wallet connection on mount
+  // Check for existing X session on mount
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -235,25 +286,7 @@ function HomePageContent() {
       }
     };
 
-    const checkWalletConnection = async () => {
-      if (typeof window.ethereum !== "undefined") {
-        try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.listAccounts();
-        if (accounts.length > 0) {
-          const address = await accounts[0].getAddress();
-          setWallet(address);
-          // Wallet connected - step will be set by X connection logic
-        }
-        } catch (error) {
-          // Wallet not connected, that's fine
-          console.log("No wallet connected");
-        }
-      }
-    };
-
     checkSession();
-    checkWalletConnection();
   }, []);
 
   // Check mint status when on pay step
@@ -452,42 +485,6 @@ function HomePageContent() {
     }
   };
 
-  const connectWallet = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (typeof window.ethereum !== "undefined") {
-        // Request account access
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        
-        setWallet(address);
-        
-        // Clear any previous errors
-        setError(null);
-      } else {
-        setError("Please install MetaMask or another Web3 wallet");
-      }
-    } catch (err) {
-      console.error("Wallet connection error:", err);
-      if (err instanceof Error) {
-        if (err.message.includes("User rejected")) {
-          setError("Wallet connection was cancelled");
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError("Failed to connect wallet");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const generateNFT = async () => {
     if (!xUser) {
       setError("X account not connected");
@@ -589,10 +586,12 @@ function HomePageContent() {
       setLoading(true);
       setError("Preparing payment... Please approve the USDC permit signature in your wallet.");
       
-      // Check if wallet is available
-        if (typeof window.ethereum === "undefined") {
-          throw new Error("Wallet not connected. Please connect your wallet first.");
-        }
+      if (!walletClient) {
+        throw new Error("Wallet client not available. Please connect your wallet first.");
+      }
+      if (!walletClient.account) {
+        throw new Error("Wallet account not found. Please reconnect your wallet.");
+      }
 
       console.log("💳 Using x402-fetch to handle payment automatically...");
       console.log("   This will:");
@@ -601,19 +600,9 @@ function HomePageContent() {
       console.log("   3. Send permit to CDP facilitator");
       console.log("   4. Retry request with payment proof");
       
-      // Get account address from MetaMask
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
-      const userAddress = accounts[0] as `0x${string}`;
-      
+      const userAddress = walletClient.account.address;
       console.log(`Using wallet address: ${userAddress}`);
-          
-      // Create viem wallet client for x402-fetch
-      const walletClient = createWalletClient({
-        account: userAddress,
-        chain: base,
-        transport: custom(window.ethereum),
-      });
-          
+
       // Wrap fetch with x402 payment handling
       // maxValue: 100000 = 0.1 USDC (6 decimals)
       // @ts-ignore - viem version mismatch between dependencies
@@ -731,7 +720,7 @@ function HomePageContent() {
       }
       
       // Check if contract address matches expected Base Mainnet address
-      const expectedAddress = "0x3ACA7E83B208E5243FE31eB3690c6781aB3010bb";
+      const expectedAddress = "0xDFB4e6C3096393fB9f09191191BCc8454b3F4116";
       if (contractAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
         console.warn(`⚠️ Contract address mismatch! Expected: ${expectedAddress}, Got: ${contractAddress}`);
         console.warn("⚠️ This might be using an old contract address. Continuing anyway...");
@@ -1006,10 +995,10 @@ function HomePageContent() {
             <div className="flex items-center gap-3">
               <img 
                 src="/frora-logo.png" 
-                alt="Frora Logo" 
+                alt="XFRORA Logo" 
                 className="w-10 h-10 rounded-full object-cover"
               />
-              <span className="text-xl font-bold text-gray-800">Frora</span>
+              <span className="text-xl font-bold text-gray-800 uppercase">XFRORA</span>
             </div>
             
             {/* Right: User Info & Buttons */}
@@ -1040,18 +1029,7 @@ function HomePageContent() {
                 </button>
               )}
               
-              {!wallet ? (
-                <button
-                  onClick={connectWallet}
-                  className="px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-semibold"
-                >
-                  Connect Wallet
-                </button>
-              ) : (
-                <div className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold">
-                  {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}
-                </div>
-              )}
+              <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
             </div>
           </div>
         </div>
@@ -1059,7 +1037,7 @@ function HomePageContent() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <Hero xUser={xUser} />
+        <Hero xUser={xUser} mintStats={mintStats} loadingStats={statsLoading} />
         
         {/* Error Message */}
           {error && (
@@ -1103,22 +1081,67 @@ function HomePageContent() {
             <StepCard
               icon="wallet"
               title="Connect Wallet"
-              status={wallet ? "connected" : "idle"}
-              statusText={wallet ? `Wallet Connected: ${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}` : undefined}
+              status={isConnected ? "connected" : "idle"}
+              statusText={isConnected && wallet ? `Wallet Connected: ${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}` : undefined}
               actionButton={
-                !wallet ? (
-                  <button
-                    onClick={connectWallet}
-                    disabled={loading || !xUser}
-                    className="btn-primary w-full"
-                  >
-                    {loading ? "Connecting..." : "Connect Wallet"}
-                  </button>
-                ) : (
-                  <button className="btn-secondary w-full" disabled>
-                    ✓ Connected
-                  </button>
-                )
+                <ConnectButton.Custom>
+                  {({
+                    account,
+                    chain,
+                    openAccountModal,
+                    openChainModal,
+                    openConnectModal,
+                    authenticationStatus,
+                    mounted,
+                  }) => {
+                    const ready = mounted && authenticationStatus !== "loading";
+                    const connected =
+                      ready &&
+                      account &&
+                      chain &&
+                      (!authenticationStatus || authenticationStatus === "authenticated");
+
+                    if (!ready) {
+                      return (
+                        <button className="btn-secondary w-full" disabled>
+                          Loading...
+                        </button>
+                      );
+                    }
+
+                    if (!connected) {
+                      return (
+                        <button
+                          onClick={openConnectModal}
+                          className="btn-primary w-full"
+                          disabled={loading}
+                        >
+                          {loading ? "Connecting..." : "Connect Wallet"}
+                        </button>
+                      );
+                    }
+
+                    if (chain.unsupported) {
+                      return (
+                        <button
+                          onClick={openChainModal}
+                          className="btn-primary w-full"
+                        >
+                          Switch Network
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={openAccountModal}
+                        className="btn-secondary w-full"
+                      >
+                        ✓ Connected
+                      </button>
+                    );
+                  }}
+                </ConnectButton.Custom>
               }
             />
 
@@ -1135,7 +1158,7 @@ function HomePageContent() {
                     disabled={loading || !xUser || !wallet}
                     className="btn-primary w-full"
                   >
-                    {loading ? "Generating..." : "Generate AI Creature"}
+                    {loading ? "Generating..." : "Generate xFrora NFT"}
                   </button>
                 ) : (
                   <button className="btn-secondary w-full" disabled>
@@ -1158,7 +1181,7 @@ function HomePageContent() {
         {generated && !alreadyMinted && (
           <div className="max-w-4xl mx-auto mb-12 animate-fade-in">
             <div className="card text-center">
-              <h3 className="text-2xl font-bold mb-4 text-gray-800">Your Aura Creature</h3>
+              <h3 className="text-2xl font-bold mb-4 text-gray-800">Your xFrora NFT</h3>
               
               {/* NFT Image */}
               <div className="max-w-md mx-auto mb-6">
@@ -1230,7 +1253,7 @@ function HomePageContent() {
             <div className="card text-center">
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-3xl font-bold mb-4 text-gray-800">Success!</h2>
-              <p className="text-lg mb-6 text-gray-700">Your Aura Creature has been minted!</p>
+              <p className="text-lg mb-6 text-gray-700">Your xFrora NFT has been minted!</p>
               
               {mintedTokenId && (
                 <div className="mb-6">
@@ -1293,7 +1316,7 @@ function HomePageContent() {
           </div>
         )}
         
-        {/* Example Creations - Frora Examples */}
+        {/* Example Creations - xFrora Examples */}
         <PreviousCreations />
         
         {/* Footer */}
@@ -1433,13 +1456,9 @@ function HomePageContent() {
               {!wallet && (
                 <div className="mb-6 p-4 bg-purple-500/20 border border-purple-500/50 rounded-lg">
                   <p className="text-sm mb-3">Connect your wallet to mint your NFT</p>
-                  <button
-                    onClick={connectWallet}
-                    disabled={loading}
-                    className="bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
-                  >
-                    {loading ? "Connecting..." : "Connect Wallet"}
-                  </button>
+                  <div className="w-full">
+                    <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
+                  </div>
                 </div>
               )}
               
@@ -1533,7 +1552,7 @@ function HomePageContent() {
               <div className="text-center mb-6">
                 <div className="text-6xl mb-4">🎉</div>
                 <h2 className="text-3xl font-bold mb-2">Congratulations!</h2>
-                <p className="text-lg text-gray-300">Your Aura Creature NFT has been minted successfully!</p>
+                <p className="text-lg text-gray-300">Your xFrora NFT has been minted successfully!</p>
               </div>
               
               {/* NFT Image */}
@@ -1578,7 +1597,7 @@ function HomePageContent() {
               <div className="space-y-3">
                 {/* OpenSea Link */}
                 <a
-                  href={`https://opensea.io/assets/base/0x3ACA7E83B208E5243FE31eB3690c6781aB3010bb/${mintedTokenId || ""}`}
+                  href={`https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId || ""}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center transition-colors"
@@ -1620,7 +1639,7 @@ function HomePageContent() {
               
               {/* Share Message */}
               <div className="mt-6 text-center text-sm text-gray-400">
-                <p>Share your Aura Creature with the world! 🚀</p>
+                <p>Share your xFrora with the world! 🚀</p>
               </div>
             </div>
           )}

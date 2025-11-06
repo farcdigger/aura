@@ -9,7 +9,7 @@ export async function verifyXToken(accessToken: string): Promise<XUser | null> {
     const response = await axios.get(`${X_API_BASE}/users/me`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "AuraCreatures/1.0",
+        "User-Agent": "xFrora/1.0",
       },
       params: {
         "user.fields": "profile_image_url,description",
@@ -63,7 +63,7 @@ export async function getXUserProfile(accessToken: string, userId: string): Prom
     const response = await axios.get(`${X_API_BASE}/users/${userId}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "AuraCreatures/1.0",
+        "User-Agent": "xFrora/1.0",
       },
       params: {
         "user.fields": "profile_image_url,description",

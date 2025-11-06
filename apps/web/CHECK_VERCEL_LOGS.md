@@ -63,7 +63,7 @@ Vercel Dashboard → Settings → Environment Variables:
 2. Sign in / Sign up
 3. **API Keys** bölümüne git
 4. **Create API Key** tıkla
-5. Key adı: "Aura NFT x402 Facilitator"
+5. Key adı: "xFrora NFT x402 Facilitator"
 6. **Permissions**: x402 iznini seç (önemli!)
 7. `CDP_API_KEY_ID` ve `CDP_API_KEY_SECRET` değerlerini kopyala
 8. Vercel'de ayarla

@@ -28,7 +28,7 @@ const PAYMENT_REQUIREMENTS = {
   network: NETWORK,
   maxAmountRequired: PAYMENT_AMOUNT,
   resource: "https://aura-nft-iota.vercel.app/api/mint-permit-v2",
-  description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT",
+  description: "Mint permit for xFrora NFT - Pay 0.1 USDC to mint your AI-crafted identity",
   mimeType: "application/json",
   payTo: RECIPIENT_ADDRESS,
   maxTimeoutSeconds: 60, // Changed from 300 to 60 (more conservative)
@@ -44,7 +44,9 @@ const CONTRACT_ABI = [
   "function getNonce(address user) external view returns (uint256)",
   "function totalSupply() external view returns (uint256)",
   "function MAX_SUPPLY() external view returns (uint256)",
+  "function remainingSupply() external view returns (uint256)",
   "function usedXUserId(uint256) external view returns (bool)",
+  "function getTokenIdForXUser(uint256) external view returns (uint256)",
   "function owner() external view returns (address)",
 ];
 
@@ -197,7 +199,7 @@ async function verifyPaymentWithCDPFacilitator(paymentPayload: any): Promise<boo
       network: NETWORK,
       maxAmountRequired: PAYMENT_AMOUNT,
       resource: `/api/mint-permit-v2`,
-      description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT",
+      description: "Mint permit for xFrora NFT - Pay 0.1 USDC to mint your unique AI-crafted identity",
       mimeType: "application/json",
       payTo: RECIPIENT_ADDRESS,
       maxTimeoutSeconds: 300,

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-    title: "Aura Creatures - X Profile NFTs",
-  description: "AI-generated NFT collection on Base",
+  title: "xFrora - X Profile NFTs",
+  description: "AI-crafted identity collection on Base",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

@@ -6,10 +6,10 @@ function getEIP712DomainValue() {
   // IMPORTANT: Domain name must match the contract's EIP712 domain name exactly
   // Contract uses: EIP712(name, "1") where name is the ERC721 token name
   // Check contract deployment or contract owner() to verify the name
-  // Common names: "Aura Creatures", "X Animal NFT", etc.
+  // Common names: "xFrora", "X Animal NFT", etc.
   // If signature verification fails, the domain name might be wrong!
   return {
-    name: "Aura Creatures", // ⚠️ MUST match contract's ERC721 name (set during deployment)
+    name: "xFrora", // ⚠️ MUST match contract's ERC721 name (set during deployment)
     version: "1",
     chainId: Number(env.NEXT_PUBLIC_CHAIN_ID), // Ensure it's a number, not BigInt
     verifyingContract: env.CONTRACT_ADDRESS,

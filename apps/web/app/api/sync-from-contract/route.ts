@@ -14,6 +14,7 @@ const CONTRACT_ABI = [
   "function totalSupply() external view returns (uint256)",
   "function tokenURI(uint256 tokenId) external view returns (string)",
   "function ownerOf(uint256 tokenId) external view returns (address)",
+  "function usedXUserId(uint256 xUserId) external view returns (bool)",
   "event Minted(address indexed to, address indexed payer, uint256 indexed tokenId, uint256 xUserId, string tokenURI)",
 ];
 
