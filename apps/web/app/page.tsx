@@ -860,22 +860,28 @@ function HomePageContent() {
       if (receipt) {
         console.log("✅ Transaction confirmed:", receipt.hash);
         console.log("✅ Receipt:", receipt);
+        console.log("📊 Receipt logs count:", receipt.logs?.length || 0);
         
         // Extract tokenId from Minted event
         // Event signature: Minted(address indexed to, address indexed payer, uint256 indexed tokenId, uint256 xUserId, string tokenURI)
+        console.log("🔍 Searching for Minted event...");
         const mintedEvent = receipt.logs.find((log: any) => {
           try {
             const parsed = contract.interface.parseLog(log);
+            console.log("📝 Parsed event:", parsed?.name);
             return parsed && parsed.name === "Minted";
-          } catch {
+          } catch (e) {
+            // Ignore parse errors for non-contract events
             return false;
           }
         });
         
         if (mintedEvent) {
+          console.log("✅ Minted event found!");
           const parsed = contract.interface.parseLog(mintedEvent);
+          console.log("📦 Parsed event args:", parsed?.args);
           const tokenId = parsed?.args?.tokenId?.toString();
-          console.log("✅ Token ID:", tokenId);
+          console.log("✅ Token ID extracted:", tokenId);
           console.log("🔍 Debug - xUser:", xUser ? `${xUser.username} (${xUser.x_user_id})` : "NULL");
           console.log("🔍 Debug - tokenId:", tokenId || "NULL");
           setMintedTokenId(tokenId || null);
