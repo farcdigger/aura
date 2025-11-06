@@ -106,21 +106,14 @@ async function settlePaymentWithCDPFacilitator(paymentPayload: any): Promise<{
       expiresIn: 120
     });
     
+    // Payment requirements - ONLY mandatory fields
     const paymentRequirements = {
       scheme: "exact",
       network: NETWORK,
       maxAmountRequired: PAYMENT_AMOUNT,
       resource: "https://aura-nft-iota.vercel.app/api/mint-permit-v2",
-      description: "Pay 0.1 USDC to mint Aura Creatures NFT",
-      mimeType: "application/json",
       payTo: RECIPIENT_ADDRESS,
-      maxTimeoutSeconds: 300,
-      asset: BASE_USDC_ADDRESS,
-      outputSchema: {
-        success: "boolean",
-        mintAuth: "object",
-        payment: "object"
-      }
+      asset: BASE_USDC_ADDRESS
     };
     
     const requestBody = {
