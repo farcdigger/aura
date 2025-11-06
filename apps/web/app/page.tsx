@@ -881,11 +881,16 @@ function HomePageContent() {
           setMintedTokenId(tokenId || null);
           
           // 💾 Update token_id in database
-          if (tokenId && xUser) {
+          // Get x_user_id from localStorage (more reliable than state)
+          const savedUser = localStorage.getItem("xUser");
+          const userFromStorage = savedUser ? JSON.parse(savedUser) : null;
+          const x_user_id = xUser?.x_user_id || userFromStorage?.x_user_id;
+          
+          if (tokenId && x_user_id) {
             try {
               console.log("💾 Updating token_id in database...");
               console.log("📤 Request body:", {
-                x_user_id: xUser.x_user_id,
+                x_user_id,
                 token_id: tokenId,
                 transaction_hash: receipt.hash
               });
@@ -895,7 +900,7 @@ function HomePageContent() {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  x_user_id: xUser.x_user_id,
+                  x_user_id,
                   token_id: tokenId,
                   transaction_hash: receipt.hash,
                 }),
@@ -905,17 +910,20 @@ function HomePageContent() {
                 const updateData = await updateResponse.json();
                 console.log("✅ Token ID updated in database:", updateData);
               } else {
-                console.error("⚠️ Failed to update token_id in database");
+                const errorData = await updateResponse.json().catch(() => ({}));
+                console.error("⚠️ Failed to update token_id in database:", errorData);
               }
             } catch (updateError) {
               console.error("⚠️ Database update error (non-critical):", updateError);
               // Non-critical error, continue with success
             }
           } else {
-            console.warn("⚠️ Cannot update token_id in database:", {
+            console.error("❌ CRITICAL: Cannot update token_id in database!", {
               hasTokenId: !!tokenId,
-              hasXUser: !!xUser,
-              reason: !tokenId ? "tokenId is null/undefined" : "xUser is null/undefined"
+              hasXUserId: !!x_user_id,
+              xUserState: xUser ? `${xUser.username} (${xUser.x_user_id})` : "NULL",
+              localStorage: userFromStorage ? `${userFromStorage.username} (${userFromStorage.x_user_id})` : "NULL",
+              reason: !tokenId ? "tokenId is null/undefined" : "x_user_id is null/undefined"
             });
           }
         } else {
