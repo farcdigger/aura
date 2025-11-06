@@ -52,6 +52,12 @@ export async function GET(request: NextRequest) {
     
     for (const event of events) {
       try {
+        // Type guard for EventLog
+        if (!('args' in event)) {
+          console.warn("⚠️ Skipping non-EventLog");
+          continue;
+        }
+        
         const args = event.args as any;
         const tokenId = args.tokenId.toString();
         const xUserId = args.xUserId.toString();
