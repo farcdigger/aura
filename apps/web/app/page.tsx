@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
@@ -28,15 +28,22 @@ function HomePageContent() {
   const [statsLoading, setStatsLoading] = useState(true);
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const [showIntroVideo, setShowIntroVideo] = useState(true);
+  const introVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setWallet(address ?? null);
   }, [address]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setShowIntroVideo(false), 15000);
-    return () => clearTimeout(timeout);
+    if (!introVideoRef.current) return;
+    const video = introVideoRef.current;
+    video.currentTime = 0;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay might be blocked; keep poster frame
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -993,27 +1000,6 @@ function HomePageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100">
-      {showIntroVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
-          <div className="relative w-full h-full max-w-4xl max-h-[70vh] flex items-center justify-center px-4">
-            <video
-              src="/xfrora-intro.mp4"
-              className="w-full h-full object-contain rounded-3xl shadow-2xl"
-              autoPlay
-              muted
-              playsInline
-              onEnded={() => setShowIntroVideo(false)}
-              onError={() => setShowIntroVideo(false)}
-            />
-            <button
-              onClick={() => setShowIntroVideo(false)}
-              className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-semibold hover:bg-black/80 transition"
-            >
-              Skip
-            </button>
-          </div>
-        </div>
-      )}
       {/* Navbar - Top */}
       <nav className="bg-white/70 backdrop-blur-md shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -1350,6 +1336,27 @@ function HomePageContent() {
             </div>
           </div>
         )}
+        
+        {/* Intro Animation */}
+        <div className="max-w-4xl mx-auto mb-16 px-4">
+          <div className="relative rounded-3xl border border-white/60 bg-white/40 backdrop-blur-lg shadow-[0_20px_45px_rgba(80,60,150,0.25)] overflow-hidden">
+            <video
+              ref={introVideoRef}
+              src="/xfrora-intro.mp4"
+              className="w-full h-full object-cover"
+              autoPlay
+              muted
+              playsInline
+              controls={false}
+              loop={false}
+              onEnded={(event) => event.currentTarget.pause()}
+              onError={(event) => {
+                console.error("Intro video failed to load", event);
+              }}
+            />
+            <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/40" />
+          </div>
+        </div>
         
         {/* Example Creations - xFrora Examples */}
         <PreviousCreations />
