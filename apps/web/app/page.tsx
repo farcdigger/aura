@@ -424,6 +424,7 @@ function HomePageContent() {
       const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(100000));
       
       // x402-fetch automatically handles the entire payment flow
+      // Server-side manual verification (EIP-2612 USDC Permit)
       const response = await fetchWithPayment("/api/mint-permit-v2", {
         method: "POST",
         headers: {
