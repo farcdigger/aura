@@ -131,16 +131,29 @@ async function settlePaymentWithCDPFacilitator(paymentPayload: any): Promise<{
     };
     
     console.log("📤 Sending settlement request to CDP Facilitator (THIS TRANSFERS USDC)...");
-    console.log("🔍 Request body:", JSON.stringify({
+    console.log("🔍 Request body summary:", JSON.stringify({
       x402Version: requestBody.x402Version,
-      paymentRequirements: requestBody.paymentRequirements,
+      paymentRequirements: {
+        scheme: paymentRequirements.scheme,
+        network: paymentRequirements.network,
+        maxAmountRequired: paymentRequirements.maxAmountRequired,
+        asset: paymentRequirements.asset,
+        payTo: paymentRequirements.payTo
+      },
       paymentPayload: {
         x402Version: paymentPayload.x402Version,
         scheme: paymentPayload.scheme,
         network: paymentPayload.network,
-        hasSignature: !!paymentPayload.payload?.signature
+        hasSignature: !!paymentPayload.payload?.signature,
+        hasAuthorization: !!paymentPayload.payload?.authorization
       }
     }, null, 2));
+    console.log("📝 Full payment payload structure:", JSON.stringify({
+      scheme: paymentPayload.scheme,
+      network: paymentPayload.network,
+      payload_keys: Object.keys(paymentPayload.payload || {}),
+      authorization_keys: Object.keys(paymentPayload.payload?.authorization || {})
+    }));
     
     const response = await fetch(`https://${requestHost}${requestPath}`, {
       method: requestMethod,
