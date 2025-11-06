@@ -28,7 +28,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
 
   return (
     <div className="mt-16 animate-fade-in">
-      <h2 className="text-3xl font-bold text-center mb-8">
+      <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
         {creations.length > 0 ? "Previous Creations" : "Example Creations"}
       </h2>
 
@@ -58,7 +58,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
 
             {creation.tokenId && (
               <div className="mt-3 text-center">
-                <p className="text-sm text-gray-300 font-semibold">Token #{creation.tokenId}</p>
+                <p className="text-sm text-gray-700 font-semibold">Token #{creation.tokenId}</p>
               </div>
             )}
           </div>

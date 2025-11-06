@@ -1,7 +1,7 @@
 "use client";
 
 interface StepCardProps {
-  icon: string;
+  icon: "x" | "wallet" | "nft";
   title: string;
   subtitle?: string;
   status?: "idle" | "connected" | "completed";
@@ -30,26 +30,57 @@ export default function StepCard({
     }
   };
 
+  const renderIcon = () => {
+    switch (icon) {
+      case "x":
+        return (
+          <div className="w-16 h-16 rounded-full bg-purple-600 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </div>
+        );
+      case "wallet":
+        return (
+          <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="6" width="18" height="14" rx="2" />
+              <path d="M3 10h18" />
+              <circle cx="17" cy="14" r="1" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      case "nft":
+        return (
+          <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className={`card ${getStatusColor()} transition-all duration-300`}>
       {/* Icon */}
-      <div className="icon-circle mx-auto mb-4">
-        <span className="text-3xl">{icon}</span>
-      </div>
+      {renderIcon()}
 
       {/* Title */}
-      <h3 className="text-xl font-bold text-center mb-2">{title}</h3>
+      <h3 className="text-xl font-bold text-center mb-2 text-gray-800">{title}</h3>
 
       {/* Subtitle */}
       {subtitle && (
-        <p className="text-sm text-gray-300 text-center mb-4">{subtitle}</p>
+        <p className="text-sm text-gray-600 text-center mb-4">{subtitle}</p>
       )}
 
       {/* Status */}
       {statusText && (
         <div className="mb-4">
-          <div className="status-badge justify-center w-full">
-            <span className="text-xs">{statusText}</span>
+          <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-500 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+            <span>{statusText}</span>
           </div>
         </div>
       )}

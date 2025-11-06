@@ -1008,25 +1008,57 @@ function HomePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-      {/* Fixed Header - Top Right */}
-      <div className="fixed top-4 right-4 z-50 flex gap-4 items-center">
-        {/* X Account */}
-        {xUser && (
-          <div className="glass rounded-lg px-4 py-2 text-sm flex items-center gap-2">
-            <span className="text-2xl">𝕏</span>
-            <span className="text-white font-medium">@{xUser.username}</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50">
+      {/* Navbar - Top */}
+      <nav className="bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <span className="text-xl">🐱</span>
+              </div>
+              <span className="text-xl font-bold text-gray-800">Aura Creatures</span>
+            </div>
+            
+            {/* Nav Links */}
+            <div className="hidden md:flex items-center gap-6 text-gray-700">
+              <a href="#" className="hover:text-purple-600 transition-colors">About</a>
+              <a href="#" className="hover:text-purple-600 transition-colors">How it Works</a>
+              <a href="#" className="hover:text-purple-600 transition-colors">Connect</a>
+            </div>
+            
+            {/* Right: User Info & Buttons */}
+            <div className="flex items-center gap-3">
+              {xUser ? (
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full text-sm">
+                  <span className="text-gray-700">@{xUser.username}</span>
+                </div>
+              ) : (
+                <button
+                  onClick={connectX}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                >
+                  Connect X
+                </button>
+              )}
+              
+              {!wallet ? (
+                <button
+                  onClick={connectWallet}
+                  className="px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-semibold"
+                >
+                  Connect Wallet
+                </button>
+              ) : (
+                <div className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold">
+                  {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        
-        {/* Wallet Address */}
-        {wallet && (
-          <div className="glass rounded-lg px-4 py-2 text-sm font-mono flex items-center gap-2">
-            <span className="text-2xl">💳</span>
-            <span className="text-white">{wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}</span>
-          </div>
-        )}
-      </div>
+        </div>
+      </nav>
       
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
@@ -1035,8 +1067,8 @@ function HomePageContent() {
         {/* Error Message */}
         {error && (
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="glass border-red-500/50 bg-red-500/20 text-white p-4 rounded-lg">
-              <p className="text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-300 text-red-700 p-4 rounded-lg">
+              <p className="text-sm font-medium">{error}</p>
             </div>
           </div>
         )}
@@ -1046,7 +1078,7 @@ function HomePageContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {/* Card 1: Connect X Profile */}
             <StepCard
-              icon="𝕏"
+              icon="x"
               title="Connect Your Profile"
               status={xUser ? "connected" : "idle"}
               statusText={xUser ? `X Account: @${xUser.username}` : undefined}
@@ -1072,7 +1104,7 @@ function HomePageContent() {
 
             {/* Card 2: Connect Wallet */}
             <StepCard
-              icon="💳"
+              icon="wallet"
               title="Connect Wallet"
               status={wallet ? "connected" : "idle"}
               statusText={wallet ? `Wallet Connected: ${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}` : undefined}
@@ -1095,8 +1127,8 @@ function HomePageContent() {
 
             {/* Card 3: Generate & Mint */}
             <StepCard
-              icon="🎨"
-              title="Generate & Mint"
+              icon="nft"
+              title="Generat & Mint"
               status={generated ? "completed" : "idle"}
               statusText={generated ? "NFT Generated!" : undefined}
               actionButton={
@@ -1137,7 +1169,7 @@ function HomePageContent() {
         {generated && !alreadyMinted && (
           <div className="max-w-4xl mx-auto mb-12 animate-fade-in">
             <div className="card text-center">
-              <h3 className="text-2xl font-bold mb-4">Your Aura Creature</h3>
+              <h3 className="text-2xl font-bold mb-4 text-gray-800">Your Aura Creature</h3>
               {(generated.preview || generated.imageUrl) && (
                 <div className="max-w-md mx-auto mb-6">
                   <img
@@ -1155,9 +1187,9 @@ function HomePageContent() {
                 </div>
               )}
               {generated.traits && (
-                <div className="text-left max-w-md mx-auto bg-white/5 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 text-purple-400">Traits:</h4>
-                  <p className="text-sm text-gray-300">{generated.traits.description}</p>
+                <div className="text-left max-w-md mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-purple-700">Traits:</h4>
+                  <p className="text-sm text-gray-700">{generated.traits.description}</p>
                 </div>
               )}
             </div>
@@ -1169,12 +1201,12 @@ function HomePageContent() {
           <div className="max-w-2xl mx-auto animate-fade-in">
             <div className="card text-center">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-3xl font-bold mb-4">Success!</h2>
-              <p className="text-lg mb-6">Your Aura Creature has been minted!</p>
+              <h2 className="text-3xl font-bold mb-4 text-gray-800">Success!</h2>
+              <p className="text-lg mb-6 text-gray-700">Your Aura Creature has been minted!</p>
               
               {mintedTokenId && (
                 <div className="mb-6">
-                  <p className="text-2xl font-bold text-purple-400">Token #{mintedTokenId}</p>
+                  <p className="text-2xl font-bold text-purple-600">Token #{mintedTokenId}</p>
                 </div>
               )}
               
