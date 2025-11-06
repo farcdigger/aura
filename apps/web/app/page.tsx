@@ -72,9 +72,9 @@ function HomePageContent() {
           const mintStatus = await mintStatusResponse.json();
           console.log("🔍 Mint status:", mintStatus);
           
-          // If user already minted (token_id > 0), show success screen
+          // If database says minted (token_id > 0), show success screen
           if (mintStatus.hasMinted && mintStatus.tokenId > 0) {
-            console.log("✅ User already minted! Token ID:", mintStatus.tokenId);
+            console.log("✅ User already minted (DB)! Token ID:", mintStatus.tokenId);
             setAlreadyMinted(true);
             setMintedTokenId(mintStatus.tokenId?.toString() || null);
             setGenerated({
@@ -92,6 +92,49 @@ function HomePageContent() {
             setCurrentUserId(xUserId);
             setStep("mint"); // Show success screen
             return true;
+          }
+          
+          // If database says not minted, double-check with contract
+          // (in case token_id wasn't updated in DB)
+          console.log("🔍 Database token_id=0, checking contract...");
+          if (typeof window.ethereum !== "undefined") {
+            try {
+              const provider = new ethers.BrowserProvider(window.ethereum);
+              const contract = new ethers.Contract(
+                env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+                ["function usedXUserId(uint256) view returns (bool)"],
+                provider
+              );
+              
+              const hash = ethers.id(xUserId);
+              const xUserIdBigInt = BigInt(hash);
+              const isUsed = await contract.usedXUserId(xUserIdBigInt);
+              
+              console.log("🔍 Contract check result:", { isUsed });
+              
+              if (isUsed) {
+                console.log("✅ User already minted (CONTRACT)!");
+                setAlreadyMinted(true);
+                setMintedTokenId(null); // token_id not available, will show without it
+                setGenerated({
+                  imageUrl: mintStatus.imageUri || "",
+                  metadataUrl: mintStatus.metadataUri || "",
+                  preview: mintStatus.imageUri || "",
+                  seed: "",
+                  traits: {
+                    description: "Already minted NFT",
+                    main_colors: [],
+                    style: "unique",
+                    accessory: "none"
+                  },
+                });
+                setCurrentUserId(xUserId);
+                setStep("mint"); // Show success screen
+                return true;
+              }
+            } catch (contractError) {
+              console.warn("⚠️ Contract check failed:", contractError);
+            }
           }
         }
       } catch (mintCheckError) {
@@ -189,9 +232,11 @@ function HomePageContent() {
   // Check mint status when on pay step
   useEffect(() => {
     const checkMintStatus = async () => {
-      if (step === "pay" && xUser && !alreadyMinted) {
+      if (step === "pay" && xUser && !alreadyMinted && wallet) {
         try {
           console.log("🔍 Checking mint status on pay step for user:", xUser.x_user_id);
+          
+          // Check database first
           const mintStatusResponse = await fetch("/api/check-mint-status", {
             method: "POST",
             headers: {
@@ -202,13 +247,43 @@ function HomePageContent() {
           
           if (mintStatusResponse.ok) {
             const mintStatus = await mintStatusResponse.json();
-            console.log("🔍 Mint status result:", mintStatus);
+            console.log("🔍 Mint status result (DB):", mintStatus);
             
-            // If user already minted, update state and show success
+            // If database says minted, show success
             if (mintStatus.hasMinted && mintStatus.tokenId > 0) {
-              console.log("✅ User already minted! Redirecting to success...");
+              console.log("✅ User already minted (DB)! Redirecting to success...");
               setAlreadyMinted(true);
               setMintedTokenId(mintStatus.tokenId?.toString() || null);
+              setStep("mint");
+              return;
+            }
+          }
+          
+          // If database says not minted, double-check with contract
+          // (in case token_id wasn't updated in DB)
+          console.log("🔍 Database check passed, checking contract...");
+          if (typeof window.ethereum !== "undefined") {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(
+              env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+              [
+                "function usedXUserId(uint256) view returns (bool)",
+              ],
+              provider
+            );
+            
+            // Convert x_user_id to uint256
+            const hash = ethers.id(xUser.x_user_id);
+            const xUserIdBigInt = BigInt(hash);
+            
+            const isUsed = await contract.usedXUserId(xUserIdBigInt);
+            console.log("🔍 Contract check result:", { isUsed });
+            
+            if (isUsed) {
+              console.log("✅ User already minted (CONTRACT)! Redirecting to success...");
+              setAlreadyMinted(true);
+              // Try to get token_id from database, if not available, show without it
+              setMintedTokenId(mintStatus.tokenId > 0 ? mintStatus.tokenId?.toString() : null);
               setStep("mint");
             }
           }
@@ -219,7 +294,7 @@ function HomePageContent() {
     };
     
     checkMintStatus();
-  }, [step, xUser, alreadyMinted]);
+  }, [step, xUser, alreadyMinted, wallet]);
 
   const disconnectX = () => {
     // Clear X account connection
