@@ -419,15 +419,18 @@ function HomePageContent() {
 
         const paymentOption = paymentRequest.accepts[0];
         console.log(`📋 Payment option:`, paymentOption);
+        console.log(`📋 Extra data (EIP-712 domain):`, (paymentOption as any).extra);
         
         // Extract payment details
         const amount = (paymentOption as any).amount || (paymentOption as any).maxAmountRequired || "100000";
         const recipientAddress = (paymentOption as any).recipient || (paymentOption as any).payTo || "0x5305538F1922B69722BBE2C1B84869Fd27Abb4BF";
         const asset = paymentOption.asset || "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
         const network = paymentOption.network || "base";
+        const extra = (paymentOption as any).extra; // EIP-712 domain info from middleware
         
         console.log(`💰 Payment required: ${amount} USDC on ${network}`);
         console.log(`   Recipient: ${recipientAddress}`);
+        console.log(`   EIP-712 Domain from middleware: ${extra?.name} v${extra?.version}`);
         
         // Show payment info to user
         const usdcAmount = (parseInt(amount) / 1_000_000).toFixed(2);
@@ -446,12 +449,13 @@ function HomePageContent() {
           const signer = await provider.getSigner();
           const walletAddress = await signer.getAddress();
           
-          // Create payment option with normalized fields
+          // Create payment option with normalized fields + EIP-712 domain info
           const paymentOptionWithRecipient: X402PaymentRequest = {
             asset: asset,
             amount: amount,
             network: network,
             recipient: recipientAddress,
+            extra: extra, // Pass EIP-712 domain info to client
           };
           
           // Generate x402 payment header (EIP-712 signature)

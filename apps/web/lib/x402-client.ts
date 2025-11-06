@@ -11,6 +11,10 @@ export interface X402PaymentRequest {
   amount: string;
   network: string;
   recipient: string;
+  extra?: {
+    name?: string;
+    version?: string;
+  };
 }
 
 export interface X402PaymentResponse {
@@ -58,13 +62,17 @@ export async function generateX402PaymentHeader(
   const chainId = paymentOption.network === "base" ? 8453 : 
                   paymentOption.network === "base-sepolia" ? 84532 : 8453;
   
-  // EIP-712 domain for x402 payment
+  // EIP-712 domain - Use EXACT values from middleware's 402 response (extra field)
+  // Middleware returns: "extra": { "name": "USD Coin", "version": "2" }
+  // We MUST use these exact values for signature verification to work
   const domain = {
-    name: "x402 Payment",
-    version: "1",
+    name: paymentOption.extra?.name || "USD Coin",
+    version: paymentOption.extra?.version || "2",
     chainId: chainId,
     verifyingContract: normalizedUsdcAddress,
   };
+  
+  console.log(`📋 EIP-712 Domain:`, domain);
 
   // EIP-712 types for x402 payment
   const types = {
