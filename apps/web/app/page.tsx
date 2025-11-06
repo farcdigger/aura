@@ -4,7 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import type { GenerateResponse, MintPermitResponse } from "@/lib/types";
-import { generateX402PaymentHeader, type X402PaymentResponse, type X402PaymentRequest } from "@/lib/x402-client";
+import { wrapFetchWithPayment } from "x402-fetch";
+import { createWalletClient, custom } from "viem";
+import { base } from "viem/chains";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -386,193 +388,85 @@ function HomePageContent() {
       return;
     }
     
-    console.log("✅ All checks passed - starting mint flow");
+    console.log("✅ All checks passed - starting mint flow with x402-fetch");
     try {
       setLoading(true);
+      setError("Preparing payment... Please approve the USDC permit signature in your wallet.");
       
-      console.log("📝 First mint permit request (no payment)...");
-      // First request - should return 402
-      const response = await fetch("/api/mint-permit", {
+      // Check if wallet is available
+      if (typeof window.ethereum === "undefined") {
+        throw new Error("Wallet not connected. Please connect your wallet first.");
+      }
+      
+      console.log("💳 Using x402-fetch to handle payment automatically...");
+      console.log("   This will:");
+      console.log("   1. Get 402 response from server");
+      console.log("   2. Request USDC permit signature from your wallet");
+      console.log("   3. Send permit to CDP facilitator");
+      console.log("   4. Retry request with payment proof");
+      
+      // Get account address from MetaMask
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+      const userAddress = accounts[0] as `0x${string}`;
+      
+      console.log(`Using wallet address: ${userAddress}`);
+      
+      // Create viem wallet client for x402-fetch
+      const walletClient = createWalletClient({
+        account: userAddress,
+        chain: base,
+        transport: custom(window.ethereum),
+      });
+      
+      // Wrap fetch with x402 payment handling
+      // maxValue: 100000 = 0.1 USDC (6 decimals)
+      // @ts-ignore - viem version mismatch between dependencies
+      const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(100000));
+      
+      // x402-fetch automatically handles the entire payment flow
+      const response = await fetchWithPayment("/api/mint-permit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           wallet,
           x_user_id: userId,
         }),
       });
       
-      console.log("Mint permit response status:", response.status);
+      console.log("✅ Payment completed, parsing response...");
       
-      if (response.status === 200) {
-        // Direct permit (mock mode - no x402 payment)
-        const permitData: MintPermitResponse = await response.json();
-        console.log("Permit data received:", permitData);
-        await mintNFT(permitData);
-      } else if (response.status === 402) {
-        // x402 Payment Required - User will pay on OUR site with their wallet
-        const paymentRequest: X402PaymentResponse = await response.json();
-        console.log("💳 402 Payment request received:", paymentRequest);
-        
-        if (!paymentRequest.accepts || paymentRequest.accepts.length === 0) {
-          throw new Error("No payment options in 402 response");
-        }
-
-        const paymentOption = paymentRequest.accepts[0];
-        console.log(`📋 Payment option:`, paymentOption);
-        console.log(`📋 Extra data (EIP-712 domain):`, (paymentOption as any).extra);
-        
-        // Extract payment details
-        const amount = (paymentOption as any).amount || (paymentOption as any).maxAmountRequired || "100000";
-        const recipientAddress = (paymentOption as any).recipient || (paymentOption as any).payTo || "0x5305538F1922B69722BBE2C1B84869Fd27Abb4BF";
-        const asset = paymentOption.asset || "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
-        const network = paymentOption.network || "base";
-        const extra = (paymentOption as any).extra; // EIP-712 domain info from middleware
-        
-        console.log(`💰 Payment required: ${amount} USDC on ${network}`);
-        console.log(`   Recipient: ${recipientAddress}`);
-        console.log(`   EIP-712 Domain from middleware: ${extra?.name} v${extra?.version}`);
-        
-        // Show payment info to user
-        const usdcAmount = (parseInt(amount) / 1_000_000).toFixed(2);
-        setError(`Payment Required: ${usdcAmount} USDC. Please approve the transaction in your wallet.`);
-        
-        // User pays on OUR site with their wallet
-        if (typeof window.ethereum === "undefined") {
-          throw new Error("Wallet not connected. Please connect your wallet first.");
-        }
-
-        console.log("💳 Preparing x402 payment on our site...");
-        setLoading(true);
-        
-        try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const signer = await provider.getSigner();
-          const walletAddress = await signer.getAddress();
-          
-          // Create payment option with normalized fields + EIP-712 domain info
-          const paymentOptionWithRecipient: X402PaymentRequest = {
-            asset: asset,
-            amount: amount,
-            network: network,
-            recipient: recipientAddress,
-            extra: extra, // Pass EIP-712 domain info to client
-          };
-          
-          // Generate x402 payment header (EIP-712 signature)
-          // This proves user authorizes the payment
-          const paymentHeader = await generateX402PaymentHeader(
-            walletAddress,
-            signer,
-            paymentOptionWithRecipient
-          );
-          
-          console.log(`✅ Payment authorization signed`);
-          console.log(`📤 Sending to server for processing...`);
-          
-          // Send payment header to our backend
-          // Middleware will verify and execute USDC transfer
-          const mintResponse = await fetch("/api/mint-permit", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-PAYMENT": paymentHeader,
-            },
-            body: JSON.stringify({
-              wallet,
-              x_user_id: userId,
-            }),
-          });
-          
-          console.log("Mint permit response status:", mintResponse.status);
-          
-          if (!mintResponse.ok) {
-            // Handle 402 Payment Required - payment might not have been verified
-            if (mintResponse.status === 402) {
-              const errorText = await mintResponse.text();
-              let errorData: any;
-              try {
-                errorData = JSON.parse(errorText);
-              } catch {
-                errorData = { error: errorText || "Payment verification failed" };
-              }
-              
-              console.error("❌ 402 Payment Required after payment header:", errorData);
-              console.error("   This means middleware did not verify the payment header");
-              console.error("   Payment header sent:", paymentHeader.substring(0, 200) + "...");
-              
-              // Format error message properly
-              let errorMessage = "Middleware could not verify payment header";
-              if (errorData.error) {
-                errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
-              } else if (errorData.message) {
-                errorMessage = typeof errorData.message === 'string' ? errorData.message : JSON.stringify(errorData.message);
-              } else if (typeof errorData === 'object') {
-                errorMessage = JSON.stringify(errorData);
-              } else if (typeof errorData === 'string') {
-                errorMessage = errorData;
-              }
-              
-              throw new Error(
-                `Payment verification failed: ${errorMessage}\n\n` +
-                `Please check:\n` +
-                `1. Payment header format is correct\n` +
-                `2. EIP-712 signature is valid\n` +
-                `3. Facilitator is configured correctly (CDP_API_KEY_ID and CDP_API_KEY_SECRET)\n` +
-                `4. Network matches (Base Mainnet: 8453)\n` +
-                `5. Wallet is connected to Base Mainnet\n\n` +
-                `Full error: ${JSON.stringify(errorData, null, 2)}`
-              );
-            }
-            
-            const errorText = await mintResponse.text();
-            let errorData: any;
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { error: errorText || "Unknown error" };
-            }
-            
-            console.error("Mint permit failed after payment:", errorData);
-            
-            // Handle rate limit error (should not occur for mint, but keep for compatibility)
-            if (mintResponse.status === 429) {
-              const errorMessage = errorData.error || "Rate limit exceeded";
-              throw new Error(
-                `${errorMessage}\n\nNote: Mint rate limiting has been removed. If you see this error, please report it.`
-              );
-            }
-            
-            const errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
-            throw new Error(`Mint permit failed: ${errorMessage}`);
-          }
-          
-          const permitData: MintPermitResponse = await mintResponse.json();
-          console.log("✅ Permit data received:", permitData);
-          await mintNFT(permitData);
-        } catch (paymentError: any) {
-          console.error("❌ Payment failed:", paymentError);
-          
-          // Provide helpful error message for USDC contract issues
-          const errorMessage = paymentError.message || 'Unknown error';
-          if (errorMessage.includes("USDC") || errorMessage.includes("contract") || errorMessage.includes("balanceOf")) {
-            throw new Error(
-              `Payment failed: ${errorMessage}\n\n` +
-              `For Base Mainnet, ensure:\n` +
-              `1. Your wallet is connected to Base Mainnet (Chain ID: 8453)\n` +
-              `2. You have sufficient USDC balance (contract: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)\n` +
-              `3. You have enough ETH for gas fees`
-            );
-          }
-          
-          throw new Error(`Payment failed: ${errorMessage}`);
-        }
-      } else {
+      // wrapFetchWithPayment returns the Response object after successful payment
+      if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("Unexpected response:", response.status, errorData);
-        throw new Error(`Unexpected response status: ${response.status} - ${errorData.error || 'Unknown error'}`);
+        console.error("Mint permit failed:", errorData);
+        throw new Error(errorData.error || errorData.message || 'Failed to get mint permit');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Mint permit failed");
+      
+      const permitData: MintPermitResponse = await response.json();
+      console.log("✅ Permit data received:", permitData);
+      
+      // Now mint the NFT with the permit
+      await mintNFT(permitData);
+      
+    } catch (err: any) {
+      console.error("❌ Request mint permit error:", err);
+      
+      let errorMessage = err.message || "Payment failed";
+      
+      // Add helpful context for common errors
+      if (errorMessage.includes("insufficient") || errorMessage.includes("balance")) {
+        errorMessage += "\n\nPlease ensure you have at least 0.1 USDC and some ETH for gas on Base Mainnet.";
+      } else if (errorMessage.includes("network") || errorMessage.includes("chain")) {
+        errorMessage += "\n\nPlease make sure your wallet is connected to Base Mainnet (Chain ID: 8453).";
+      } else if (errorMessage.includes("rejected") || errorMessage.includes("denied") || errorMessage.includes("user rejected")) {
+        errorMessage = "Transaction was rejected. Please try again and approve the transaction.";
+      } else if (errorMessage.includes("facilitator")) {
+        errorMessage += "\n\nThere may be an issue with the payment processor. Please try again.";
+      }
+      
+      setError(`Payment failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
