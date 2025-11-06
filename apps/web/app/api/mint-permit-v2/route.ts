@@ -343,6 +343,46 @@ export async function POST(request: NextRequest) {
     console.log("✅ Payment settled successfully!");
     console.log(`   Payer: ${settlement.payer}`);
     console.log(`   Transaction: ${settlement.transaction}`);
+    
+    // 🔒 SECURITY: Check if transaction already used
+    if (!isMockMode && db && settlement.transaction) {
+      console.log("🔍 Checking if transaction already used...");
+      try {
+        const { payments } = await import("@/lib/db");
+        const existingPayment = await db
+          .select()
+          .from(payments)
+          .where(eq((payments as any).transaction_hash, settlement.transaction))
+          .limit(1);
+        
+        if (existingPayment && existingPayment.length > 0) {
+          console.error("❌ Transaction already used:", settlement.transaction);
+          return NextResponse.json(
+            { 
+              error: "Payment already used",
+              message: "This payment has already been used to mint an NFT"
+            },
+            { status: 400 }
+          );
+        }
+        
+        console.log("✅ Transaction is new, recording it...");
+        // Record the transaction
+        await db.insert(payments).values({
+          x_user_id: x_user_id,
+          wallet_address: settlement.payer || wallet,
+          amount: PAYMENT_AMOUNT,
+          transaction_hash: settlement.transaction,
+          status: "completed",
+          created_at: new Date().toISOString()
+        });
+        console.log("💾 Transaction recorded in database");
+      } catch (dbError) {
+        console.error("⚠️ Database transaction check failed:", dbError);
+        // Continue anyway for now, but log the error
+      }
+    }
+    
     console.log(`📝 Generating mint permit for wallet: ${wallet}, X user: ${x_user_id}`);
     
     // Convert x_user_id to uint256
@@ -372,23 +412,21 @@ export async function POST(request: NextRequest) {
     let tokenURI = null;
     if (!isMockMode && db) {
       try {
+        console.log(`🔍 Looking for token metadata for x_user_id: ${x_user_id}`);
         const userToken = await db
           .select()
           .from(tokens)
-          .where(
-            and(
-              eq(tokens.walletAddress, wallet.toLowerCase()),
-              eq(tokens.xUserId, x_user_id)
-            )
-          )
+          .where(eq(tokens.x_user_id, x_user_id))
           .limit(1);
         
         if (userToken && userToken.length > 0) {
-          tokenURI = userToken[0].metadataUri;
+          tokenURI = userToken[0].metadata_uri;
           console.log(`✅ Found token metadata: ${tokenURI}`);
+        } else {
+          console.log(`⚠️ No token metadata found for x_user_id: ${x_user_id}`);
         }
       } catch (dbError) {
-        console.error("Database error:", dbError);
+        console.error("❌ Database error fetching metadata:", dbError);
       }
     }
     
