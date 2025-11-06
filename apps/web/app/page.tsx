@@ -81,7 +81,12 @@ function HomePageContent() {
             metadataUrl: mintStatus.metadataUri || "",
             preview: mintStatus.imageUri || "",
             seed: "",
-            traits: {},
+            traits: {
+              description: "Already minted NFT",
+              main_colors: [],
+              style: "unique",
+              accessory: "none"
+            },
           });
           setCurrentUserId(xUserId);
           setStep("mint"); // Show "already minted" state
