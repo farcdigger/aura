@@ -19,6 +19,7 @@ function HomePageContent() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [alreadyMinted, setAlreadyMinted] = useState(false);
 
   // Handle OAuth callback
   useEffect(() => {
@@ -56,6 +57,40 @@ function HomePageContent() {
   const checkExistingNFT = async (xUserId: string): Promise<boolean> => {
     try {
       console.log("🔍 Checking for existing NFT for user:", xUserId);
+      
+      // First check mint status
+      const mintStatusResponse = await fetch("/api/check-mint-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ x_user_id: xUserId }),
+      });
+      
+      if (mintStatusResponse.ok) {
+        const mintStatus = await mintStatusResponse.json();
+        console.log("🔍 Mint status:", mintStatus);
+        
+        if (mintStatus.hasMinted && mintStatus.tokenId > 0) {
+          // User already minted! Show success screen
+          setAlreadyMinted(true);
+          setMintedTokenId(mintStatus.tokenId?.toString() || null);
+          setGenerated({
+            success: true,
+            imageUrl: mintStatus.imageUri || "",
+            metadataUrl: mintStatus.metadataUri || "",
+            preview: mintStatus.imageUri || "",
+            seed: "",
+            traits: {},
+          });
+          setCurrentUserId(xUserId);
+          setStep("mint"); // Show "already minted" state
+          console.log("✅ User already minted NFT, token_id:", mintStatus.tokenId);
+          return true;
+        }
+      }
+      
+      // Not minted yet, check for generated metadata
       const response = await fetch(`/api/generate?x_user_id=${xUserId}`);
       
       if (response.ok) {
@@ -68,11 +103,10 @@ function HomePageContent() {
         });
         
         if (data.preview || data.imageUrl) {
-          console.log("✅ Found existing NFT, displaying it");
+          console.log("✅ Found existing NFT metadata, can proceed to mint");
           setGenerated(data);
-          // IMPORTANT: Set currentUserId so mint button works
           setCurrentUserId(xUserId);
-          // Move to pay step if NFT already exists
+          // Move to pay step if NFT metadata exists but not minted
           setStep("pay");
           return true;
         } else {
@@ -956,13 +990,29 @@ function HomePageContent() {
                   <p className="mt-1"><strong>Metadata:</strong> {generated.metadataUrl}</p>
                 </div>
               </div>
-              <button
-                onClick={requestMintPermit}
-                disabled={loading || !wallet}
-                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
-              >
-                {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT"}
-              </button>
+              {alreadyMinted ? (
+                <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-6 text-center">
+                  <p className="text-green-400 text-lg font-bold mb-2">✅ Already Minted!</p>
+                  <p className="text-sm text-gray-300 mb-4">
+                    You have already minted your NFT with this X profile.
+                    <br />
+                    Each X profile can only mint one NFT.
+                  </p>
+                  {mintedTokenId && (
+                    <p className="text-xs text-gray-400">
+                      Token ID: #{mintedTokenId}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={requestMintPermit}
+                  disabled={loading || !wallet}
+                  className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
+                >
+                  {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT (0.1 USDC)"}
+                </button>
+              )}
             </div>
           )}
           
