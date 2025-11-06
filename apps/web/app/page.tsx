@@ -10,7 +10,6 @@ import { base } from "viem/chains";
 import { env } from "@/env.mjs";
 import Hero from "@/components/Hero";
 import StepCard from "@/components/StepCard";
-import PreviousCreations from "@/components/PreviousCreations";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -24,7 +23,6 @@ function HomePageContent() {
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [alreadyMinted, setAlreadyMinted] = useState(false);
-  const [recentNFTs, setRecentNFTs] = useState<any[]>([]);
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -41,23 +39,7 @@ function HomePageContent() {
         localStorage.removeItem("xUser");
       }
     }
-    
-    // Load recent minted NFTs
-    loadRecentNFTs();
   }, []);
-  
-  // Load recent minted NFTs from backend
-  const loadRecentNFTs = async () => {
-    try {
-      const response = await fetch("/api/recent-nfts");
-      if (response.ok) {
-        const data = await response.json();
-        setRecentNFTs(data.nfts || []);
-      }
-    } catch (error) {
-      console.error("Failed to load recent NFTs:", error);
-    }
-  };
 
   // Handle OAuth callback
   useEffect(() => {
@@ -601,10 +583,10 @@ function HomePageContent() {
       setError("Preparing payment... Please approve the USDC permit signature in your wallet.");
       
       // Check if wallet is available
-      if (typeof window.ethereum === "undefined") {
-        throw new Error("Wallet not connected. Please connect your wallet first.");
-      }
-      
+        if (typeof window.ethereum === "undefined") {
+          throw new Error("Wallet not connected. Please connect your wallet first.");
+        }
+
       console.log("💳 Using x402-fetch to handle payment automatically...");
       console.log("   This will:");
       console.log("   1. Get 402 response from server");
@@ -617,14 +599,14 @@ function HomePageContent() {
       const userAddress = accounts[0] as `0x${string}`;
       
       console.log(`Using wallet address: ${userAddress}`);
-      
+          
       // Create viem wallet client for x402-fetch
       const walletClient = createWalletClient({
         account: userAddress,
         chain: base,
         transport: custom(window.ethereum),
       });
-      
+          
       // Wrap fetch with x402 payment handling
       // maxValue: 100000 = 0.1 USDC (6 decimals)
       // @ts-ignore - viem version mismatch between dependencies
@@ -633,16 +615,16 @@ function HomePageContent() {
       // x402-fetch automatically handles the entire payment flow
       // Server-side manual verification (EIP-2612 USDC Permit)
       const response = await fetchWithPayment("/api/mint-permit-v2", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          wallet,
-          x_user_id: userId,
-        }),
-      });
-      
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              wallet,
+              x_user_id: userId,
+            }),
+          });
+          
       console.log("✅ Payment completed, parsing response...");
       
       // wrapFetchWithPayment returns the Response object after successful payment
@@ -650,17 +632,17 @@ function HomePageContent() {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error("Mint permit failed:", errorData);
         throw new Error(errorData.error || errorData.message || 'Failed to get mint permit');
-      }
-      
+          }
+          
       const permitData: MintPermitResponse = await response.json();
-      console.log("✅ Permit data received:", permitData);
+          console.log("✅ Permit data received:", permitData);
       
       // Now mint the NFT with the permit
-      await mintNFT(permitData);
+          await mintNFT(permitData);
       
     } catch (err: any) {
       console.error("❌ Request mint permit error:", err);
-      
+          
       let errorMessage = err.message || "Payment failed";
       
       // Add helpful context for common errors
@@ -1015,17 +997,12 @@ function HomePageContent() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <span className="text-xl">🐱</span>
-              </div>
-              <span className="text-xl font-bold text-gray-800">Aura Creatures</span>
-            </div>
-            
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center gap-6 text-gray-700">
-              <a href="#" className="hover:text-purple-600 transition-colors">About</a>
-              <a href="#" className="hover:text-purple-600 transition-colors">How it Works</a>
-              <a href="#" className="hover:text-purple-600 transition-colors">Connect</a>
+              <img 
+                src="/frora-logo.png" 
+                alt="Frora Logo" 
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              <span className="text-xl font-bold text-gray-800">Frora</span>
             </div>
             
             {/* Right: User Info & Buttons */}
@@ -1053,9 +1030,9 @@ function HomePageContent() {
               ) : (
                 <div className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold">
                   {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}
-                </div>
-              )}
-            </div>
+          </div>
+        )}
+      </div>
           </div>
         </div>
       </nav>
@@ -1065,14 +1042,14 @@ function HomePageContent() {
         <Hero xUser={xUser} />
         
         {/* Error Message */}
-        {error && (
+          {error && (
           <div className="max-w-4xl mx-auto mb-8">
             <div className="bg-red-50 border border-red-300 text-red-700 p-4 rounded-lg">
               <p className="text-sm font-medium">{error}</p>
             </div>
-          </div>
-        )}
-        
+            </div>
+          )}
+          
         {/* 3-Card Layout - Always show all 3 steps */}
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -1265,8 +1242,7 @@ function HomePageContent() {
           </div>
         )}
         
-        {/* Previous Creations */}
-        <PreviousCreations creations={recentNFTs} />
+        {/* Previous Creations - Removed */}
         
         {/* OLD STEP-BASED UI - Hidden but kept for logic */}
         <div className="hidden">
@@ -1460,13 +1436,13 @@ function HomePageContent() {
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={requestMintPermit}
-                  disabled={loading || !wallet}
-                  className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
-                >
+              <button
+                onClick={requestMintPermit}
+                disabled={loading || !wallet}
+                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
+              >
                   {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT (0.1 USDC)"}
-                </button>
+              </button>
               )}
             </div>
           )}

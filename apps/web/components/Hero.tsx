@@ -17,10 +17,12 @@ export default function Hero({ xUser }: HeroProps) {
         <div className="flex-1 text-left">
           {/* Logo */}
           <div className="mb-6 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-              <span className="text-2xl">🐱</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800">Aura Creatures</h1>
+            <img 
+              src="/frora-logo.png" 
+              alt="Frora Logo" 
+              className="w-12 h-12 rounded-full object-cover"
+            />
+            <h1 className="text-3xl font-bold text-gray-800">Frora</h1>
           </div>
           
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800">
