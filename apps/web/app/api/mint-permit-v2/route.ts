@@ -65,130 +65,84 @@ function create402Response() {
 }
 
 /**
- * Ödeme doğrulama - USDC Permit signature verification
+ * CDP Facilitator API - Ödeme doğrulama
  * 
- * x402-fetch'in gönderdiği payment header formatı:
- * {
- *   owner: address,
- *   spender: address,
- *   value: string,
- *   deadline: number,
- *   v: number,
- *   r: string,
- *   s: string
- * }
+ * API Docs: https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/verify-a-payment
+ * 
+ * CDP Facilitator kullanarak x402 payment verification
  */
-async function verifyPayment(paymentHeader: string, payerAddress: string): Promise<boolean> {
+async function verifyPaymentWithCDPFacilitator(paymentPayload: any): Promise<boolean> {
   try {
-    console.log("🔍 Verifying USDC permit signature...");
+    console.log("🔍 Verifying payment with CDP Facilitator API...");
     
-    const payment = JSON.parse(paymentHeader);
-    console.log("Payment data:", {
-      owner: payment.owner,
-      spender: payment.spender,
-      value: payment.value,
-      deadline: payment.deadline
+    // CDP API için Bearer token oluştur
+    const apiKeyName = env.CDP_API_KEY_ID;
+    const apiKeySecret = env.CDP_API_KEY_SECRET;
+    
+    if (!apiKeyName || !apiKeySecret) {
+      console.error("❌ CDP API keys not configured");
+      return false;
+    }
+    
+    // JWT token oluştur (CDP dökümanlarına göre)
+    const token = Buffer.from(`${apiKeyName}:${apiKeySecret}`).toString('base64');
+    
+    // CDP Facilitator API endpoint
+    const facilitatorUrl = "https://api.cdp.coinbase.com/platform/v2/x402/verify";
+    
+    // Payment requirements
+    const paymentRequirements = {
+      scheme: "exact",
+      network: NETWORK,
+      maxAmountRequired: PAYMENT_AMOUNT,
+      resource: `/api/mint-permit-v2`,
+      description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT",
+      mimeType: "application/json",
+      payTo: RECIPIENT_ADDRESS,
+      maxTimeoutSeconds: 300,
+      asset: BASE_USDC_ADDRESS
+    };
+    
+    // API request body
+    const requestBody = {
+      x402Version: 1,
+      paymentPayload: paymentPayload,
+      paymentRequirements: paymentRequirements
+    };
+    
+    console.log("📤 Sending verification request to CDP Facilitator...");
+    
+    const response = await fetch(facilitatorUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
     });
     
-    // Validate payment fields
-    if (!payment.owner || !payment.spender || !payment.value || !payment.deadline) {
-      console.error("❌ Invalid payment format");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ CDP Facilitator API error:", response.status, errorText);
       return false;
     }
     
-    // Verify owner matches payer
-    if (payment.owner.toLowerCase() !== payerAddress.toLowerCase()) {
-      console.error("❌ Payment owner doesn't match wallet address");
+    const result = await response.json();
+    console.log("📥 CDP Facilitator response:", result);
+    
+    // Check if payment is valid
+    if (result.isValid === true) {
+      console.log("✅ Payment verified by CDP Facilitator!");
+      console.log(`   Payer: ${result.payer}`);
+      return true;
+    } else {
+      console.error("❌ Payment verification failed");
+      console.error(`   Reason: ${result.invalidReason || 'Unknown'}`);
       return false;
     }
-    
-    // Verify spender is our recipient
-    if (payment.spender.toLowerCase() !== RECIPIENT_ADDRESS.toLowerCase()) {
-      console.error("❌ Payment spender doesn't match recipient");
-      return false;
-    }
-    
-    // Verify amount (at least the required amount)
-    const paymentValue = BigInt(payment.value);
-    const requiredValue = BigInt(PAYMENT_AMOUNT);
-    if (paymentValue < requiredValue) {
-      console.error(`❌ Insufficient payment: ${paymentValue} < ${requiredValue}`);
-      return false;
-    }
-    
-    // Verify deadline hasn't passed
-    const now = Math.floor(Date.now() / 1000);
-    if (payment.deadline < now) {
-      console.error("❌ Payment deadline has passed");
-      return false;
-    }
-    
-    // Verify signature using ethers
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
-    const usdcContract = new ethers.Contract(
-      BASE_USDC_ADDRESS,
-      [
-        "function nonces(address owner) view returns (uint256)",
-        "function name() view returns (string)",
-        "function version() view returns (string)"
-      ],
-      provider
-    );
-    
-    // Get nonce for EIP-712 verification
-    const nonce = await usdcContract.nonces(payment.owner);
-    
-    // EIP-712 domain for USDC on Base
-    const domain = {
-      name: "USD Coin",
-      version: "2",
-      chainId: 8453, // Base mainnet
-      verifyingContract: BASE_USDC_ADDRESS
-    };
-    
-    // EIP-712 types for Permit
-    const types = {
-      Permit: [
-        { name: "owner", type: "address" },
-        { name: "spender", type: "address" },
-        { name: "value", type: "uint256" },
-        { name: "nonce", type: "uint256" },
-        { name: "deadline", type: "uint256" }
-      ]
-    };
-    
-    // Message to verify
-    const message = {
-      owner: payment.owner,
-      spender: payment.spender,
-      value: payment.value,
-      nonce: nonce.toString(),
-      deadline: payment.deadline
-    };
-    
-    // Recover signer from signature
-    const signature = ethers.Signature.from({
-      v: payment.v,
-      r: payment.r,
-      s: payment.s
-    });
-    
-    const digest = ethers.TypedDataEncoder.hash(domain, types, message);
-    const recoveredAddress = ethers.recoverAddress(digest, signature);
-    
-    console.log("Recovered signer:", recoveredAddress);
-    console.log("Expected owner:", payment.owner);
-    
-    if (recoveredAddress.toLowerCase() !== payment.owner.toLowerCase()) {
-      console.error("❌ Signature verification failed");
-      return false;
-    }
-    
-    console.log("✅ Payment signature verified successfully!");
-    return true;
     
   } catch (error) {
-    console.error("❌ Payment verification error:", error);
+    console.error("❌ CDP Facilitator verification error:", error);
     return false;
   }
 }
@@ -238,13 +192,22 @@ export async function POST(request: NextRequest) {
       return create402Response();
     }
     
-    // Verify payment
-    console.log("🔍 Payment header received, verifying...");
-    const isPaymentValid = await verifyPayment(paymentHeader, wallet);
+    // Parse payment payload from header
+    let paymentPayload;
+    try {
+      paymentPayload = JSON.parse(paymentHeader);
+    } catch (error) {
+      console.error("❌ Invalid payment header format");
+      return create402Response();
+    }
+    
+    // Verify payment with CDP Facilitator API
+    console.log("🔍 Payment header received, verifying with CDP Facilitator...");
+    const isPaymentValid = await verifyPaymentWithCDPFacilitator(paymentPayload);
     
     if (!isPaymentValid) {
       // Payment verification failed - return 402 again
-      console.log("❌ Payment verification failed");
+      console.log("❌ CDP Facilitator verification failed");
       return create402Response();
     }
     
