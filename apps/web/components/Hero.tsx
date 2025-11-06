@@ -1,6 +1,15 @@
 "use client";
 
-export default function Hero() {
+interface HeroProps {
+  xUser?: {
+    x_user_id: string;
+    username: string;
+    profile_image_url: string;
+    bio?: string;
+  } | null;
+}
+
+export default function Hero({ xUser }: HeroProps) {
   return (
     <div className="relative text-center py-8 px-4 animate-fade-in">
       <div className="flex flex-col md:flex-row items-center justify-center gap-8 max-w-6xl mx-auto">
@@ -25,13 +34,32 @@ export default function Hero() {
           </p>
         </div>
         
-        {/* Right: Creature Image */}
+        {/* Right: Creature Image / X Profile Picture */}
         <div className="flex-1 flex justify-center">
           <div className="relative w-64 h-64 md:w-80 md:h-80">
-            {/* Placeholder creature - Bu görseli güncelleyebiliriz */}
-            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center">
-              <span className="text-9xl">🦊</span>
-            </div>
+            {xUser ? (
+              // X Profile Picture
+              <>
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center overflow-hidden ring-4 ring-purple-300">
+                  <img
+                    src={xUser.profile_image_url}
+                    alt={`@${xUser.username}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {/* Decorative badge */}
+                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg border-2 border-purple-400">
+                  <p className="text-sm font-bold text-gray-800">@{xUser.username}</p>
+                </div>
+              </>
+            ) : (
+              // Default Fox Placeholder
+              <>
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center">
+                  <span className="text-9xl">🦊</span>
+                </div>
+              </>
+            )}
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-16 h-16 bg-teal-400 rounded-full opacity-70 animate-pulse"></div>
           </div>

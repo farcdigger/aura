@@ -1062,7 +1062,7 @@ function HomePageContent() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <Hero />
+        <Hero xUser={xUser} />
         
         {/* Error Message */}
         {error && (
