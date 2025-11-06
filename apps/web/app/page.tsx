@@ -1263,16 +1263,16 @@ function HomePageContent() {
         <footer className="mt-16 py-8 border-t border-gray-300">
           <div className="container mx-auto px-4">
             <p className="text-center text-gray-600 text-sm">
-              Your digital identity, reborn as an AI work of art. Crafted by{" "}
+              Your digital identity is reborn as an AI work of art.✨ Developed using{" "}
               <a
                 href="https://x.com/daydreamsagents"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-600 hover:text-purple-700 font-semibold"
               >
-                @daydreamsagents
+                Daydreams infrastructure
               </a>
-              {" "}Instantly minted via the x402 Protocol. On{" "}
+              .💳 Generated instantly via x402 Protocol.⛓️{" "}
               <a
                 href="https://base.org"
                 target="_blank"
@@ -1281,6 +1281,7 @@ function HomePageContent() {
               >
                 @base
               </a>
+              .
             </p>
           </div>
         </footer>
