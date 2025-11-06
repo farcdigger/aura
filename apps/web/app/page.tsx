@@ -246,8 +246,9 @@ function HomePageContent() {
             body: JSON.stringify({ x_user_id: xUser.x_user_id }),
           });
           
+          let mintStatus: any = null;
           if (mintStatusResponse.ok) {
-            const mintStatus = await mintStatusResponse.json();
+            mintStatus = await mintStatusResponse.json();
             console.log("🔍 Mint status result (DB):", mintStatus);
             
             // If database says minted, show success
@@ -284,7 +285,7 @@ function HomePageContent() {
               console.log("✅ User already minted (CONTRACT)! Redirecting to success...");
               setAlreadyMinted(true);
               // Try to get token_id from database, if not available, show without it
-              setMintedTokenId(mintStatus.tokenId > 0 ? mintStatus.tokenId?.toString() : null);
+              setMintedTokenId(mintStatus?.tokenId > 0 ? mintStatus.tokenId?.toString() : null);
               setStep("mint");
             }
           }
