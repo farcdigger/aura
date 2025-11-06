@@ -21,6 +21,24 @@ const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PAYMENT_AMOUNT = "100000"; // 0.1 USDC (6 decimals)
 const NETWORK = "base";
 
+// CRITICAL: paymentRequirements MUST be EXACTLY the same in 402 response and settle call!
+// Store it as a constant to ensure consistency
+const PAYMENT_REQUIREMENTS = {
+  scheme: "exact" as const,
+  network: NETWORK,
+  maxAmountRequired: PAYMENT_AMOUNT,
+  resource: "https://aura-nft-iota.vercel.app/api/mint-permit-v2",
+  description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT",
+  mimeType: "application/json",
+  payTo: RECIPIENT_ADDRESS,
+  maxTimeoutSeconds: 60, // Changed from 300 to 60 (more conservative)
+  asset: BASE_USDC_ADDRESS,
+  extra: {
+    name: "USD Coin",
+    version: "2"
+  }
+};
+
 // Contract ABI
 const CONTRACT_ABI = [
   "function getNonce(address user) external view returns (uint256)",
@@ -37,23 +55,7 @@ function create402Response() {
   return NextResponse.json(
     {
       x402Version: 1,
-      accepts: [
-        {
-          scheme: "exact",
-          network: NETWORK,
-          maxAmountRequired: PAYMENT_AMOUNT,
-          resource: `${env.NEXT_PUBLIC_SUPABASE_URL || 'https://aura-nft-iota.vercel.app'}/api/mint-permit-v2`,
-          description: "Mint permit for Aura Creatures NFT - Pay 0.1 USDC to mint your unique AI-generated NFT",
-          mimeType: "application/json",
-          payTo: RECIPIENT_ADDRESS,
-          maxTimeoutSeconds: 300,
-          asset: BASE_USDC_ADDRESS,
-          extra: {
-            name: "USD Coin",
-            version: "2"
-          }
-        }
-      ]
+      accepts: [PAYMENT_REQUIREMENTS] // Use the EXACT same object as settle!
     },
     { 
       status: 402,
@@ -106,15 +108,8 @@ async function settlePaymentWithCDPFacilitator(paymentPayload: any): Promise<{
       expiresIn: 120
     });
     
-    // Payment requirements - ONLY mandatory fields
-    const paymentRequirements = {
-      scheme: "exact",
-      network: NETWORK,
-      maxAmountRequired: PAYMENT_AMOUNT,
-      resource: "https://aura-nft-iota.vercel.app/api/mint-permit-v2",
-      payTo: RECIPIENT_ADDRESS,
-      asset: BASE_USDC_ADDRESS
-    };
+    // CRITICAL: Use EXACT same paymentRequirements as 402 response!
+    const paymentRequirements = PAYMENT_REQUIREMENTS;
     
     const requestBody = {
       x402Version: 1,
