@@ -11,20 +11,15 @@ interface PreviousCreationsProps {
 }
 
 export default function PreviousCreations({ creations = [] }: PreviousCreationsProps) {
-  // Placeholder creations - only show if no real data
-  const placeholders = [
-    { id: 1, image: "🦋", tokenId: undefined },
-    { id: 2, image: "🐉", tokenId: undefined },
-    { id: 3, image: "🦊", tokenId: undefined },
-    { id: 4, image: "🐸", tokenId: undefined },
+  // Frora example creations - always show these beautiful examples
+  const froraExamples = [
+    { id: 1, image: "/frora-1.png", tokenId: undefined },
+    { id: 2, image: "/frora-2.png", tokenId: undefined },
+    { id: 3, image: "/frora-3.png", tokenId: undefined },
+    { id: 4, image: "/frora-4.png", tokenId: undefined },
   ];
 
-  const displayCreations = creations.length > 0 ? creations : placeholders;
-
-  // Don't show if no creations and no placeholders needed
-  if (displayCreations.length === 0) {
-    return null;
-  }
+  const displayCreations = creations.length > 0 ? creations : froraExamples;
 
   return (
     <div className="mt-16 animate-fade-in">
@@ -39,8 +34,8 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
             className="card hover:scale-105 cursor-pointer transition-all duration-300"
           >
             <div className="aspect-square rounded-lg bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center overflow-hidden">
-              {/* Real image or emoji placeholder */}
-              {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://")) ? (
+              {/* Frora image or real NFT image */}
+              {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
                 <img
                   src={creation.image}
                   alt={`Creation #${creation.tokenId || creation.id}`}

@@ -10,6 +10,7 @@ import { base } from "viem/chains";
 import { env } from "@/env.mjs";
 import Hero from "@/components/Hero";
 import StepCard from "@/components/StepCard";
+import PreviousCreations from "@/components/PreviousCreations";
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -1003,8 +1004,8 @@ function HomePageContent() {
                 className="w-10 h-10 rounded-full object-cover"
               />
               <span className="text-xl font-bold text-gray-800">Frora</span>
-            </div>
-            
+          </div>
+        
             {/* Right: User Info & Buttons */}
             <div className="flex items-center gap-3">
               {xUser ? (
@@ -1242,7 +1243,8 @@ function HomePageContent() {
           </div>
         )}
         
-        {/* Previous Creations - Removed */}
+        {/* Example Creations - Frora Examples */}
+        <PreviousCreations />
         
         {/* OLD STEP-BASED UI - Hidden but kept for logic */}
         <div className="hidden">
