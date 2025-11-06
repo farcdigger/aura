@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { signMintAuth } from "@/lib/eip712";
-import { db, tokens } from "@/lib/db";
+import { db, tokens, payments } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import { env, isMockMode } from "@/env.mjs";
 import { ethers } from "ethers";
@@ -346,9 +346,8 @@ export async function POST(request: NextRequest) {
     
     // 🔒 SECURITY: Check if transaction already used
     if (!isMockMode && db && settlement.transaction) {
-      console.log("🔍 Checking if transaction already used...");
+      console.log("🔍 Checking if transaction already used in Supabase...");
       try {
-        const { payments } = await import("@/lib/db");
         const existingPayment = await db
           .select()
           .from(payments)
@@ -366,8 +365,8 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        console.log("✅ Transaction is new, recording it...");
-        // Record the transaction
+        console.log("✅ Transaction is new, recording to Supabase...");
+        // Record the transaction to Supabase
         await db.insert(payments).values({
           x_user_id: x_user_id,
           wallet_address: settlement.payer || wallet,
