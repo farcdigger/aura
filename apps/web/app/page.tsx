@@ -10,6 +10,7 @@ import { env } from "@/env.mjs";
 import Hero from "@/components/Hero";
 import StepCard from "@/components/StepCard";
 import PreviousCreations from "@/components/PreviousCreations";
+import GenerationProgress from "@/components/GenerationProgress";
 import { useAccount, useWalletClient } from "wagmi";
 
 function HomePageContent() {
@@ -1188,12 +1189,7 @@ function HomePageContent() {
                 )
               }
             >
-              {loading && !generated && (
-                <div className="text-center text-sm text-gray-600 mt-2">
-                  <div className="spinner mx-auto mb-2"></div>
-                  <p>AI is creating your unique creature...</p>
-                </div>
-              )}
+              {loading && !generated && <GenerationProgress />}
             </StepCard>
           </div>
         </div>
@@ -1325,6 +1321,19 @@ function HomePageContent() {
                   </a>
                 )}
                 
+                {/* Share on X */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    `I just minted my xFrora NFT on @XFroraNFT! 🚀✨\n\nView it on Base: https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId ?? ""}\nMint yours here: ${typeof window !== "undefined" ? window.location.origin : "https://xfrora.xyz"}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">𝕏</span>
+                  Share on X
+                </a>
+                
                 {/* Back to Home */}
                 <button
                   onClick={resetToHome}
@@ -1349,6 +1358,16 @@ function HomePageContent() {
               playsInline
               controls={false}
               loop={false}
+              onClick={(event) => {
+                const vid = event.currentTarget;
+                vid.currentTime = 0;
+                const promise = vid.play();
+                if (promise !== undefined) {
+                  promise.catch(() => {
+                    // Autoplay prevented; ignore
+                  });
+                }
+              }}
               onEnded={(event) => event.currentTarget.pause()}
               onError={(event) => {
                 console.error("Intro video failed to load", event);
