@@ -1,10 +1,6 @@
 /**
  * x402 Server-side utilities
- * 
- * IMPORTANT: Payment verification is handled AUTOMATICALLY by middleware (middleware.ts)
- * This file only contains helper functions for creating 402 responses.
- * 
- * Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
+ * Payment verification is handled by middleware
  */
 
 import { env } from "../env.mjs";
@@ -23,20 +19,16 @@ export interface X402PaymentResponse {
 }
 
 /**
- * Create x402 payment response for mint payment
- * This tells the client what payment is required
- * Actual payment verification is handled by middleware (middleware.ts)
+ * NOTE: This function is NOT used anymore.
+ * Payment is handled by x402-next middleware automatically.
  */
 export function createX402Response(recipient: string): X402PaymentResponse {
-  // Determine network from chain ID
   const chainId = parseInt(env.NEXT_PUBLIC_CHAIN_ID || "8453");
-  let network = "base"; // Base Mainnet
+  let network = "base";
   
-  // Base Mainnet (default)
   if (chainId === 8453) {
     network = "base";
   } else if (chainId === 84532) {
-    // Base Sepolia testnet (legacy support)
     network = "base-sepolia";
   }
   

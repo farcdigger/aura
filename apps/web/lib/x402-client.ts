@@ -1,7 +1,6 @@
 /**
  * x402 Payment Client - Frontend helper for x402 payments
- * Uses Coinbase CDP x402 protocol for payment handling
- * 
+ * Uses Coinbase CDP x402 protocol
  * Reference: https://docs.cdp.coinbase.com/x402/quickstart-for-sellers
  */
 
@@ -12,11 +11,6 @@ export interface X402PaymentRequest {
   amount: string;
   network: string;
   recipient: string;
-  // Extra data from Coinbase facilitator for EIP-712 domain
-  extra?: {
-    name?: string;
-    version?: string;
-  };
 }
 
 export interface X402PaymentResponse {
@@ -26,15 +20,9 @@ export interface X402PaymentResponse {
 }
 
 /**
- * Generate x402 payment header using Coinbase CDP x402 protocol
- * 
- * User signs EIP-712 payment commitment ONCE
- * Middleware verifies signature and executes USDC transfer via facilitator
- * 
- * @param walletAddress - User's wallet address
- * @param signer - ethers signer (from wallet)
- * @param paymentOption - Payment option from 402 response
- * @returns x402-compliant payment header string
+ * Generate x402 payment header
+ * User signs EIP-712 payment commitment
+ * Middleware verifies and executes USDC transfer via facilitator
  */
 export async function generateX402PaymentHeader(
   walletAddress: string,
@@ -46,7 +34,7 @@ export async function generateX402PaymentHeader(
   console.log(`   Network: ${paymentOption.network}`);
   console.log(`   Recipient: ${paymentOption.recipient}`);
   
-  // Get USDC contract address
+  // Get USDC contract address for the network
   const usdcAddress = getUSDCAddress(paymentOption.network);
   if (!usdcAddress) {
     throw new Error(`USDC not configured for network: ${paymentOption.network}`);
@@ -71,11 +59,9 @@ export async function generateX402PaymentHeader(
                   paymentOption.network === "base-sepolia" ? 84532 : 8453;
   
   // EIP-712 domain for x402 payment
-  // CRITICAL: Use exact domain values from middleware's "extra" field
-  // Coinbase facilitator expects name: "USD Coin" and version: "2"
   const domain = {
-    name: paymentOption.extra?.name || "USD Coin",
-    version: paymentOption.extra?.version || "2",
+    name: "x402 Payment",
+    version: "1",
     chainId: chainId,
     verifyingContract: normalizedUsdcAddress,
   };
@@ -97,11 +83,10 @@ export async function generateX402PaymentHeader(
   const timestamp = Math.floor(Date.now() / 1000);
   const nonce = Math.random().toString(36).substring(7);
   
-  // CRITICAL: Use EXACT values from paymentOption - middleware expects exact match
-  // Do NOT modify asset field - middleware sent us the exact value it wants to see
+  // Use EXACT values from paymentOption
   const message = {
     amount: paymentOption.amount,
-    asset: paymentOption.asset, // EXACT value from middleware (0x... contract address)
+    asset: paymentOption.asset, // EXACT value from middleware
     network: paymentOption.network,
     recipient: normalizedRecipient,
     payer: normalizedPayer,
