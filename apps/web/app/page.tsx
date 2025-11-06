@@ -186,6 +186,40 @@ function HomePageContent() {
     checkWalletConnection();
   }, []);
 
+  // Check mint status when on pay step
+  useEffect(() => {
+    const checkMintStatus = async () => {
+      if (step === "pay" && xUser && !alreadyMinted) {
+        try {
+          console.log("🔍 Checking mint status on pay step for user:", xUser.x_user_id);
+          const mintStatusResponse = await fetch("/api/check-mint-status", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ x_user_id: xUser.x_user_id }),
+          });
+          
+          if (mintStatusResponse.ok) {
+            const mintStatus = await mintStatusResponse.json();
+            console.log("🔍 Mint status result:", mintStatus);
+            
+            // If user already minted, update state and show success
+            if (mintStatus.hasMinted && mintStatus.tokenId > 0) {
+              console.log("✅ User already minted! Redirecting to success...");
+              setAlreadyMinted(true);
+              setMintedTokenId(mintStatus.tokenId?.toString() || null);
+              setStep("mint");
+            }
+          }
+        } catch (error) {
+          console.warn("⚠️ Mint status check failed (non-critical):", error);
+        }
+      }
+    };
+    
+    checkMintStatus();
+  }, [step, xUser, alreadyMinted]);
 
   const disconnectX = () => {
     // Clear X account connection
