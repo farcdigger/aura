@@ -606,7 +606,7 @@ function HomePageContent() {
       }
       if (!walletClient.account) {
         throw new Error("Wallet account not found. Please reconnect your wallet.");
-      }
+        }
 
       console.log("💳 Using x402-fetch to handle payment automatically...");
       console.log("   This will:");
@@ -617,7 +617,7 @@ function HomePageContent() {
       
       const userAddress = walletClient.account.address;
       console.log(`Using wallet address: ${userAddress}`);
-
+          
       // Wrap fetch with x402 payment handling
       // maxValue: 100000 = 0.1 USDC (6 decimals)
       // @ts-ignore - viem version mismatch between dependencies
@@ -1084,12 +1084,12 @@ function HomePageContent() {
                   </button>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setStep("generate")}
-                      className="btn-secondary w-full"
-                    >
-                      ✓ Connected
-                    </button>
+                  <button
+                    onClick={() => setStep("generate")}
+                    className="btn-secondary w-full"
+                  >
+                    ✓ Connected
+                  </button>
                     <button
                       onClick={disconnectX}
                       className="px-4 py-2 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full"
@@ -1135,13 +1135,13 @@ function HomePageContent() {
 
                     if (!connected) {
                       return (
-                        <button
+                  <button
                           onClick={openConnectModal}
-                          className="btn-primary w-full"
+                    className="btn-primary w-full"
                           disabled={loading}
-                        >
-                          {loading ? "Connecting..." : "Connect Wallet"}
-                        </button>
+                  >
+                    {loading ? "Connecting..." : "Connect Wallet"}
+                  </button>
                       );
                     }
 
@@ -1161,8 +1161,8 @@ function HomePageContent() {
                         onClick={openAccountModal}
                         className="btn-secondary w-full"
                       >
-                        ✓ Connected
-                      </button>
+                    ✓ Connected
+                  </button>
                     );
                   }}
                 </ConnectButton.Custom>
@@ -1298,15 +1298,19 @@ function HomePageContent() {
               
               <div className="flex flex-col gap-3">
                 {/* OpenSea Link - PRIMARY */}
-                {mintedTokenId && env.NEXT_PUBLIC_CONTRACT_ADDRESS && (
+                {env.NEXT_PUBLIC_CONTRACT_ADDRESS && (
                   <a
-                    href={`https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId}`}
+                    href={mintedTokenId
+                      ? `https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId}`
+                      : `https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-primary flex items-center justify-center gap-2"
+                    className={`btn-primary flex items-center justify-center gap-2 ${
+                      mintedTokenId ? "" : "opacity-80"
+                    }`}
                   >
                     <span className="text-xl">🌊</span>
-                    View on OpenSea
+                    {mintedTokenId ? `View on OpenSea` : "View Collection on OpenSea"}
                   </a>
                 )}
                 
