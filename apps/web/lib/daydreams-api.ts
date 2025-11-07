@@ -90,7 +90,7 @@ export async function generateImageViaDaydreamsAPI(
             n: 1,
             size: "1024x1024",
             response_format: "b64_json",
-            quality: "low", // Lower quality to reduce file size and cost
+            quality: "medium", // Balance between quality and cost
             style: "natural",
           },
           {
