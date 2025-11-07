@@ -2,7 +2,7 @@
  * Mint Permit API - x402 Payment Protocol
  * 
  * Bu endpoint x402 protokolünü kullanarak:
- * 1. Kullanıcıdan 0.1 USDC ödemesi alır
+ * 1. Kullanıcıdan 5 USDC ödemesi alır
  * 2. Ödeme doğrulandıktan sonra mint permit verir
  */
 
@@ -18,7 +18,7 @@ import { SignJWT } from "jose";
 // Ödeme bilgileri
 const RECIPIENT_ADDRESS = "0xd96AF50716d2dFC55A438b0de8989cE1f6E5160a";
 const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const PAYMENT_AMOUNT = "100000"; // 0.1 USDC (6 decimals)
+const PAYMENT_AMOUNT = "5000000"; // 5 USDC (6 decimals)
 const NETWORK = "base";
 
 // CRITICAL: paymentRequirements MUST be EXACTLY the same in 402 response and settle call!
@@ -28,7 +28,7 @@ const PAYMENT_REQUIREMENTS = {
   network: NETWORK,
   maxAmountRequired: PAYMENT_AMOUNT,
   resource: "https://aura-nft-iota.vercel.app/api/mint-permit-v2",
-  description: "Mint permit for xFrora NFT - Pay 0.1 USDC to mint your AI-crafted identity",
+  description: "Mint permit for xFrora NFT - Pay 5 USDC to mint your AI-crafted identity",
   mimeType: "application/json",
   payTo: RECIPIENT_ADDRESS,
   maxTimeoutSeconds: 60, // Changed from 300 to 60 (more conservative)
@@ -199,7 +199,7 @@ async function verifyPaymentWithCDPFacilitator(paymentPayload: any): Promise<boo
       network: NETWORK,
       maxAmountRequired: PAYMENT_AMOUNT,
       resource: `/api/mint-permit-v2`,
-      description: "Mint permit for xFrora NFT - Pay 0.1 USDC to mint your unique AI-crafted identity",
+      description: "Mint permit for xFrora NFT - Pay 5 USDC to mint your unique AI-crafted identity",
       mimeType: "application/json",
       payTo: RECIPIENT_ADDRESS,
       maxTimeoutSeconds: 300,

@@ -619,9 +619,9 @@ function HomePageContent() {
       console.log(`Using wallet address: ${userAddress}`);
           
       // Wrap fetch with x402 payment handling
-      // maxValue: 100000 = 0.1 USDC (6 decimals)
+      // maxValue: 5_000_000 = 5 USDC (6 decimals)
       // @ts-ignore - viem version mismatch between dependencies
-      const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(100000));
+      const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(5_000_000));
       
       // x402-fetch automatically handles the entire payment flow
       // Server-side manual verification (EIP-2612 USDC Permit)
@@ -658,7 +658,7 @@ function HomePageContent() {
       
       // Add helpful context for common errors
       if (errorMessage.includes("insufficient") || errorMessage.includes("balance")) {
-        errorMessage += "\n\nPlease ensure you have at least 0.1 USDC and some ETH for gas on Base Mainnet.";
+        errorMessage += "\n\nPlease ensure you have at least 5 USDC and some ETH for gas on Base Mainnet.";
       } else if (errorMessage.includes("network") || errorMessage.includes("chain")) {
         errorMessage += "\n\nPlease make sure your wallet is connected to Base Mainnet (Chain ID: 8453).";
       } else if (errorMessage.includes("rejected") || errorMessage.includes("denied") || errorMessage.includes("user rejected")) {
@@ -1607,7 +1607,7 @@ function HomePageContent() {
                 disabled={loading || !wallet}
                 className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
               >
-                  {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT (0.1 USDC)"}
+                  {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT (5 USDC)"}
               </button>
               )}
             </div>

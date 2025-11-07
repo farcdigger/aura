@@ -89,7 +89,7 @@ export async function generateX402PaymentHeader(
   const message = {
     from: normalizedPayer,
     to: normalizedRecipient,
-    amount: paymentOption.amount, // Amount in USDC base units (100000 = 0.1 USDC)
+    amount: paymentOption.amount, // Amount in USDC base units (5 USDC = 5_000_000)
     asset: normalizedAsset,
     network: paymentOption.network,
     timestamp: timestamp,
