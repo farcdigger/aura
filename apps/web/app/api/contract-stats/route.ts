@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { env } from "@/env.mjs";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const CONTRACT_ABI = [
   "function getMintStats() external view returns (uint256 minted, uint256 remaining)",
   "function totalSupply() external view returns (uint256)",

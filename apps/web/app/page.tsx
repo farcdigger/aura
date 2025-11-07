@@ -53,7 +53,7 @@ function HomePageContent() {
 
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/contract-stats");
+        const response = await fetch("/api/contract-stats", { cache: "no-store" });
         if (!response.ok) {
           throw new Error(`Failed to fetch stats: ${response.status}`);
         }
