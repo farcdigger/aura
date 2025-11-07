@@ -333,10 +333,12 @@ export async function POST(request: NextRequest) {
         
         // DEĞİŞİKLİK: NFT metadata'sının 'main_colors' gibi array'leri
         // düzgün işlemesi için küçük bir düzeltme.
-        attributes: Object.entries(traits).map(([trait_type, value]) => ({
-          trait_type,
-          value: Array.isArray(value) ? value.join(", ") : value,
-        })),
+        attributes: Object.entries(traits)
+          .filter(([trait_type]) => trait_type !== "main_colors")
+          .map(([trait_type, value]) => ({
+            trait_type,
+            value: Array.isArray(value) ? value.join(", ") : value,
+          })),
         
         seed,
         theme: env.COLLECTION_THEME,
