@@ -1065,8 +1065,8 @@ function HomePageContent() {
                       openConnectModal,
                       mounted,
                     }: {
-                      account: any;
-                      chain: any;
+                      account?: any;
+                      chain?: any;
                       openAccountModal: () => void;
                       openChainModal: () => void;
                       openConnectModal: () => void;
@@ -1103,7 +1103,7 @@ function HomePageContent() {
                           onClick={openAccountModal}
                           className="btn-secondary px-4 py-2 text-sm"
                         >
-                          {account.displayName}
+                          {account?.displayName ?? "Wallet"}
                         </button>
                       );
                     }}
@@ -1182,8 +1182,8 @@ function HomePageContent() {
                     authenticationStatus,
                     mounted,
                   }: {
-                    account: any;
-                    chain: any;
+                    account?: any;
+                    chain?: any;
                     openAccountModal: () => void;
                     openChainModal: () => void;
                     openConnectModal: () => void;
@@ -1233,7 +1233,7 @@ function HomePageContent() {
                         onClick={openAccountModal}
                         className="btn-secondary w-full"
                       >
-                    ✓ Connected
+                    ✓ {account?.displayName ?? "Connected"}
                   </button>
                     );
                   }}
