@@ -1018,6 +1018,7 @@ function HomePageContent() {
             
             {/* Right: User Info & Buttons */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <a
                 href="https://opensea.io/collection/xfrora"
                 target="_blank"
@@ -1027,7 +1028,6 @@ function HomePageContent() {
                 <span className="text-lg">🌊</span>
                 <span>OpenSea</span>
               </a>
-              <ThemeToggle />
               {/* X Account Button */}
               <a
                 href="https://x.com/XFroraNFT"
