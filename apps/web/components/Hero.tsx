@@ -27,16 +27,6 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
       <div className="flex flex-col md:flex-row items-center justify-center gap-8 max-w-6xl mx-auto">
         {/* Left: Text Content */}
         <div className="flex-1 text-left">
-          {/* Logo */}
-          <div className="mb-6 flex items-center gap-3">
-            <img 
-              src="/frora-logo.png" 
-              alt="XFRORA Logo" 
-              className="w-12 h-12 rounded-full object-cover"
-            />
-            <h1 className="text-3xl font-bold text-gray-800 uppercase dark:text-slate-100">XFRORA</h1>
-          </div>
-          
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800 dark:text-slate-100">
             Connect & Create Your
             <br />
