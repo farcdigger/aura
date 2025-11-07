@@ -327,8 +327,8 @@ export async function POST(request: NextRequest) {
       // Create metadata with Pinata gateway URL for image (better NFT viewer compatibility)
       // NFT viewers (OpenSea, Base NFT Explorer, etc.) work better with HTTP URLs
       const metadata = {
-        name: `xFrora #${x_user_id}`,
-        description: `Your personalized xFrora NFT forged from the vibes of X user ${x_user_id}.`,
+        name: "xFrora",
+        description: "xFrora NFT minted on Base Mainnet.",
         image: imageUrlForMetadata, // Pinata gateway URL for better NFT viewer compatibility
         
         // DEĞİŞİKLİK: NFT metadata'sının 'main_colors' gibi array'leri
