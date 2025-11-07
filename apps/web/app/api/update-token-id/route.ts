@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, tokens } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { isMockMode } from "@/env.mjs";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,42 +30,72 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update token in database with FULL mint data
-    if (!isMockMode && db) {
+    let updateResult: any = null;
+
+    if (!isMockMode) {
       try {
-        const result = await db
+        updateResult = await db
           .update(tokens)
           .set({
             token_id: Number(token_id),
             tx_hash: transaction_hash || null,
-            status: "minted", // ✅ Status: minted!
+            status: "minted",
           })
           .where(eq(tokens.x_user_id, x_user_id));
-
-        console.log("✅ Token ID + TX Hash + Status updated:", {
-          x_user_id,
-          token_id: Number(token_id),
-          tx_hash: transaction_hash?.substring(0, 20) + "...",
-          status: "minted",
-        });
-
-        return NextResponse.json({
-          success: true,
-          x_user_id,
-          token_id: Number(token_id),
-          tx_hash: transaction_hash,
-          status: "minted",
-        });
+        console.log("✅ Token ID updated via db facade", { x_user_id, token_id });
       } catch (dbError) {
-        console.error("❌ Database update error:", dbError);
-        return NextResponse.json(
-          {
-            error: "Database update failed",
-            message: String(dbError),
-          },
-          { status: 500 }
-        );
+        console.warn("⚠️ db.update fallback failed, attempting direct Supabase update", dbError);
       }
+
+      if (updateResult?.length === 0 || !updateResult) {
+        try {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (!supabaseUrl || !supabaseServiceKey) {
+            throw new Error("Supabase credentials missing");
+          }
+
+          const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { persistSession: false },
+          });
+
+          const { error } = await supabase
+            .from("tokens")
+            .update({
+              token_id: Number(token_id),
+              tx_hash: transaction_hash || null,
+              status: "minted",
+            })
+            .eq("x_user_id", x_user_id);
+
+          if (error) {
+            console.error("❌ Supabase REST update error:", error);
+            return NextResponse.json({
+              error: "Database update failed",
+              message: error.message,
+            }, { status: 500 });
+          }
+
+          console.log("✅ Token ID updated via Supabase REST", { x_user_id, token_id });
+        } catch (restError) {
+          console.error("❌ Database update failed via REST fallback:", restError);
+          return NextResponse.json(
+            {
+              error: "Database update failed",
+              message: String(restError),
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        x_user_id,
+        token_id: Number(token_id),
+        tx_hash: transaction_hash,
+        status: "minted",
+      });
     }
 
     // Mock mode
