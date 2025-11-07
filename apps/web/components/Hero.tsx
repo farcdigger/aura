@@ -44,7 +44,8 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
           </h2>
           
           <p className="text-lg text-gray-600 dark:text-slate-300 max-w-md">
-            Link your X profile, generate a unique AI creature, and mint on Base.
+            Link your X profile, generate a unique AI creature, and mint on Base with seamless
+            x402-powered payments.
           </p>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-3">
             Max supply is fixed at 5,555 xFrora NFTs—mint yours before they’re gone.
@@ -113,8 +114,12 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
             ) : (
               // Default Fox Placeholder
               <>
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center dark:from-purple-900 dark:via-blue-950 dark:to-teal-900">
-                  <span className="text-9xl">🦊</span>
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center overflow-hidden dark:from-purple-900 dark:via-blue-950 dark:to-teal-900">
+                  <img
+                    src="/frora-logo.png"
+                    alt="xFrora Logo"
+                    className="w-48 h-48 object-cover rounded-full shadow-lg"
+                  />
                 </div>
               </>
             )}
