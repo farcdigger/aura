@@ -471,7 +471,7 @@ function HomePageContent() {
         
         let fullError = errorMessage;
         if (errorData.details) {
-          fullError += "\n\nKonfigürasyon durumu:\n";
+          fullError += "\n\nConfiguration status:\n";
           if (errorData.details.hasClientId !== undefined) {
             fullError += `- Client ID: ${errorData.details.hasClientId ? "✅" : "❌"}\n`;
           }
@@ -482,7 +482,7 @@ function HomePageContent() {
             fullError += `- Callback URL: ${errorData.details.hasCallbackUrl ? "✅" : "❌"}\n`;
           }
           if (errorData.details.callbackUrl) {
-            fullError += `- Callback URL değeri: ${errorData.details.callbackUrl}\n`;
+            fullError += `- Callback URL value: ${errorData.details.callbackUrl}\n`;
           }
         }
         
@@ -493,7 +493,7 @@ function HomePageContent() {
       const { authUrl, state } = data;
       
       if (!authUrl) {
-        throw new Error("OAuth URL alınamadı");
+        throw new Error("Failed to obtain OAuth URL");
       }
       
       // Validate OAuth URL before redirect
@@ -1848,7 +1848,7 @@ function HomePageContent() {
                   onClick={resetToHome}
                   className="block w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg text-center transition-colors"
                 >
-                  🏠 Ana Sayfaya Dön
+                  🏠 Back to Home
                 </button>
               </div>
               

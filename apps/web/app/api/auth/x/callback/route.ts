@@ -241,9 +241,9 @@ export async function GET(request: NextRequest) {
     if (errorDescription) {
       errorMessage = `${error}: ${errorDescription}`;
     } else if (error === "access_denied") {
-      errorMessage = "X bağlantısı reddedildi. Lütfen tekrar deneyin.";
+      errorMessage = "X connection was denied. Please try again.";
     } else if (error === "invalid_request") {
-      errorMessage = "Geçersiz istek. Callback URI'yi kontrol edin.";
+      errorMessage = "Invalid request. Check the callback URI.";
     }
     
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(errorMessage)}`, request.url));
@@ -267,17 +267,17 @@ export async function GET(request: NextRequest) {
     });
     
     // Check if this is a direct callback URL access (without OAuth redirect)
-    let errorMsg = "Authorization code gelmedi.";
+    let errorMsg = "Authorization code not received.";
     
     if (isDirectAccess) {
-      errorMsg = "Bu sayfaya doğrudan erişilemez. Lütfen 'Connect X Account' butonunu kullan.";
+      errorMsg = "This page cannot be accessed directly. Please use the 'Connect X Account' button.";
     } else if (searchParams.has("error")) {
-      errorMsg = `X hatası: ${error || "Bilinmeyen hata"}`;
+      errorMsg = `X error: ${error || "Unknown error"}`;
       if (errorDescription) {
         errorMsg += ` - ${errorDescription}`;
       }
     } else {
-      errorMsg = "Authorization code gelmedi. Callback URI eşleşmiyor olabilir. X Developer Portal ayarlarını kontrol edin.";
+      errorMsg = "Authorization code not received. The callback URI may not match. Check the X Developer Portal settings.";
     }
     
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(errorMsg)}`, request.url));
@@ -303,7 +303,7 @@ export async function GET(request: NextRequest) {
         hasClientSecret: !!env.X_CLIENT_SECRET,
         hasCallbackUrl: !!env.X_CALLBACK_URL,
       });
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("X OAuth not configured. Vercel environment variables'ı kontrol edin.")}`, request.url));
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("X OAuth not configured. Check the Vercel environment variables.")}`, request.url));
     }
     
     // CRITICAL: X OAuth 2.0 REQUIRES code_verifier for PKCE
@@ -320,7 +320,7 @@ export async function GET(request: NextRequest) {
       console.error("   2. Ensure X_CLIENT_SECRET matches the one used during authorization");
       console.error("   3. Try reconnecting (generates new state and verifier)");
       
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("PKCE verifier bulunamadı. DATABASE_URL Vercel'de ayarlı mı kontrol edin veya tekrar bağlanmayı deneyin.")}`, request.url));
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("PKCE verifier not found. Confirm DATABASE_URL is set in Vercel or try connecting again.")}`, request.url));
     }
     
     // Use exact values from env (trim whitespace)
@@ -351,7 +351,7 @@ export async function GET(request: NextRequest) {
       console.error("   - code_verifier is wrong (PKCE mismatch)");
       console.error("   - Authorization code expired or invalid");
       console.error("💡 Check Vercel logs above for X API error details");
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("Failed to exchange token. Vercel logs'u kontrol edin veya X Developer Portal ayarlarını kontrol edin.")}`, request.url));
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("Failed to exchange token. Check the Vercel logs or verify the X Developer Portal settings.")}`, request.url));
     }
     
     console.log("✅ Token received, verifying user...");
@@ -369,7 +369,7 @@ export async function GET(request: NextRequest) {
       console.error("   - X Developer Portal → User authentication settings → App permissions must be 'Read' or 'Read and Write'");
       console.error("   - The OAuth app may need to be reviewed/approved by X");
       console.error("   - The access token doesn't have the required scopes");
-      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("X hesabınız doğrulanamadı. X Developer Portal ayarlarını kontrol edin - App permissions 'Read' olmalı.")}`, request.url));
+      return NextResponse.redirect(new URL(`/?error=${encodeURIComponent("Your X account could not be verified. Check the X Developer Portal settings - App permissions should be set to 'Read'.")}`, request.url));
     }
     
     console.log("✅ User verified:", { username: xUser.username, x_user_id: xUser.x_user_id });
