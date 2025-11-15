@@ -1,6 +1,6 @@
 /**
  * Chat message endpoint
- * Handles chat messages with Daydreams API (GPT-4o-mini)
+ * Handles chat messages with Daydreams API (Google Gemini 2.5 Flash Lite)
  * Tracks token usage and deducts from user balance
  */
 
@@ -13,7 +13,7 @@ import { ethers } from "ethers";
 import { generateSystemPrompt } from "@/lib/chat-prompt";
 import { updateTokenBalance } from "@/lib/chat-tokens-mock";
 
-const MODEL = "openai/gpt-4o-mini"; // Daydreams model name
+const MODEL = "google-vertex/gemini-2.5-flash-lite"; // Daydreams model name
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";

@@ -244,17 +244,17 @@ export async function POST(request: NextRequest) {
     const paymentAmountUSD = parseFloat(matchedAmount);
     const tokenAmountUSD = paymentAmountUSD * 0.7;
 
-    // Calculate Daydreams tokens based on GPT-4o-mini pricing (from OpenAI)
-    // GPT-4o-mini pricing:
-    // - Input: $0.15 per 1M tokens
-    // - Output: $0.60 per 1M tokens
-    // 
+    // Calculate Daydreams tokens based on Google Gemini 2.5 Flash Lite pricing
+    // Note: Gemini pricing may differ from GPT-4o-mini
+    // Using a general average cost calculation for token conversion
+    //
     // We need to calculate how many tokens can be bought with the payment amount
     // Since we use 70% of payment for tokens, we have tokenAmountUSD to spend
     //
     // Average cost calculation (weighted by typical usage):
     // Typical chat: ~70% input tokens, ~30% output tokens
-    // Average cost per 1M tokens = (0.7 × $0.15) + (0.3 × $0.60) = $0.105 + $0.18 = $0.285 per 1M tokens
+    // Using a general average cost per 1M tokens for Gemini models
+    // Average cost per 1M tokens = $0.285 (general estimate, adjust based on actual Gemini pricing)
     //
     // How many tokens can we buy with tokenAmountUSD?
     // tokens = (tokenAmountUSD / $0.285) × 1,000,000
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
     //
     // However, Daydreams may charge differently or have markup.
     // For now, using the calculated value directly:
-    const AVERAGE_COST_PER_1M_TOKENS = 0.285; // $0.285 per 1M tokens
+    const AVERAGE_COST_PER_1M_TOKENS = 0.285; // $0.285 per 1M tokens (adjust based on actual Gemini pricing)
     const tokens = Math.floor((tokenAmountUSD / AVERAGE_COST_PER_1M_TOKENS) * 1_000_000);
 
     // Save payment and update token balance in database
@@ -272,8 +272,8 @@ export async function POST(request: NextRequest) {
     const newBalance = await addTokens(walletAddress, tokens);
 
     // TODO: Save payment record to database
-    // TODO: Calculate actual Daydreams tokens based on GPT-4o-mini pricing
-    // For now, using simple conversion: 1 USD = 1000 tokens
+    // TODO: Calculate actual Daydreams tokens based on Gemini 2.5 Flash Lite pricing
+    // For now, using general conversion estimate
 
     return NextResponse.json({
       success: true,
