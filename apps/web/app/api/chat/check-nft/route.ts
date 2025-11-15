@@ -90,7 +90,7 @@ async function checkViaOpenSea(walletAddress: string): Promise<{ hasNFT: boolean
       statusText: error.response?.statusText,
       data: error.response?.data,
     });
-    return false;
+    return { hasNFT: false, imageUrl: null };
   }
 }
 

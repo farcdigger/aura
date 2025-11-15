@@ -82,6 +82,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     } else {
       setMessages([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress]);
 
   // Save messages to localStorage whenever they change
@@ -89,6 +90,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     if (walletAddress && messages.length > 0) {
       saveMessagesToStorage(walletAddress, messages);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, walletAddress]);
 
   const scrollToBottom = () => {
