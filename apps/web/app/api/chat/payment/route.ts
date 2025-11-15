@@ -1,7 +1,7 @@
 /**
  * x402 Payment endpoint for chat tokens
  * Supports 0.5, 1, 1.5, 2 USD payments
- * 70% of payment becomes tokens
+ * 60% of payment becomes tokens (40% profit margin)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -240,31 +240,29 @@ export async function POST(request: NextRequest) {
     const matchedAmount = requestedAmount;
 
     // Payment is verified by x402 middleware
-    // Calculate tokens: 70% of payment amount
+    // Calculate tokens: 60% of payment amount (40% profit margin)
     const paymentAmountUSD = parseFloat(matchedAmount);
-    const tokenAmountUSD = paymentAmountUSD * 0.7;
+    const tokenAmountUSD = paymentAmountUSD * 0.6;
 
     // Calculate Daydreams tokens based on Google Gemini 2.5 Flash Lite pricing
-    // Note: Gemini pricing may differ from GPT-4o-mini
-    // Using a general average cost calculation for token conversion
-    //
-    // We need to calculate how many tokens can be bought with the payment amount
-    // Since we use 70% of payment for tokens, we have tokenAmountUSD to spend
+    // Gemini 2.5 Flash Lite pricing (from Daydreams):
+    // - Input: $0.10 per 1M tokens
+    // - Output: $0.40 per 1M tokens
     //
     // Average cost calculation (weighted by typical usage):
     // Typical chat: ~70% input tokens, ~30% output tokens
-    // Using a general average cost per 1M tokens for Gemini models
-    // Average cost per 1M tokens = $0.285 (general estimate, adjust based on actual Gemini pricing)
+    // Average cost per 1M tokens = (0.7 × $0.10) + (0.3 × $0.40) = $0.07 + $0.12 = $0.19 per 1M tokens
     //
+    // We use 60% of payment for tokens (40% profit margin), so we have tokenAmountUSD to spend
     // How many tokens can we buy with tokenAmountUSD?
-    // tokens = (tokenAmountUSD / $0.285) × 1,000,000
+    // tokens = (tokenAmountUSD / $0.19) × 1,000,000
     // 
-    // Example: If tokenAmountUSD = $0.70 (from $1 payment):
-    // tokens = ($0.70 / $0.285) × 1,000,000 = 2.456 × 1,000,000 = 2,456,000 tokens
+    // Example: If tokenAmountUSD = $0.60 (from $1 payment, 60%):
+    // tokens = ($0.60 / $0.19) × 1,000,000 = 3.158 × 1,000,000 = 3,158,000 tokens
     //
     // However, Daydreams may charge differently or have markup.
     // For now, using the calculated value directly:
-    const AVERAGE_COST_PER_1M_TOKENS = 0.285; // $0.285 per 1M tokens (adjust based on actual Gemini pricing)
+    const AVERAGE_COST_PER_1M_TOKENS = 0.19; // $0.19 per 1M tokens (Gemini 2.5 Flash Lite average)
     const tokens = Math.floor((tokenAmountUSD / AVERAGE_COST_PER_1M_TOKENS) * 1_000_000);
 
     // Save payment and update token balance in database
