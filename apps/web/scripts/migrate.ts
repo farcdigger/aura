@@ -71,6 +71,39 @@ async function runMigrations() {
     `;
     console.log("✓ kv_store table created");
 
+    // Chat tokens table
+    await sql`
+      CREATE TABLE IF NOT EXISTS chat_tokens (
+        id SERIAL PRIMARY KEY,
+        wallet_address VARCHAR(255) NOT NULL UNIQUE,
+        balance BIGINT NOT NULL DEFAULT 0,
+        points BIGINT NOT NULL DEFAULT 0,
+        total_tokens_spent BIGINT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log("✓ chat_tokens table created");
+
+    // Add columns if they don't exist (for existing tables)
+    await sql`
+      DO $$
+       BEGIN
+         IF NOT EXISTS (
+           SELECT 1 FROM information_schema.columns 
+           WHERE table_name = 'chat_tokens' AND column_name = 'points'
+         ) THEN
+           ALTER TABLE chat_tokens ADD COLUMN points BIGINT NOT NULL DEFAULT 0;
+         END IF;
+         IF NOT EXISTS (
+           SELECT 1 FROM information_schema.columns 
+           WHERE table_name = 'chat_tokens' AND column_name = 'total_tokens_spent'
+         ) THEN
+           ALTER TABLE chat_tokens ADD COLUMN total_tokens_spent BIGINT NOT NULL DEFAULT 0;
+         END IF;
+       END $$;
+    `;
+
     // Indexes
     await sql`
       CREATE INDEX IF NOT EXISTS idx_users_x_user_id ON users(x_user_id);
@@ -83,6 +116,9 @@ async function runMigrations() {
     `;
     await sql`
       CREATE INDEX IF NOT EXISTS idx_kv_store_expires_at ON kv_store(expires_at);
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_chat_tokens_wallet_address ON chat_tokens(wallet_address);
     `;
     console.log("✓ indexes created");
 

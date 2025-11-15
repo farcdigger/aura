@@ -101,6 +101,35 @@ type Database = {
           created_at?: string | null;
         };
       };
+      chat_tokens: {
+        Row: {
+          id: number;
+          wallet_address: string;
+          balance: number;
+          points: number;
+          total_tokens_spent: number;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          wallet_address: string;
+          balance?: number;
+          points?: number;
+          total_tokens_spent?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          wallet_address?: string;
+          balance?: number;
+          points?: number;
+          total_tokens_spent?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
     };
   };
 };
@@ -160,6 +189,7 @@ function extractTableName(table: any): string {
   if (table === tokens) return tokensTable;
   if (table === users) return usersTable;
   if (table === payments) return paymentsTable;
+  if (table === chat_tokens) return chatTokensTable;
 
   return "tokens"; // Default fallback
 }
@@ -417,6 +447,7 @@ export const db = {
 export const tokensTable = "tokens";
 export const usersTable = "users";
 export const paymentsTable = "payments";
+export const chatTokensTable = "chat_tokens";
 
 // Export helper function (for backward compatibility)
 export function getTableName(table: any): string {
@@ -446,6 +477,15 @@ export const users = {
 export const payments = {
   name: paymentsTable,
   x_user_id: { name: "x_user_id" },
+  id: { name: "id" },
+} as any;
+
+export const chat_tokens = {
+  name: chatTokensTable,
+  wallet_address: { name: "wallet_address" },
+  balance: { name: "balance" },
+  points: { name: "points" },
+  total_tokens_spent: { name: "total_tokens_spent" },
   id: { name: "id" },
 } as any;
 

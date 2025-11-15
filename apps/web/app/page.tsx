@@ -12,6 +12,7 @@ import StepCard from "@/components/StepCard";
 import PreviousCreations from "@/components/PreviousCreations";
 import GenerationProgress from "@/components/GenerationProgress";
 import ThemeToggle from "@/components/ThemeToggle";
+import Chatbot from "@/components/Chatbot";
 import { useAccount, useWalletClient } from "wagmi";
 
 function HomePageContent() {
@@ -29,6 +30,7 @@ function HomePageContent() {
   const [mintStats, setMintStats] = useState<{ minted: number; remaining: number; maxSupply: number } | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [paymentReady, setPaymentReady] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const introVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -1095,6 +1097,16 @@ function HomePageContent() {
                 <span className="hidden sm:inline">Follow</span>
               </a>
               
+              <button
+                onClick={() => setChatbotOpen(true)}
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg transition-colors font-semibold flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="hidden sm:inline">Chat</span>
+              </button>
+              
               <div className="flex items-center gap-2">
                 {xUser ? (
                   <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full text-sm dark:bg-slate-800 dark:text-slate-100">
@@ -1556,6 +1568,13 @@ function HomePageContent() {
           </div>
         </footer>
       </div>
+      
+      {/* Chatbot Modal */}
+      <Chatbot
+        isOpen={chatbotOpen}
+        onClose={() => setChatbotOpen(false)}
+        walletAddress={wallet}
+      />
         
         {/* OLD STEP-BASED UI - Hidden but kept for logic */}
         <div className="hidden">

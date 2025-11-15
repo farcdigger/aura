@@ -1,6 +1,6 @@
 // Use Supabase REST API instead of direct PostgreSQL connection
 // This is more reliable on Vercel and doesn't require DATABASE_URL
-import { db as supabaseDb, tokens, users, payments, getTableName } from "./db-supabase";
+import { db as supabaseDb, tokens, users, payments, chat_tokens as supabaseChatTokens, getTableName } from "./db-supabase";
 import { env } from "../env.mjs";
 import { eq } from "drizzle-orm";
 
@@ -12,10 +12,12 @@ const mockDb: {
   users: any[];
   tokens: any[];
   payments: any[];
+  chat_tokens: any[];
 } = {
   users: [],
   tokens: [],
   payments: [],
+  chat_tokens: [],
 };
 
 // Helper function to evaluate where conditions
@@ -224,6 +226,17 @@ export const db = isSupabaseConfigured ? supabaseDb : (mockDbFunctions as any);
 
 // Export table objects (for backward compatibility)
 export { tokens, users, payments };
+
+// Export chat_tokens table object
+// Use Supabase version if configured, otherwise use mock version
+export const chat_tokens = isSupabaseConfigured ? supabaseChatTokens : {
+  name: "chat_tokens",
+  wallet_address: { name: "wallet_address" },
+  balance: { name: "balance" },
+  points: { name: "points" },
+  total_tokens_spent: { name: "total_tokens_spent" },
+  id: { name: "id" },
+} as any;
 
 // Export mock DB for debugging (only in development)
 if (!isSupabaseConfigured && typeof global !== "undefined") {
