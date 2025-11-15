@@ -51,7 +51,16 @@ export async function updateTokenBalance(
   const normalizedAddress = walletAddress.toLowerCase();
   const mockTokenBalances = getMockTokenBalances();
 
+  console.log("💾 updateTokenBalance called:", {
+    walletAddress: normalizedAddress,
+    newBalance,
+    newPoints,
+    totalTokensSpent,
+    isMockMode,
+  });
+
   if (isMockMode) {
+    console.log("⚠️ Using mock mode - balance will not persist to Supabase");
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0, totalTokensSpent: 0 };
     mockTokenBalances.set(normalizedAddress, {
       balance: newBalance,
@@ -62,6 +71,7 @@ export async function updateTokenBalance(
   }
 
   try {
+    console.log("📊 Fetching existing record from Supabase...");
     // Try to update existing record
     const existing = await db
       .select()
@@ -71,7 +81,7 @@ export async function updateTokenBalance(
 
     const updateData: any = {
       balance: newBalance,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     };
     
     if (newPoints !== undefined) {
@@ -82,14 +92,23 @@ export async function updateTokenBalance(
       updateData.total_tokens_spent = totalTokensSpent;
     }
 
+    console.log("💾 Updating Supabase:", {
+      walletAddress: normalizedAddress,
+      updateData,
+      exists: existing && existing.length > 0,
+    });
+
     if (existing && existing.length > 0) {
+      console.log("🔄 Updating existing record...");
       // Update existing record
       await db
         .update(chat_tokens)
         .set(updateData)
         .where(eq(chat_tokens.wallet_address, normalizedAddress))
         .execute();
+      console.log("✅ Update successful!");
     } else {
+      console.log("➕ Inserting new record...");
       // Insert new record
       await db.insert(chat_tokens).values({
         wallet_address: normalizedAddress,
@@ -97,9 +116,15 @@ export async function updateTokenBalance(
         points: newPoints || 0,
         total_tokens_spent: totalTokensSpent || 0,
       });
+      console.log("✅ Insert successful!");
     }
   } catch (dbError: any) {
-    console.error("Database error updating token balance:", dbError);
+    console.error("❌ Database error updating token balance:", {
+      error: dbError.message,
+      stack: dbError.stack,
+      walletAddress: normalizedAddress,
+      newBalance,
+    });
     // Fallback to mock storage
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0 };
     mockTokenBalances.set(normalizedAddress, {
@@ -117,7 +142,14 @@ export async function addTokens(
   const normalizedAddress = walletAddress.toLowerCase();
   const mockTokenBalances = getMockTokenBalances();
 
+  console.log("💰 addTokens called:", {
+    walletAddress: normalizedAddress,
+    amount,
+    isMockMode,
+  });
+
   if (isMockMode) {
+    console.log("⚠️ Using mock mode - tokens will not persist to Supabase");
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0 };
     const newBalance = current.balance + amount;
     mockTokenBalances.set(normalizedAddress, {
@@ -128,6 +160,7 @@ export async function addTokens(
   }
 
   try {
+    console.log("📊 Fetching existing record from Supabase...");
     const existing = await db
       .select()
       .from(chat_tokens)
@@ -144,29 +177,48 @@ export async function addTokens(
     
     const newBalance = currentBalance + amount;
 
+    console.log("💾 Updating Supabase:", {
+      walletAddress: normalizedAddress,
+      currentBalance,
+      amount,
+      newBalance,
+      currentPoints,
+      exists: existing && existing.length > 0,
+    });
+
     if (existing && existing.length > 0) {
+      console.log("🔄 Updating existing record...");
       await db
         .update(chat_tokens)
         .set({
           balance: newBalance,
           points: currentPoints, // Preserve existing points
-          updated_at: new Date(),
+          updated_at: new Date().toISOString(),
         })
         .where(eq(chat_tokens.wallet_address, normalizedAddress))
         .execute();
+      console.log("✅ Update successful!");
     } else {
+      console.log("➕ Inserting new record...");
       await db.insert(chat_tokens).values({
         wallet_address: normalizedAddress,
         balance: newBalance,
         points: 0,
         total_tokens_spent: 0,
       });
+      console.log("✅ Insert successful!");
     }
 
     return newBalance;
   } catch (dbError: any) {
-    console.error("Database error adding tokens:", dbError);
+    console.error("❌ Database error adding tokens:", {
+      error: dbError.message,
+      stack: dbError.stack,
+      walletAddress: normalizedAddress,
+      amount,
+    });
     // Fallback to mock storage
+    console.warn("⚠️ Falling back to mock storage");
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0 };
     const newBalance = current.balance + amount;
     mockTokenBalances.set(normalizedAddress, {
