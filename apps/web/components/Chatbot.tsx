@@ -293,7 +293,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                   <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                    {points.toLocaleString('en-US')} puan
+                    {points.toLocaleString('en-US')} points
                   </span>
                 </div>
               </div>
