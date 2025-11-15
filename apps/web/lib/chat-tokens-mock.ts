@@ -74,12 +74,24 @@ export async function updateTokenBalance(
 
   try {
     console.log("📊 Fetching existing record from Supabase...");
+    console.log("🔍 Supabase configuration:", {
+      isSupabaseConfigured,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    
     // Try to update existing record
     const existing = await db
       .select()
       .from(chat_tokens)
       .where(eq(chat_tokens.wallet_address, normalizedAddress))
       .limit(1);
+    
+    console.log("📊 Existing record query result:", {
+      found: existing && existing.length > 0,
+      count: existing?.length || 0,
+      record: existing && existing.length > 0 ? existing[0] : null,
+    });
 
     const updateData: any = {
       balance: newBalance,
@@ -110,23 +122,63 @@ export async function updateTokenBalance(
 
     if (existing && existing.length > 0) {
       console.log("🔄 Updating existing record...");
+      console.log("📝 Current record:", existing[0]);
+      console.log("📝 Update data:", updateData);
+      
       // Update existing record
-      await db
+      const updateResult = await db
         .update(chat_tokens)
         .set(updateData)
         .where(eq(chat_tokens.wallet_address, normalizedAddress))
         .execute();
-      console.log("✅ Update successful!");
+      
+      console.log("✅ Update result:", updateResult);
+      
+      // Verify the update by fetching the record again
+      const verifyResult = await db
+        .select()
+        .from(chat_tokens)
+        .where(eq(chat_tokens.wallet_address, normalizedAddress))
+        .limit(1);
+      
+      if (verifyResult && verifyResult.length > 0) {
+        console.log("✅ Verification - Updated record:", verifyResult[0]);
+        console.log("✅ Balance updated:", verifyResult[0].balance === newBalance);
+        console.log("✅ Points updated:", verifyResult[0].points === (newPoints || 0));
+      } else {
+        console.error("❌ Verification failed - record not found after update!");
+      }
     } else {
       console.log("➕ Inserting new record...");
-      // Insert new record
-      await db.insert(chat_tokens).values({
+      console.log("📝 Insert data:", {
         wallet_address: normalizedAddress,
         balance: newBalance,
         points: newPoints || 0,
         total_tokens_spent: totalTokensSpent || 0,
       });
-      console.log("✅ Insert successful!");
+      
+      // Insert new record
+      const insertResult = await db.insert(chat_tokens).values({
+        wallet_address: normalizedAddress,
+        balance: newBalance,
+        points: newPoints || 0,
+        total_tokens_spent: totalTokensSpent || 0,
+      });
+      
+      console.log("✅ Insert result:", insertResult);
+      
+      // Verify the insert by fetching the record
+      const verifyResult = await db
+        .select()
+        .from(chat_tokens)
+        .where(eq(chat_tokens.wallet_address, normalizedAddress))
+        .limit(1);
+      
+      if (verifyResult && verifyResult.length > 0) {
+        console.log("✅ Verification - Inserted record:", verifyResult[0]);
+      } else {
+        console.error("❌ Verification failed - record not found after insert!");
+      }
     }
   } catch (dbError: any) {
     console.error("❌ Database error updating token balance:", {
