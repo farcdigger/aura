@@ -13,7 +13,7 @@ import { ethers } from "ethers";
 import { generateSystemPrompt } from "@/lib/chat-prompt";
 import { updateTokenBalance } from "@/lib/chat-tokens-mock";
 
-const MODEL = "google/gemini-2.5-flash-lite"; // Daydreams model name
+const MODEL = "gemini-2.5-flash-lite"; // Daydreams model name
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
