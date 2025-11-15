@@ -163,8 +163,15 @@ export async function POST(request: NextRequest) {
                     .where(eq(users.wallet_address, normalizedAddress))
                     .limit(1);
                   
-                  // If still not found, try case-insensitive search via direct Supabase query
-                  if (userRows.length === 0) {
+                  // If found user, get token by x_user_id
+                  if (userRows.length > 0 && userRows[0].x_user_id) {
+                    tokenRows = await db
+                      .select()
+                      .from(tokens)
+                      .where(eq(tokens.x_user_id, userRows[0].x_user_id))
+                      .limit(1);
+                  } else {
+                    // If still not found, try case-insensitive search via direct Supabase query
                     try {
                       const { supabaseClient } = await import("@/lib/db-supabase");
                       if (supabaseClient) {
@@ -186,14 +193,6 @@ export async function POST(request: NextRequest) {
                     } catch (supabaseError) {
                       console.warn("Failed to find user via Supabase ilike:", supabaseError);
                     }
-                  }
-                  
-                  if (userRows.length > 0 && userRows[0].x_user_id) {
-                    tokenRows = await db
-                      .select()
-                      .from(tokens)
-                      .where(eq(tokens.x_user_id, userRows[0].x_user_id))
-                      .limit(1);
                   }
                 } catch (userError) {
                   console.warn("Failed to find token via users table:", userError);
