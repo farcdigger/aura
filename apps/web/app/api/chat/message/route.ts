@@ -242,8 +242,16 @@ export async function POST(request: NextRequest) {
         const mockTokenBalances = getMockTokenBalances();
         const userData = mockTokenBalances.get(walletAddress.toLowerCase()) || { balance: 0, points: 0, totalTokensSpent: 0 };
         totalTokensSpent = (userData.totalTokensSpent || 0) + tokensUsed;
-        // Calculate points based on total tokens spent
+        // Calculate points based on total tokens spent: every 10,000 tokens = 1 point
         newPoints = Math.floor(totalTokensSpent / 10000);
+        
+        console.log("🎯 Points calculation (mock mode):", {
+          tokensUsed,
+          previousTotalSpent: userData.totalTokensSpent || 0,
+          totalTokensSpent,
+          newPoints,
+          formula: `Math.floor(${totalTokensSpent} / 10000) = ${newPoints}`,
+        });
         
         // Update totalTokensSpent in mock storage
         mockTokenBalances.set(walletAddress.toLowerCase(), {
@@ -264,11 +272,26 @@ export async function POST(request: NextRequest) {
           : 0;
         
         totalTokensSpent = currentTotalSpent + tokensUsed;
-        // Calculate points based on total tokens spent
+        // Calculate points based on total tokens spent: every 10,000 tokens = 1 point
         newPoints = Math.floor(totalTokensSpent / 10000);
+        
+        console.log("🎯 Points calculation:", {
+          tokensUsed,
+          currentTotalSpent,
+          totalTokensSpent,
+          newPoints,
+          formula: `Math.floor(${totalTokensSpent} / 10000) = ${newPoints}`,
+        });
       }
       
       // Update balance, points, and total_tokens_spent in database
+      console.log("💾 Updating token balance with points:", {
+        walletAddress,
+        newBalance,
+        newPoints,
+        totalTokensSpent,
+        pointsFormula: `${totalTokensSpent} / 10000 = ${newPoints} points`,
+      });
       await updateTokenBalance(walletAddress, newBalance, newPoints, totalTokensSpent);
 
       // Check if balance is low

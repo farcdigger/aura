@@ -86,12 +86,20 @@ export async function updateTokenBalance(
       updated_at: new Date().toISOString(),
     };
     
+    // Always update points if provided (even if 0)
     if (newPoints !== undefined) {
       updateData.points = newPoints;
+      console.log("⭐ Points will be updated to:", newPoints);
+    } else {
+      console.warn("⚠️ newPoints is undefined - points will not be updated");
     }
     
+    // Always update total_tokens_spent if provided
     if (totalTokensSpent !== undefined) {
       updateData.total_tokens_spent = totalTokensSpent;
+      console.log("📊 Total tokens spent will be updated to:", totalTokensSpent);
+    } else {
+      console.warn("⚠️ totalTokensSpent is undefined - total_tokens_spent will not be updated");
     }
 
     console.log("💾 Updating Supabase:", {
