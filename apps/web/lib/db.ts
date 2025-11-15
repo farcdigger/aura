@@ -5,7 +5,7 @@ import { env } from "../env.mjs";
 import { eq } from "drizzle-orm";
 
 // Check if Supabase is configured
-const isSupabaseConfigured = !!(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+export const isSupabaseConfigured = !!(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
 
 // Mock database için in-memory storage (fallback)
 const mockDb: {

@@ -6,6 +6,7 @@
 import { db, chat_tokens } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { isMockMode } from "@/env.mjs";
+import { isSupabaseConfigured } from "@/lib/db";
 
 export interface MockUserData {
   balance: number;
@@ -57,9 +58,10 @@ export async function updateTokenBalance(
     newPoints,
     totalTokensSpent,
     isMockMode,
+    isSupabaseConfigured,
   });
 
-  if (isMockMode) {
+  if (isMockMode || !isSupabaseConfigured) {
     console.log("⚠️ Using mock mode - balance will not persist to Supabase");
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0, totalTokensSpent: 0 };
     mockTokenBalances.set(normalizedAddress, {
@@ -146,9 +148,10 @@ export async function addTokens(
     walletAddress: normalizedAddress,
     amount,
     isMockMode,
+    isSupabaseConfigured,
   });
 
-  if (isMockMode) {
+  if (isMockMode || !isSupabaseConfigured) {
     console.log("⚠️ Using mock mode - tokens will not persist to Supabase");
     const current = mockTokenBalances.get(normalizedAddress) || { balance: 0, points: 0 };
     const newBalance = current.balance + amount;
