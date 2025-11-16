@@ -33,7 +33,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
             key={creation.id || index}
             className="card hover:scale-105 cursor-pointer transition-all duration-300"
           >
-            <div className="aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
+            <div className="aspect-square rounded-lg bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
               {/* xFrora image or real NFT image */}
               {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
                 <>

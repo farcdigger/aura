@@ -45,7 +45,7 @@ export default function GenerationProgress() {
     <div className="text-center text-sm text-black dark:text-white mt-4 space-y-3">
       <div className="relative h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 bg-black dark:bg-white transition-all duration-500"
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-black via-gray-700 to-black dark:from-white dark:via-gray-300 dark:to-white transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>

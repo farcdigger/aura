@@ -1378,7 +1378,7 @@ function HomePageContent() {
               
               {paymentReady && (
                 <div className="mb-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-sm text-black dark:text-white">
-                  Payment received! Click "Complete Mint" to finish on-chain minting.
+                  Payment received! Click &quot;Complete Mint&quot; to finish on-chain minting.
                 </div>
               )}
               

@@ -71,7 +71,7 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
             </div>
             <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-black dark:bg-white transition-all duration-500"
+                className="h-full bg-gradient-to-r from-black via-gray-800 to-black dark:from-white dark:via-gray-200 dark:to-white transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -89,7 +89,7 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
             {xUser ? (
               // X Profile Picture
               <>
-                <div className="w-full h-full rounded-full bg-gray-100 dark:bg-gray-900 border-4 border-black dark:border-white flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 border-4 border-black dark:border-white flex items-center justify-center overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={xUser.profile_image_url.replace('_normal', '_400x400')}
@@ -105,7 +105,7 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
             ) : (
               // Default Fox Placeholder
               <>
-                <div className="w-full h-full rounded-full bg-gray-100 dark:bg-gray-900 border-4 border-black dark:border-white flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 border-4 border-black dark:border-white flex items-center justify-center overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/frora-logo.png"
