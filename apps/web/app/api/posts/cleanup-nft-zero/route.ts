@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         .where(eq(posts.nft_token_id, 0));
 
       if (postsToDelete && postsToDelete.length > 0) {
-        const postIds = postsToDelete.map((p) => p.id);
+        const postIds = postsToDelete.map((p: any) => p.id);
 
         // Delete favs first
         for (const postId of postIds) {
