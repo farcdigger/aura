@@ -36,7 +36,9 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
             <div className="aspect-square rounded-lg bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center overflow-hidden">
               {/* xFrora image or real NFT image */}
               {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
-                <img
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                   src={creation.image}
                   alt={`Creation #${creation.tokenId || creation.id}`}
                   className="w-full h-full object-cover"
@@ -46,6 +48,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
                     e.currentTarget.parentElement!.innerHTML = '<span class="text-6xl">🎨</span>';
                   }}
                 />
+                </>
               ) : (
                 <span className="text-6xl">{creation.image || "🎨"}</span>
               )}

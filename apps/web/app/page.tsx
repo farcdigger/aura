@@ -1083,6 +1083,7 @@ function HomePageContent() {
                 className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold"
               >
                 <span className="text-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/opensea-icon.png" alt="OpenSea icon" className="w-5 h-5" />
                 </span>
                 <span>OpenSea</span>
@@ -1498,7 +1499,8 @@ function HomePageContent() {
                     }`}
                   >
                     <span className="text-xl">
-                      <img src="/opensea-icon.png" alt="OpenSea icon" className="w-5 h-5" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/opensea-icon.png" alt="OpenSea icon" className="w-5 h-5" />
                     </span>
                     {mintedTokenId ? `View on OpenSea` : "View Collection on OpenSea"}
                   </a>

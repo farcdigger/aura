@@ -257,8 +257,12 @@ export default function SocialPage() {
         )
       );
 
-      await loadTokenBalance();
-      await loadTopStats();
+      // Reload posts, token balance, and top stats to get accurate data from server
+      await Promise.all([
+        loadPosts(),
+        loadTokenBalance(),
+        loadTopStats(),
+      ]);
     } catch (err: any) {
       setTokenBalance(tokenBalance);
       setPosts((prev) =>

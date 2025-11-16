@@ -90,6 +90,7 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
               // X Profile Picture
               <>
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center overflow-hidden ring-4 ring-purple-300 dark:bg-gradient-to-br dark:from-purple-800 dark:via-blue-900 dark:to-teal-900 dark:ring-purple-500">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={xUser.profile_image_url.replace('_normal', '_400x400')}
                     alt={`@${xUser.username}`}
@@ -105,6 +106,7 @@ export default function Hero({ xUser, mintStats, loadingStats }: HeroProps) {
               // Default Fox Placeholder
               <>
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center overflow-hidden dark:from-purple-900 dark:via-blue-950 dark:to-teal-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/frora-logo.png"
                     alt="xFrora Logo"

@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Sort by id descending (newest first) if created_at is null, otherwise by created_at
+      // Filter out posts with NFT #0, then sort
       const validPosts = (data || [])
+        .filter((post: any) => post.nft_token_id && Number(post.nft_token_id) > 0) // Exclude NFT #0
         .sort((a: any, b: any) => {
           // If both have created_at, sort by date
           if (a.created_at && b.created_at) {
@@ -80,8 +81,8 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, POSTS_LIMIT);
 
-    // Don't filter out posts with null created_at - show all posts
-    const validPosts = sortedPosts;
+    // Filter out posts with NFT #0
+    const validPosts = sortedPosts.filter((post: any) => post.nft_token_id && Number(post.nft_token_id) > 0);
 
     return NextResponse.json({
       posts: validPosts.map((post: any) => ({

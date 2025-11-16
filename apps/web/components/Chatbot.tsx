@@ -233,13 +233,14 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl h-[90vh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="relative w-full max-w-5xl h-[90vh] bg-white dark:bg-black flex flex-col border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-purple-500 flex-shrink-0 bg-gradient-to-br from-purple-500 to-blue-500">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-black dark:border-white flex-shrink-0 bg-black dark:bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src="/frora-logo.png" 
                   alt="xFrora" 
@@ -265,15 +266,15 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
             </div>
             {tokenBalance !== null && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-full">
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
+                  <span className="text-sm font-semibold text-black dark:text-white">
                     {formatTokenBalance(tokenBalance)} tokens
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-full">
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
+                  <span className="text-sm font-semibold text-black dark:text-white">
                     {points.toLocaleString('en-US')} points
                   </span>
                 </div>
@@ -283,13 +284,13 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           <div className="flex items-center gap-2">
             <button
               onClick={handleNewChat}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-all duration-200 border border-slate-200 dark:border-slate-600"
+              className="px-4 py-2 text-sm font-medium text-black dark:text-white bg-white dark:bg-black rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 border border-gray-200 dark:border-gray-800"
             >
               New Chat
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -299,10 +300,10 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white dark:bg-black">
           {checkingNFT ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <div className="w-16 h-16 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-gray-600 dark:text-slate-400">Loading...</p>
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">
                 {walletAddress?.substring(0, 6)}...{walletAddress?.substring(38)}
@@ -323,7 +324,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               </p>
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-semibold transition-colors"
               >
                 Load Tokens
               </button>
@@ -333,8 +334,8 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-6 shadow-lg">
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-24 h-24 rounded-full bg-black dark:bg-white border border-black dark:border-white flex items-center justify-center mb-6">
+                <svg className="w-12 h-12 text-white dark:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
@@ -352,7 +353,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                 className={`flex gap-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {message.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-purple-500 bg-gradient-to-br from-purple-500 to-blue-500">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-black dark:border-white bg-black dark:bg-white">
                     <img 
                       src="/frora-logo.png" 
                       alt="xFrora" 
@@ -369,19 +370,19 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </div>
                 )}
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                  className={`max-w-[75%] rounded-lg px-4 py-3 ${
                     message.role === "user"
-                      ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg"
-                      : "bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-md border border-slate-200 dark:border-slate-700"
+                      ? "bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white"
+                      : "bg-white dark:bg-black text-black dark:text-white border border-gray-200 dark:border-gray-800"
                   }`}
                 >
                   <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                  <p className={`text-xs mt-2 ${message.role === "user" ? "text-blue-100" : "text-gray-400 dark:text-slate-500"}`}>
+                  <p className={`text-xs mt-2 ${message.role === "user" ? "text-gray-300 dark:text-gray-700" : "text-gray-500 dark:text-gray-400"}`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
                 {message.role === "user" && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-black dark:bg-white border border-black dark:border-white flex items-center justify-center text-white dark:text-black text-sm font-bold flex-shrink-0">
                     {walletAddress?.substring(2, 4).toUpperCase()}
                   </div>
                 )}
@@ -390,7 +391,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           )}
           {loading && (
             <div className="flex gap-4 justify-start">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-purple-500 bg-gradient-to-br from-purple-500 to-blue-500">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-black dark:border-white bg-black dark:bg-white">
                 <img 
                   src="/frora-logo.png" 
                   alt="xFrora" 
@@ -405,11 +406,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   }}
                 />
               </div>
-              <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-md border border-slate-200 dark:border-slate-700">
+              <div className="bg-white dark:bg-black rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-800">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                 </div>
               </div>
             </div>
@@ -419,16 +420,16 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
 
         {/* Input - show if user has token balance (means they have NFT) */}
         {(hasNFT || (tokenBalance !== null && tokenBalance > 0)) && (
-          <div className="p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-700">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
             {tokenBalance !== null && tokenBalance <= 0 && (
-              <div className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="mb-3 p-3 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <p className="text-sm text-black dark:text-white">
                     You&apos;re out of tokens! Add more to continue chatting.
                   </p>
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className="px-4 py-1.5 text-sm font-medium bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                    className="px-4 py-1.5 text-sm font-medium bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     Add Tokens
                   </button>
@@ -443,7 +444,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={tokenBalance !== null && tokenBalance <= 0 ? "Add tokens to continue..." : "Type your message..."}
-                  className="w-full px-4 py-3 pr-12 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none max-h-32"
+                  className="w-full px-4 py-3 pr-12 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none max-h-32"
                   rows={1}
                   disabled={loading || (tokenBalance !== null && tokenBalance <= 0)}
                   onInput={(e) => {
@@ -456,7 +457,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               <button
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim() || (tokenBalance !== null && tokenBalance <= 0)}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
