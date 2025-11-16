@@ -23,7 +23,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
 
   return (
     <div className="mt-16 animate-fade-in">
-      <h2 className="text-3xl font-bold text-center mb-8 text-gray-800 dark:text-slate-100">
+      <h2 className="text-3xl font-bold text-center mb-8 text-black dark:text-white">
         {creations.length > 0 ? "Previous Creations" : "Example Creations"}
       </h2>
 
@@ -33,7 +33,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
             key={creation.id || index}
             className="card hover:scale-105 cursor-pointer transition-all duration-300"
           >
-            <div className="aspect-square rounded-lg bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center overflow-hidden">
+            <div className="aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
               {/* xFrora image or real NFT image */}
               {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
                 <>
@@ -56,7 +56,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
 
             {creation.tokenId && (
               <div className="mt-3 text-center">
-                <p className="text-sm text-gray-700 font-semibold dark:text-slate-200">Token #{creation.tokenId}</p>
+                <p className="text-sm text-black dark:text-white font-semibold">Token #{creation.tokenId}</p>
               </div>
             )}
           </div>

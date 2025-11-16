@@ -1546,7 +1546,7 @@ function HomePageContent() {
         
         {/* Intro Animation */}
         <div className="max-w-4xl mx-auto mb-16 px-4">
-          <div className="relative rounded-3xl border border-white/60 bg-white/40 backdrop-blur-lg shadow-[0_20px_45px_rgba(80,60,150,0.25)] overflow-hidden">
+          <div className="relative rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
             <video
               ref={introVideoRef}
               src="/xfrora-intro.mp4"
@@ -1653,8 +1653,8 @@ function HomePageContent() {
                   className={`${
                     xUser 
                       ? "bg-gray-600 cursor-not-allowed" 
-                      : "bg-blue-500 hover:bg-blue-600"
-                  } text-white font-bold py-3 px-6 rounded-lg w-full`}
+                      : "bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                  } font-bold py-3 px-6 rounded-lg w-full border border-black dark:border-white transition-colors`}
                 >
                   {xUser ? "✅ X Account Connected" : "Connect X Account"}
                 </button>
@@ -1731,7 +1731,7 @@ function HomePageContent() {
               
               {/* Show wallet connection button if not connected */}
               {!wallet && (
-                <div className="mb-6 p-4 bg-purple-500/20 border border-purple-500/50 rounded-lg">
+                <div className="mb-6 p-4 border border-gray-200 dark:border-gray-800 rounded-lg">
                   <p className="text-sm mb-3">Connect your wallet to mint your NFT</p>
                   <div className="w-full">
                     <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
@@ -1740,7 +1740,7 @@ function HomePageContent() {
               )}
               
               {wallet && (
-                <div className="mb-6 bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-sm">
+                <div className="mb-6 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-sm">
                   ✅ Wallet Connected: {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}
                 </div>
               )}
@@ -1762,9 +1762,9 @@ function HomePageContent() {
                 {!generated.preview && generated.imageUrl && (
                   <div className="mb-4">
                     {generated.imageUrl.startsWith("ipfs://mock_") ? (
-                      <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-8 text-center">
-                        <p className="text-yellow-300 mb-2">⚠️ Mock Mode - Image Not Pinned to IPFS</p>
-                        <p className="text-sm text-gray-300">
+                      <div className="border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-8 text-center">
+                        <p className="text-black dark:text-white mb-2">⚠️ Mock Mode - Image Not Pinned to IPFS</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           In test mode, images are not actually uploaded to IPFS.
                           <br />
                           <strong>Image URL:</strong> {generated.imageUrl}
@@ -1785,28 +1785,28 @@ function HomePageContent() {
                 
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   {Object.entries(generated.traits).map(([key, value]) => (
-                    <div key={key} className="bg-white/5 p-3 rounded">
-                      <div className="font-semibold capitalize">{key}</div>
-                      <div className="text-gray-300">{value}</div>
+                    <div key={key} className="border border-gray-200 dark:border-gray-800 p-3 rounded">
+                      <div className="font-semibold capitalize text-black dark:text-white">{key}</div>
+                      <div className="text-gray-600 dark:text-gray-400">{value}</div>
                     </div>
                   ))}
                 </div>
                 
-                <div className="p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg text-xs">
+                <div className="p-3 border border-gray-200 dark:border-gray-800 rounded-lg text-xs">
                   <p><strong>Seed:</strong> {generated.seed}</p>
                   <p className="mt-1"><strong>Metadata:</strong> {generated.metadataUrl}</p>
                 </div>
               </div>
               {alreadyMinted ? (
-                <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-6 text-center">
-                  <p className="text-green-400 text-lg font-bold mb-2">✅ Already Minted!</p>
-                  <p className="text-sm text-gray-300 mb-4">
+                <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center">
+                  <p className="text-black dark:text-white text-lg font-bold mb-2">✅ Already Minted!</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     You have already minted your NFT with this X profile.
                     <br />
                     Each X profile can only mint one NFT.
                   </p>
                   {mintedTokenId && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
                       Token ID: #{mintedTokenId}
                     </p>
                   )}
@@ -1815,7 +1815,7 @@ function HomePageContent() {
               <button
                 onClick={requestMintPermit}
                 disabled={loading || !wallet}
-                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg w-full"
+                className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold py-3 px-6 rounded-lg w-full border border-black dark:border-white transition-colors"
               >
                   {loading ? "Processing..." : !wallet ? "Connect Wallet to Mint" : "Mint NFT (5 USDC)"}
               </button>
@@ -1846,27 +1846,27 @@ function HomePageContent() {
                       alt="Your Minted NFT" 
                       className="w-full rounded-lg border-4 border-yellow-500/50 shadow-2xl" 
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-black/20 dark:bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 ) : null}
               </div>
               
               {/* Token Info */}
-              <div className="bg-black/30 rounded-lg p-4 mb-6 space-y-3">
+              <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 mb-6 space-y-3">
                 {mintedTokenId && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Token ID:</span>
-                    <span className="font-mono font-bold text-yellow-400">#{mintedTokenId}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Token ID:</span>
+                    <span className="font-mono font-bold text-black dark:text-white">#{mintedTokenId}</span>
                   </div>
                 )}
                 {transactionHash && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Transaction:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Transaction:</span>
                     <a 
                       href={`https://basescan.org/tx/${transactionHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-sm text-blue-400 hover:text-blue-300 underline truncate max-w-[200px]"
+                      className="font-mono text-sm text-black dark:text-white hover:underline truncate max-w-[200px]"
                     >
                       {transactionHash.slice(0, 10)}...{transactionHash.slice(-8)}
                     </a>
@@ -1881,7 +1881,7 @@ function HomePageContent() {
                   href={`https://opensea.io/assets/base/${env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${mintedTokenId || ""}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center transition-colors flex items-center justify-center gap-2"
+                  className="block w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 font-bold py-4 px-6 rounded-lg text-center transition-colors flex items-center justify-center gap-2 border border-black dark:border-white"
                 >
                   <img src="/opensea-icon.png" alt="OpenSea icon" className="w-6 h-6" />
                   View on OpenSea
@@ -1893,7 +1893,7 @@ function HomePageContent() {
                     href={`https://basescan.org/tx/${transactionHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-center transition-colors"
+                    className="block w-full bg-white dark:bg-black text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 font-bold py-3 px-6 rounded-lg text-center transition-colors border border-gray-200 dark:border-gray-800"
                   >
                     🔍 View Transaction
                   </a>
@@ -1905,7 +1905,7 @@ function HomePageContent() {
                     disconnectX();
                     setWallet(null);
                   }}
-                  className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-center transition-colors"
+                  className="block w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 font-bold py-3 px-6 rounded-lg text-center transition-colors border border-black dark:border-white"
                 >
                   ✨ Create Another NFT
                 </button>
