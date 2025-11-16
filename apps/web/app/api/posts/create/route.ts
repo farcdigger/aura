@@ -129,22 +129,13 @@ export async function POST(request: NextRequest) {
 
     // Normalize address - ethers.getAddress converts to checksum format
     const normalizedAddress = ethers.getAddress(walletAddress);
+    const normalizedAddressLower = normalizedAddress.toLowerCase();
 
-    // Check NFT ownership
-    const { hasNFT, tokenId } = await checkNFTOwnership(normalizedAddress);
-    
-    if (!hasNFT || !tokenId) {
-      return NextResponse.json(
-        { error: "NFT ownership required to create posts" },
-        { status: 403 }
-      );
-    }
-
-    // Check token balance
+    // Check token balance first - if user has tokens, they have NFT (NFT check happens during token purchase)
     const tokenBalanceResult = await db
       .select()
       .from(chat_tokens)
-      .where(eq(chat_tokens.wallet_address, normalizedAddress))
+      .where(eq(chat_tokens.wallet_address, normalizedAddressLower))
       .limit(1);
 
     const currentBalance = tokenBalanceResult && tokenBalanceResult.length > 0
@@ -162,6 +153,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get NFT token ID from database (users table or tokens table)
+    // If user has token balance, they have NFT - get token ID from database
+    let tokenId: number | null = null;
+    
+    try {
+      // Try to get token ID from tokens table via users table
+      const { users, tokens } = await import("@/lib/db");
+      const userResult = await db
+        .select()
+        .from(users)
+        .where(eq(users.wallet_address, normalizedAddressLower))
+        .limit(1);
+      
+      if (userResult && userResult.length > 0) {
+        const tokenResult = await db
+          .select()
+          .from(tokens)
+          .where(eq(tokens.x_user_id, userResult[0].x_user_id))
+          .limit(1);
+        
+        if (tokenResult && tokenResult.length > 0 && tokenResult[0].token_id) {
+          tokenId = Number(tokenResult[0].token_id);
+        }
+      }
+      
+      // If still no token ID, check NFT ownership directly (fallback)
+      if (!tokenId) {
+        const { hasNFT, tokenId: checkedTokenId } = await checkNFTOwnership(normalizedAddress);
+        if (hasNFT && checkedTokenId) {
+          tokenId = checkedTokenId;
+        }
+      }
+    } catch (error) {
+      console.error("Error getting token ID:", error);
+      // Continue with tokenId = null, will use 0 as fallback
+    }
+    
+    // Use token ID 0 as fallback if not found (shouldn't happen if user has tokens)
+    if (!tokenId) {
+      tokenId = 0;
+    }
+
     // Get current points and total tokens spent
     const currentPoints = tokenBalanceResult && tokenBalanceResult.length > 0
       ? Number(tokenBalanceResult[0].points) || 0
@@ -177,11 +210,11 @@ export async function POST(request: NextRequest) {
     const newPoints = currentPoints + POINTS_TO_AWARD;
 
     // Update token balance (burn tokens and add points)
-    await updateTokenBalance(normalizedAddress, newBalance, newPoints, newTotalSpent);
+    await updateTokenBalance(normalizedAddressLower, newBalance, newPoints, newTotalSpent);
 
     // Create post
     const [newPost] = await db.insert(posts).values({
-      wallet_address: normalizedAddress,
+      wallet_address: normalizedAddressLower,
       nft_token_id: tokenId,
       content: content.trim(),
       fav_count: 0,

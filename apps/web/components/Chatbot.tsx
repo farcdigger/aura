@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { wrapFetchWithPayment } from "x402-fetch";
+import PaymentModal from "@/components/PaymentModal";
 
 interface Message {
   role: "user" | "assistant";
@@ -103,41 +103,22 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
 
   useEffect(() => {
     if (isOpen && walletAddress) {
-      checkNFTOwnership();
+      // Only fetch token balance - NFT check happens during token purchase
       fetchTokenBalance();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, walletAddress]);
 
-  const checkNFTOwnership = async () => {
-    if (!walletAddress) {
+  // Update hasNFT based on token balance
+  useEffect(() => {
+    if (tokenBalance !== null && tokenBalance > 0) {
+      setHasNFT(true);
+      setCheckingNFT(false);
+    } else if (tokenBalance === 0) {
       setHasNFT(false);
       setCheckingNFT(false);
-      return;
     }
-    setCheckingNFT(true);
-    try {
-      const response = await fetch("/api/chat/check-nft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
-      });
-      
-      if (!response.ok) {
-        setHasNFT(false);
-        return;
-      }
-      
-      const data = await response.json();
-      setHasNFT(data.hasNFT || false);
-      setNftTraits(data.traits || null);
-    } catch (error: any) {
-      console.error("Error checking NFT:", error);
-      setHasNFT(false);
-    } finally {
-      setCheckingNFT(false);
-    }
-  };
+  }, [tokenBalance]);
 
   const fetchTokenBalance = async () => {
     if (!walletAddress) return;
@@ -322,25 +303,31 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           {checkingNFT ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-600 dark:text-slate-400">Checking NFT ownership...</p>
+              <p className="text-gray-600 dark:text-slate-400">Loading...</p>
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">
                 {walletAddress?.substring(0, 6)}...{walletAddress?.substring(38)}
               </p>
             </div>
-          ) : !hasNFT ? (
+          ) : (tokenBalance === null || tokenBalance === 0) ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-                <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <div className="w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center mb-4">
+                <svg className="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-                NFT Required
+                Load Tokens to Get Started
               </h3>
               <p className="text-gray-600 dark:text-slate-400 mb-4 max-w-md">
-                You need to own an xFrora NFT to use the chat. Each NFT has a unique personality!
+                Token purchase requires NFT ownership verification. Load tokens to start chatting!
               </p>
-              <p className="text-xs text-gray-400 dark:text-slate-500">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+              >
+                Load Tokens
+              </button>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-4">
                 Wallet: {walletAddress?.substring(0, 6)}...{walletAddress?.substring(38)}
               </p>
             </div>
@@ -430,8 +417,8 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        {hasNFT && (
+        {/* Input - show if user has token balance (means they have NFT) */}
+        {(hasNFT || (tokenBalance !== null && tokenBalance > 0)) && (
           <div className="p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-700">
             {tokenBalance !== null && tokenBalance <= 0 && (
               <div className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -503,116 +490,4 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   );
 }
 
-function PaymentModal({
-  onClose,
-  onPaymentSuccess,
-  walletAddress,
-}: {
-  onClose: () => void;
-  onPaymentSuccess: (newBalance?: number) => void;
-  walletAddress: string | null;
-}) {
-  const paymentOptions = [0.5, 1, 1.5, 2];
-  const [processing, setProcessing] = useState(false);
-  const { data: walletClient } = useWalletClient();
-
-  const handlePaymentOption = async (amount: number) => {
-    if (!walletAddress) {
-      alert("Wallet not connected");
-      return;
-    }
-
-    if (!walletClient) {
-      alert("Wallet client not available. Please connect your wallet first.");
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const amountInUSDC = Math.floor(amount * 1_000_000);
-      
-      // @ts-ignore - viem version mismatch between dependencies
-      const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(amountInUSDC));
-      
-      const response = await fetchWithPayment(`/api/chat/payment?amount=${amount}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          walletAddress,
-          amount: amount.toString(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || errorData.message || "Payment failed");
-      }
-
-      const data = await response.json();
-      console.log("✅ Payment successful:", data);
-      
-      // Pass the new balance to the callback
-      onPaymentSuccess(data.newBalance);
-    } catch (error: any) {
-      console.error("❌ Payment error:", error);
-      
-      let errorMessage = error.message || "Payment failed";
-      
-      if (errorMessage.includes("insufficient") || errorMessage.includes("balance")) {
-        errorMessage += "\n\nPlease ensure you have sufficient USDC and some ETH for gas on Base Mainnet.";
-      } else if (errorMessage.includes("network") || errorMessage.includes("chain")) {
-        errorMessage += "\n\nPlease make sure your wallet is connected to Base Mainnet (Chain ID: 8453).";
-      } else if (errorMessage.includes("rejected") || errorMessage.includes("denied") || errorMessage.includes("user rejected")) {
-        errorMessage = "Transaction was rejected. Please try again and approve the transaction.";
-      }
-      
-      alert(`Payment failed: ${errorMessage}`);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
-            Add Tokens
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <p className="text-gray-600 dark:text-slate-400 mb-6">
-          Choose an amount to add tokens to your account.
-        </p>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {paymentOptions.map((amount) => (
-            <button
-              key={amount}
-              onClick={() => handlePaymentOption(amount)}
-              disabled={processing}
-              className="px-4 py-4 bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none"
-            >
-              ${amount} USD
-            </button>
-          ))}
-        </div>
-        {processing && (
-          <div className="flex items-center justify-center gap-2 text-blue-500 dark:text-blue-400">
-            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm">Processing payment... Please approve in your wallet.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 

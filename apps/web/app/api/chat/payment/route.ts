@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { env } from "@/env.mjs";
 
+const CONTRACT_ADDRESS = env.CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396";
+const RPC_URL = env.RPC_URL || "https://mainnet.base.org";
+
 const RECIPIENT_ADDRESS = "0xDA9097c5672928a16C42889cD4b07d9a766827ee"; // Same as NFT payments
 const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const NETWORK = "base";
@@ -123,7 +126,67 @@ export async function POST(request: NextRequest) {
     }
     
     if (!paymentHeader) {
-      // No payment header - return 402 to request payment
+      // No payment header - check NFT ownership BEFORE requesting payment
+      // Get wallet address from body if available (for NFT check)
+      let walletAddressForCheck: string | null = null;
+      try {
+        const clonedRequest = request.clone();
+        const body = await clonedRequest.json().catch(() => null);
+        if (body && body.walletAddress) {
+          walletAddressForCheck = body.walletAddress;
+        }
+      } catch (e) {
+        // Body parsing failed, continue
+      }
+
+      // If wallet address is provided, check NFT ownership BEFORE requesting payment
+      if (walletAddressForCheck && ethers.isAddress(walletAddressForCheck)) {
+        const normalizedAddress = ethers.getAddress(walletAddressForCheck);
+        
+        const ERC721_ABI = [
+          "function balanceOf(address owner) external view returns (uint256)",
+        ];
+
+        try {
+          const provider = new ethers.JsonRpcProvider(RPC_URL);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC721_ABI, provider);
+          
+          const balanceResult = await contract.balanceOf(normalizedAddress);
+          const hasNFT = balanceResult > 0n;
+          
+          if (!hasNFT) {
+            console.log("❌ NFT ownership check failed (before payment):", {
+              address: normalizedAddress,
+              balance: balanceResult.toString(),
+            });
+            return NextResponse.json(
+              { 
+                error: "NFT ownership required to purchase tokens",
+                message: "You must own an xFrora NFT to purchase tokens. Please mint an NFT first."
+              },
+              { status: 403 }
+            );
+          }
+          
+          console.log("✅ NFT ownership verified (before payment):", {
+            address: normalizedAddress,
+            balance: balanceResult.toString(),
+          });
+        } catch (error: any) {
+          console.error("❌ Error checking NFT ownership (before payment):", {
+            error: error.message,
+            address: normalizedAddress,
+          });
+          return NextResponse.json(
+            { 
+              error: "Failed to verify NFT ownership",
+              message: "Could not verify NFT ownership. Please try again."
+            },
+            { status: 500 }
+          );
+        }
+      }
+
       // Determine which amount to use (query > body > all options)
       const requestedAmount = amountFromQuery || amountFromBody;
       
@@ -234,6 +297,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Could not determine payer address" },
         { status: 400 }
+      );
+    }
+
+    // Double-check NFT ownership after payment (security measure)
+    // Note: We already checked before payment, but this is an extra security layer
+    const normalizedAddress = ethers.getAddress(walletAddress);
+    
+    const ERC721_ABI = [
+      "function balanceOf(address owner) external view returns (uint256)",
+    ];
+
+    try {
+      const provider = new ethers.JsonRpcProvider(RPC_URL);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC721_ABI, provider);
+      
+      const balanceResult = await contract.balanceOf(normalizedAddress);
+      const hasNFT = balanceResult > 0n;
+      
+      if (!hasNFT) {
+        console.log("❌ NFT ownership check failed (after payment):", {
+          address: normalizedAddress,
+          balance: balanceResult.toString(),
+        });
+        return NextResponse.json(
+          { 
+            error: "NFT ownership required to purchase tokens",
+            message: "You must own an xFrora NFT to purchase tokens. Please mint an NFT first."
+          },
+          { status: 403 }
+        );
+      }
+      
+      console.log("✅ NFT ownership verified (after payment):", {
+        address: normalizedAddress,
+        balance: balanceResult.toString(),
+      });
+    } catch (error: any) {
+      console.error("❌ Error checking NFT ownership (after payment):", {
+        error: error.message,
+        address: normalizedAddress,
+      });
+      return NextResponse.json(
+        { 
+          error: "Failed to verify NFT ownership",
+          message: "Could not verify NFT ownership. Please try again."
+        },
+        { status: 500 }
       );
     }
 

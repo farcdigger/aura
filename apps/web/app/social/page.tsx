@@ -5,12 +5,25 @@ import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import PaymentModal from "@/components/PaymentModal";
 
 interface Post {
   id: number;
   nft_token_id: number;
   content: string;
   fav_count: number;
+  created_at: string;
+}
+
+interface WeeklyWinner {
+  id: number;
+  week_start_date: string;
+  week_end_date: string;
+  reward_type: string;
+  winner_nft_token_id: number | null;
+  winner_post_id: number | null;
+  tokens_awarded: number;
+  status: string;
   created_at: string;
 }
 
@@ -21,12 +34,13 @@ export default function SocialPage() {
   const [error, setError] = useState<string | null>(null);
   const [newPostContent, setNewPostContent] = useState("");
   const [posting, setPosting] = useState(false);
-  const [nftVerified, setNftVerified] = useState(false);
-  const [nftTokenId, setNftTokenId] = useState<number | null>(null);
-  const [checkingNFT, setCheckingNFT] = useState(false);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
   const [favLoading, setFavLoading] = useState<Record<number, boolean>>({});
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [weeklyWinners, setWeeklyWinners] = useState<WeeklyWinner[]>([]);
+  const [mostFavedPost, setMostFavedPost] = useState<Post | null>(null);
+  const [topFaver, setTopFaver] = useState<{ wallet_address: string; fav_count: number } | null>(null);
 
   // Load posts
   const loadPosts = async () => {
@@ -58,67 +72,79 @@ export default function SocialPage() {
     }
   };
 
-  // Check NFT ownership (same as chatbot)
-  const checkNFT = async () => {
-    if (!address) return;
-    setCheckingNFT(true);
-    try {
-      console.log("🔍 Checking NFT ownership for:", address);
-      
-      const response = await fetch("/api/chat/check-nft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: address }),
-      });
-
-      if (!response.ok) {
-        console.error("❌ NFT check failed:", response.status, response.statusText);
-        setNftVerified(false);
-        setNftTokenId(null);
-        return;
-      }
-
-      const data = await response.json();
-      console.log("✅ NFT check result:", data);
-      
-      setNftVerified(data.hasNFT || false);
-      setNftTokenId(data.tokenId || null);
-    } catch (err: any) {
-      console.error("❌ Error checking NFT:", {
-        error: err.message,
-        address,
-      });
-      setNftVerified(false);
-      setNftTokenId(null);
-    } finally {
-      setCheckingNFT(false);
-    }
-  };
-
-  // Handle wallet change
+  // Handle wallet change - only load token balance (NFT check happens during token purchase)
   useEffect(() => {
     if (address) {
-      checkNFT();
       loadTokenBalance();
     } else {
-      setNftVerified(false);
-      setNftTokenId(null);
       setTokenBalance(null);
       setPoints(null);
     }
   }, [address]);
 
+  // Load weekly winners and top stats
+  const loadWeeklyWinners = async () => {
+    try {
+      const response = await fetch("/api/posts/weekly-winners");
+      if (response.ok) {
+        const data = await response.json();
+        setWeeklyWinners(data.winners || []);
+      }
+    } catch (err) {
+      console.error("Error loading weekly winners:", err);
+    }
+  };
+
+  // Load most faved post and top faver
+  const loadTopStats = async () => {
+    try {
+      // Get most faved post
+      const postsResponse = await fetch("/api/posts");
+      if (postsResponse.ok) {
+        const postsData = await postsResponse.json();
+        const posts = postsData.posts || [];
+        if (posts.length > 0) {
+          const mostFaved = posts.reduce((prev: Post, current: Post) => 
+            (current.fav_count > prev.fav_count) ? current : prev
+          );
+          setMostFavedPost(mostFaved);
+        }
+      }
+
+      // Get top faver (user who faved the most)
+      const topFaverResponse = await fetch("/api/posts/top-faver");
+      if (topFaverResponse.ok) {
+        const topFaverData = await topFaverResponse.json();
+        setTopFaver(topFaverData.topFaver || null);
+      }
+    } catch (err) {
+      console.error("Error loading top stats:", err);
+    }
+  };
+
   // Load posts on mount and refresh every 30 seconds
   useEffect(() => {
     loadPosts();
-    const interval = setInterval(loadPosts, 30000);
+    loadWeeklyWinners();
+    loadTopStats();
+    const interval = setInterval(() => {
+      loadPosts();
+      loadTopStats();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Create new post
+  // Create new post - check token balance instead of NFT (if user has tokens, they have NFT)
   const handleCreatePost = async () => {
-    if (!address || !nftVerified || !nftTokenId) {
-      alert("NFT ownership required to create posts");
+    if (!address) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    // If no token balance, user needs to load tokens first (NFT check happens during payment)
+    if (tokenBalance === null || tokenBalance === 0) {
+      alert("You need to load tokens first. Token purchase requires NFT ownership verification.");
+      setShowPaymentModal(true);
       return;
     }
 
@@ -159,19 +185,18 @@ export default function SocialPage() {
     }
   };
 
-  // Handle fav
+  // Handle fav - check token balance instead of NFT
   const handleFav = async (postId: number) => {
     if (!address) {
       alert("Please connect your wallet");
       return;
     }
 
-    if (!nftVerified || !nftTokenId) {
-      await checkNFT();
-      if (!nftVerified || !nftTokenId) {
-        alert("NFT ownership required to favorite posts");
-        return;
-      }
+    // If no token balance, user needs to load tokens first
+    if (tokenBalance === null || tokenBalance < 100) {
+      alert("You need to load tokens first. Token purchase requires NFT ownership verification.");
+      setShowPaymentModal(true);
+      return;
     }
 
     setFavLoading((prev) => ({ ...prev, [postId]: true }));
@@ -182,8 +207,6 @@ export default function SocialPage() {
         body: JSON.stringify({
           walletAddress: address,
           postId,
-          nftVerified,
-          nftTokenId,
         }),
       });
 
@@ -286,31 +309,22 @@ export default function SocialPage() {
                   {points !== null ? points.toLocaleString() : "..."}
                 </p>
               </div>
-              {nftTokenId && (
-                <div className="text-center">
-                  <p className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                    NFT ID
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    #{nftTokenId}
-                  </p>
-                </div>
-              )}
+              <div className="text-center">
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold text-sm transition-all shadow-lg hover:shadow-xl"
+                >
+                  Load Tokens
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Create Post Form */}
-        {isConnected && address && nftVerified && (
+        {/* Create Post Form - show if user has token balance (means they have NFT) */}
+        {isConnected && address && tokenBalance !== null && tokenBalance > 0 && (
           <div className="mb-6 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 dark:border-slate-700/50">
             <div className="flex items-start gap-4">
-              {nftTokenId && (
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                    #{nftTokenId}
-                  </div>
-                </div>
-              )}
               <div className="flex-1">
                 <textarea
                   value={newPostContent}
@@ -337,15 +351,60 @@ export default function SocialPage() {
           </div>
         )}
 
-        {/* NFT Required Message */}
-        {isConnected && address && !nftVerified && !checkingNFT && (
+        {/* Weekly Winners & Top Stats */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Most Faved Post */}
+          {mostFavedPost && (
+            <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                <h3 className="font-bold text-yellow-800 dark:text-yellow-200">Most Faved Post</h3>
+              </div>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2 line-clamp-2">
+                {mostFavedPost.content}
+              </p>
+              <div className="flex items-center justify-between text-xs text-yellow-600 dark:text-yellow-400">
+                <span>NFT #{mostFavedPost.nft_token_id}</span>
+                <span className="font-semibold">{mostFavedPost.fav_count} favs</span>
+              </div>
+            </div>
+          )}
+
+          {/* Top Faver */}
+          {topFaver && (
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                <h3 className="font-bold text-purple-800 dark:text-purple-200">Top Faver</h3>
+              </div>
+              <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">
+                {topFaver.wallet_address.substring(0, 6)}...{topFaver.wallet_address.substring(38)}
+              </p>
+              <div className="text-xs text-purple-600 dark:text-purple-400">
+                <span className="font-semibold">{topFaver.fav_count} favs given</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Load Tokens Message - if no token balance */}
+        {isConnected && address && (tokenBalance === null || tokenBalance === 0) && (
           <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl">
-            <p className="text-yellow-800 dark:text-yellow-200 text-center">
-              <span className="font-semibold">NFT ownership required</span> to create posts and favorite.{" "}
-              <Link href="/" className="underline font-bold hover:text-yellow-900 dark:hover:text-yellow-100">
-                Mint your NFT →
-              </Link>
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-yellow-800 dark:text-yellow-200">
+                <span className="font-semibold">Load tokens to get started.</span> Token purchase requires NFT ownership verification.
+              </p>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+              >
+                Load Tokens
+              </button>
+            </div>
           </div>
         )}
 
@@ -393,7 +452,7 @@ export default function SocialPage() {
                     <div className="flex items-center gap-6">
                       <button
                         onClick={() => handleFav(post.id)}
-                        disabled={!isConnected || !nftVerified || favLoading[post.id]}
+                        disabled={!isConnected || (tokenBalance !== null && tokenBalance < 100) || favLoading[post.id]}
                         className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
                       >
                         <svg
@@ -422,6 +481,22 @@ export default function SocialPage() {
           )}
         </div>
       </main>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentSuccess={(newBalance) => {
+            setShowPaymentModal(false);
+            if (newBalance !== undefined) {
+              setTokenBalance(newBalance);
+            } else {
+              loadTokenBalance();
+            }
+          }}
+          walletAddress={address}
+        />
+      )}
     </div>
   );
 }
