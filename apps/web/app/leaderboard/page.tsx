@@ -27,7 +27,6 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load leaderboard
   const loadLeaderboard = async () => {
     try {
       setLoading(true);
@@ -42,7 +41,6 @@ export default function LeaderboardPage() {
     }
   };
 
-  // Load user's rank
   const loadUserRank = async () => {
     if (!address) {
       setUserRank(null);
@@ -74,25 +72,16 @@ export default function LeaderboardPage() {
   }, [address]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Navbar */}
-      <nav className="bg-white/70 backdrop-blur-md shadow-md sticky top-0 z-50 dark:bg-slate-900/80 dark:border-b dark:border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 py-3">
+      <nav className="border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/" className="flex items-center gap-3">
-                <img
-                  src="/frora-logo.png"
-                  alt="XFRORA Logo"
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <span className="text-xl font-bold text-gray-800 uppercase dark:text-slate-100">
-                  XFRORA
-                </span>
+              <Link href="/" className="text-xl font-bold text-black dark:text-white">
+                XFRORA
               </Link>
-              <span className="text-lg font-semibold text-gray-700 dark:text-slate-300">
-                Leaderboard
-              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Leaderboard</span>
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
@@ -103,34 +92,34 @@ export default function LeaderboardPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100 mb-2">
+          <h1 className="text-3xl font-bold text-black dark:text-white mb-2">
             Leaderboard
           </h1>
-          <p className="text-gray-600 dark:text-slate-400">
+          <p className="text-gray-600 dark:text-gray-400">
             Top players ranked by points earned from chat and posts
           </p>
         </div>
 
         {/* User's Rank Card */}
         {isConnected && address && userRank && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg text-white">
+          <div className="mb-6 p-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Your Rank</p>
-                <p className="text-3xl font-bold">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Your Rank</p>
+                <p className="text-3xl font-bold text-black dark:text-white">
                   {userRank.rank ? `#${userRank.rank}` : "Unranked"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm opacity-90">Your Points</p>
-                <p className="text-3xl font-bold">{userRank.points.toLocaleString()}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Your Points</p>
+                <p className="text-3xl font-bold text-black dark:text-white">{userRank.points.toLocaleString()}</p>
               </div>
             </div>
             {userRank.total_users > 0 && (
-              <p className="text-sm opacity-75 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Out of {userRank.total_users.toLocaleString()} total players
               </p>
             )}
@@ -138,9 +127,9 @@ export default function LeaderboardPage() {
         )}
 
         {/* Leaderboard Table */}
-        <div className="bg-white/50 dark:bg-slate-800/50 rounded-lg backdrop-blur-sm overflow-hidden">
+        <div className="border border-gray-200 dark:border-gray-800">
           {loading ? (
-            <div className="text-center py-12 text-gray-600 dark:text-slate-400">
+            <div className="text-center py-12 text-gray-600 dark:text-gray-400">
               Loading leaderboard...
             </div>
           ) : error ? (
@@ -148,30 +137,30 @@ export default function LeaderboardPage() {
               {error}
             </div>
           ) : leaderboard.length === 0 ? (
-            <div className="text-center py-12 text-gray-600 dark:text-slate-400">
+            <div className="text-center py-12 text-gray-600 dark:text-gray-400">
               No players yet. Be the first!
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-slate-900">
+                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Rank
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Wallet
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Points
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Tokens Spent
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                  {leaderboard.map((entry, index) => {
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {leaderboard.map((entry) => {
                     const isCurrentUser = isConnected && address && 
                       entry.wallet_address.toLowerCase() === address.toLowerCase();
                     
@@ -180,8 +169,8 @@ export default function LeaderboardPage() {
                         key={entry.rank}
                         className={`${
                           isCurrentUser
-                            ? "bg-purple-50 dark:bg-purple-900/20"
-                            : "hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                            ? "bg-yellow-50 dark:bg-yellow-900/20"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-900"
                         } transition-colors`}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -191,16 +180,16 @@ export default function LeaderboardPage() {
                                 {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
                               </span>
                             ) : (
-                              <span className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                              <span className="text-sm font-medium text-black dark:text-white">
                                 #{entry.rank}
                               </span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                          <div className="text-sm font-medium text-black dark:text-white">
                             {isCurrentUser ? (
-                              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                              <span className="font-bold">
                                 {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)} (You)
                               </span>
                             ) : (
@@ -211,12 +200,12 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                          <span className="text-sm font-semibold text-black dark:text-white">
                             {entry.points.toLocaleString()}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className="text-sm text-gray-600 dark:text-slate-400">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
                             {entry.total_tokens_spent.toLocaleString()}
                           </span>
                         </td>
@@ -230,8 +219,8 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+        <div className="mt-6 p-4 border border-gray-200 dark:border-gray-800">
+          <p className="text-sm text-black dark:text-white">
             <strong>How to earn points:</strong> Chat with AI (2000 tokens = 1 point) or create posts (20,000 tokens = 8 points)
           </p>
         </div>
@@ -239,4 +228,3 @@ export default function LeaderboardPage() {
     </div>
   );
 }
-
