@@ -191,17 +191,40 @@ export async function POST(request: NextRequest) {
 
     const post = postResult[0];
 
-    // Check if already faved (duplicate prevention)
-    const existingFav = await db
-      .select()
-      .from(post_favs)
-      .where(
-        and(
-          eq(post_favs.post_id, postId),
-          eq(post_favs.wallet_address, normalizedAddressLower)
+    // Check if already faved (duplicate prevention) - try Supabase first
+    let existingFav: any[] = [];
+    
+    try {
+      const { supabaseClient } = await import("@/lib/db-supabase");
+      if (supabaseClient) {
+        const { data, error } = await (supabaseClient as any)
+          .from("post_favs")
+          .select("*")
+          .eq("post_id", postIdNum)
+          .eq("wallet_address", normalizedAddressLower)
+          .limit(1);
+        
+        if (!error && data && data.length > 0) {
+          existingFav = data;
+        }
+      }
+    } catch (supabaseError) {
+      console.warn("⚠️ Supabase fav check failed, trying Drizzle:", supabaseError);
+    }
+    
+    // Fallback to Drizzle if Supabase didn't work
+    if (existingFav.length === 0) {
+      existingFav = await db
+        .select()
+        .from(post_favs)
+        .where(
+          and(
+            eq(post_favs.post_id, postIdNum),
+            eq(post_favs.wallet_address, normalizedAddressLower)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+    }
 
     if (existingFav && existingFav.length > 0) {
       return NextResponse.json(
@@ -306,13 +329,36 @@ export async function POST(request: NextRequest) {
     // Update token balance (burn tokens, keep points same)
     await updateTokenBalance(normalizedAddress, newBalance, currentPoints, newTotalSpent);
 
-    // Create fav record
-    await db.insert(post_favs).values({
-      post_id: postId,
-      wallet_address: normalizedAddressLower,
-      nft_token_id: tokenId,
-      tokens_burned: TOKENS_TO_BURN,
-    });
+    // Create fav record - try Supabase first
+    try {
+      const { supabaseClient } = await import("@/lib/db-supabase");
+      if (supabaseClient) {
+        const { error } = await (supabaseClient as any)
+          .from("post_favs")
+          .insert({
+            post_id: postIdNum,
+            wallet_address: normalizedAddressLower,
+            nft_token_id: tokenId,
+            tokens_burned: TOKENS_TO_BURN,
+          });
+        
+        if (error) {
+          console.error("Supabase insert error:", error);
+          throw error;
+        }
+      } else {
+        throw new Error("Supabase client not available");
+      }
+    } catch (supabaseError) {
+      console.warn("⚠️ Supabase insert failed, trying Drizzle:", supabaseError);
+      // Fallback to Drizzle
+      await db.insert(post_favs).values({
+        post_id: postIdNum,
+        wallet_address: normalizedAddressLower,
+        nft_token_id: tokenId,
+        tokens_burned: TOKENS_TO_BURN,
+      });
+    }
 
     // Update post fav_count
     const newFavCount = (Number(post.fav_count) || 0) + 1;

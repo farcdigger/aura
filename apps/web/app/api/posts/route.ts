@@ -31,23 +31,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Filter out posts with NFT #0, then sort
+      // Filter out posts with NFT #0, then sort by id (newest first)
+      // Since we already ordered by id descending, just filter and take first N
       const validPosts = (data || [])
         .filter((post: any) => post.nft_token_id && Number(post.nft_token_id) > 0) // Exclude NFT #0
-        .sort((a: any, b: any) => {
-          // If both have created_at, sort by date
-          if (a.created_at && b.created_at) {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateB - dateA; // Newest first
-          }
-          // If one has created_at and other doesn't, prioritize the one with created_at
-          if (a.created_at && !b.created_at) return -1;
-          if (!a.created_at && b.created_at) return 1;
-          // If neither has created_at, sort by id (newest first)
-          return Number(b.id) - Number(a.id);
-        })
-        .slice(0, POSTS_LIMIT);
+        .slice(0, POSTS_LIMIT); // Take first N (already sorted by id descending)
 
       return NextResponse.json({
         posts: validPosts.map((post: any) => ({

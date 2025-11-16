@@ -104,8 +104,10 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   useEffect(() => {
     if (isOpen && walletAddress) {
       // Only fetch token balance - NFT check happens during token purchase
+      // Always fetch fresh data when opening chat
       fetchTokenBalance();
     }
+    // Don't reset token balance when closing - keep it for next time
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, walletAddress]);
 
@@ -125,13 +127,17 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     try {
       // Use cache-busting to get fresh data
       const response = await fetch(`/api/chat/token-balance?wallet=${walletAddress}&t=${Date.now()}`);
+      if (!response.ok) {
+        console.error("Failed to fetch token balance:", response.status);
+        // Don't reset to 0 on error - keep existing values
+        return;
+      }
       const data = await response.json();
-      setTokenBalance(data.balance || 0);
-      setPoints(data.points || 0);
+      setTokenBalance(data.balance ?? null);
+      setPoints(data.points ?? 0);
     } catch (error) {
       console.error("Error fetching token balance:", error);
-      setTokenBalance(0);
-      setPoints(0);
+      // Don't reset to 0 on error - keep existing values
     }
   };
 
@@ -216,6 +222,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         }
       }
     }
+    // Refresh token balance but don't reset if fetch fails
     fetchTokenBalance();
   };
 
