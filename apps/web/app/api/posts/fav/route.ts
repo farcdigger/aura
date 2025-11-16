@@ -146,12 +146,40 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if post exists - use numeric postId
+    // Try Supabase first if available
     console.log("🔍 Looking for post with ID:", postIdNum);
-    const postResult = await db
-      .select()
-      .from(posts)
-      .where(eq(posts.id, postIdNum))
-      .limit(1);
+    let postResult: any[] = [];
+    
+    try {
+      const { supabaseClient } = await import("@/lib/db-supabase");
+      if (supabaseClient) {
+        const { data, error } = await (supabaseClient as any)
+          .from("posts")
+          .select("*")
+          .eq("id", postIdNum)
+          .limit(1);
+        
+        if (!error && data && data.length > 0) {
+          postResult = data;
+          console.log("✅ Post found via Supabase:", postIdNum);
+        }
+      }
+    } catch (supabaseError) {
+      console.warn("⚠️ Supabase query failed, trying Drizzle:", supabaseError);
+    }
+    
+    // Fallback to Drizzle if Supabase didn't work
+    if (postResult.length === 0) {
+      try {
+        postResult = await db
+          .select()
+          .from(posts)
+          .where(eq(posts.id, postIdNum))
+          .limit(1);
+      } catch (drizzleError) {
+        console.error("❌ Drizzle query failed:", drizzleError);
+      }
+    }
 
     if (!postResult || postResult.length === 0) {
       console.error("❌ Post not found:", { postId: postIdNum, postIdType: typeof postId });

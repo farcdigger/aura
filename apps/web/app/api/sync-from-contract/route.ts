@@ -34,14 +34,41 @@ export async function GET(request: NextRequest) {
     const totalSupply = await contract.totalSupply();
     console.log(`📊 Contract total minted: ${totalSupply}`);
     
-    // Get all records from Supabase that need sync (status != 'minted' or token_id is null)
+    // Get all records from Supabase that need sync (token_id is null or 0)
     console.log("📦 Getting records from Supabase that need sync...");
-    const recordsToSync = await db
-      .select()
-      .from(tokens)
-      .where(eq(tokens.status, "generated"));
+    let recordsToSync: any[] = [];
     
-    console.log(`📝 Found ${recordsToSync.length} records to check`);
+    try {
+      // Try Supabase client first
+      const { supabaseClient } = await import("@/lib/db-supabase");
+      if (supabaseClient) {
+        const { data, error } = await (supabaseClient as any)
+          .from("tokens")
+          .select("*")
+          .or("token_id.is.null,token_id.eq.0");
+        
+        if (!error && data) {
+          recordsToSync = data;
+          console.log(`📝 Found ${recordsToSync.length} records to check (via Supabase)`);
+        } else if (error) {
+          console.warn("⚠️ Supabase query error, trying Drizzle:", error);
+        }
+      }
+    } catch (supabaseError) {
+      console.warn("⚠️ Supabase query failed, trying Drizzle:", supabaseError);
+    }
+    
+    // Fallback to Drizzle - get all tokens and filter client-side
+    if (recordsToSync.length === 0) {
+      try {
+        const allTokens = await db.select().from(tokens);
+        recordsToSync = allTokens.filter((token: any) => !token.token_id || token.token_id === 0);
+        console.log(`📝 Found ${recordsToSync.length} records to check (via Drizzle)`);
+      } catch (drizzleError) {
+        console.error("❌ Drizzle query failed:", drizzleError);
+        recordsToSync = [];
+      }
+    }
     
     if (recordsToSync.length === 0) {
       return NextResponse.json({
@@ -87,21 +114,43 @@ export async function GET(request: NextRequest) {
           }
           
           if (foundTokenId) {
-            // Update database
-            await db
-              .update(tokens)
-              .set({
+            // Update database - try Supabase first
+            try {
+              const { supabaseClient } = await import("@/lib/db-supabase");
+              if (supabaseClient) {
+                const { error: updateError } = await (supabaseClient as any)
+                  .from("tokens")
+                  .update({ token_id: foundTokenId })
+                  .eq("x_user_id", record.x_user_id);
+                
+                if (!updateError) {
+                  console.log(`✅ Updated token_id=${foundTokenId} for x_user_id=${record.x_user_id} (via Supabase)`);
+                  updates.push({
+                    x_user_id: record.x_user_id,
+                    token_id: foundTokenId,
+                  });
+                } else {
+                  throw updateError;
+                }
+              } else {
+                throw new Error("Supabase client not available");
+              }
+            } catch (supabaseError) {
+              // Fallback to Drizzle
+              console.warn("⚠️ Supabase update failed, trying Drizzle:", supabaseError);
+              await db
+                .update(tokens)
+                .set({
+                  token_id: foundTokenId,
+                })
+                .where(eq(tokens.x_user_id, record.x_user_id));
+              
+              console.log(`✅ Updated token_id=${foundTokenId} for x_user_id=${record.x_user_id} (via Drizzle)`);
+              updates.push({
+                x_user_id: record.x_user_id,
                 token_id: foundTokenId,
-                status: "minted",
-              })
-              .where(eq(tokens.x_user_id, record.x_user_id));
-            
-            console.log(`✅ Updated token_id=${foundTokenId} for x_user_id=${record.x_user_id}`);
-            
-            updates.push({
-              x_user_id: record.x_user_id,
-              token_id: foundTokenId,
-            });
+              });
+            }
           } else {
             console.warn(`⚠️ Minted but token_id not found for x_user_id=${record.x_user_id}`);
             errors.push({

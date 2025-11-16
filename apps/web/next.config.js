@@ -21,26 +21,28 @@ const nextConfig = {
       "pino-pretty": false,
     };
 
-    // Exclude Node.js-only modules from client-side bundle
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
-        events: false,
-        buffer: false,
-        util: false,
-      };
+      // Exclude Node.js-only modules from client-side bundle
+      if (!isServer) {
+        config.resolve.fallback = {
+          ...config.resolve.fallback,
+          fs: false,
+          net: false,
+          tls: false,
+          crypto: false,
+          stream: false,
+          url: false,
+          zlib: false,
+          http: false,
+          https: false,
+          assert: false,
+          os: false,
+          path: false,
+          events: false,
+          buffer: false,
+          util: false,
+          // Exclude browser-only APIs from server-side
+          indexedDB: false,
+        };
       
       // Exclude ws (WebSocket) and other Node.js-only packages from client bundle
       config.externals = config.externals || [];

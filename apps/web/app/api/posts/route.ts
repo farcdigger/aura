@@ -28,13 +28,20 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Filter out posts with null or invalid created_at, and ensure proper sorting
+      // Sort by id descending (newest first) if created_at is null, otherwise by created_at
       const validPosts = (data || [])
-        .filter((post: any) => post.created_at != null)
         .sort((a: any, b: any) => {
-          const dateA = new Date(a.created_at).getTime();
-          const dateB = new Date(b.created_at).getTime();
-          return dateB - dateA; // Newest first
+          // If both have created_at, sort by date
+          if (a.created_at && b.created_at) {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateB - dateA; // Newest first
+          }
+          // If one has created_at and other doesn't, prioritize the one with created_at
+          if (a.created_at && !b.created_at) return -1;
+          if (!a.created_at && b.created_at) return 1;
+          // If neither has created_at, sort by id (newest first)
+          return Number(b.id) - Number(a.id);
         })
         .slice(0, POSTS_LIMIT);
 
@@ -56,17 +63,25 @@ export async function GET(request: NextRequest) {
       .from(posts)
       .limit(POSTS_LIMIT);
 
-    // Sort by created_at descending (newest first)
+    // Sort by id descending (newest first) if created_at is null, otherwise by created_at
     const sortedPosts = allPosts
       .sort((a: any, b: any) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA;
+        // If both have created_at, sort by date
+        if (a.created_at && b.created_at) {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateB - dateA; // Newest first
+        }
+        // If one has created_at and other doesn't, prioritize the one with created_at
+        if (a.created_at && !b.created_at) return -1;
+        if (!a.created_at && b.created_at) return 1;
+        // If neither has created_at, sort by id (newest first)
+        return Number(b.id) - Number(a.id);
       })
       .slice(0, POSTS_LIMIT);
 
-    // Filter out posts with null or invalid created_at
-    const validPosts = sortedPosts.filter((post: any) => post.created_at != null);
+    // Don't filter out posts with null created_at - show all posts
+    const validPosts = sortedPosts;
 
     return NextResponse.json({
       posts: validPosts.map((post: any) => ({
