@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, posts } from "@/lib/db";
 import { supabaseClient } from "@/lib/db-supabase";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const POSTS_LIMIT = 200;
 
 export async function GET(request: NextRequest) {
@@ -17,8 +20,8 @@ export async function GET(request: NextRequest) {
       const { data, error } = await (supabaseClient as any)
         .from("posts")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(POSTS_LIMIT);
+        .order("id", { ascending: false })
+        .limit(POSTS_LIMIT * 2); // Get more to filter out NFT #0
 
       if (error) {
         console.error("Supabase query error:", error);

@@ -123,7 +123,8 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const fetchTokenBalance = async () => {
     if (!walletAddress) return;
     try {
-      const response = await fetch(`/api/chat/token-balance?wallet=${walletAddress}`);
+      // Use cache-busting to get fresh data
+      const response = await fetch(`/api/chat/token-balance?wallet=${walletAddress}&t=${Date.now()}`);
       const data = await response.json();
       setTokenBalance(data.balance || 0);
       setPoints(data.points || 0);

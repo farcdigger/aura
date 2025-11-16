@@ -9,6 +9,9 @@ import { db, post_favs } from "@/lib/db";
 import { supabaseClient } from "@/lib/db-supabase";
 import { sql } from "drizzle-orm";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     // Get top faver (user who faved the most posts)

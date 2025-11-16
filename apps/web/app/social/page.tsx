@@ -96,7 +96,8 @@ export default function SocialPage() {
 
   const loadTopStats = async () => {
     try {
-      const postsResponse = await fetch("/api/posts");
+      // Use cache-busting to get fresh data
+      const postsResponse = await fetch(`/api/posts?t=${Date.now()}`);
       if (postsResponse.ok) {
         const postsData = await postsResponse.json();
         const posts = postsData.posts || [];
@@ -108,7 +109,7 @@ export default function SocialPage() {
         }
       }
 
-      const topFaverResponse = await fetch("/api/posts/top-faver");
+      const topFaverResponse = await fetch(`/api/posts/top-faver?t=${Date.now()}`);
       if (topFaverResponse.ok) {
         const topFaverData = await topFaverResponse.json();
         setTopFaver(topFaverData.topFaver || null);
