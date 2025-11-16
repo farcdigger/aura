@@ -116,6 +116,15 @@ export async function checkNFTOwnershipWithCache(
   
   // Cache miss, make API call
   try {
+    // Send address as-is, API will normalize it properly
+    // But use lowercase for cache key consistency
+    const cacheKey = walletAddress.toLowerCase();
+    
+    console.log("🔍 Making NFT check API call:", {
+      walletAddress,
+      cacheKey,
+    });
+    
     const response = await fetch("/api/chat/check-nft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,23 +132,39 @@ export async function checkNFTOwnershipWithCache(
     });
     
     if (!response.ok) {
+      console.error("❌ NFT check API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        walletAddress,
+      });
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Error details:", errorData);
       return { hasNFT: false, tokenId: null, fromCache: false };
     }
     
     const data = await response.json();
+    console.log("✅ NFT check API response:", {
+      walletAddress,
+      data,
+      hasNFT: data.hasNFT,
+      tokenId: data.tokenId,
+    });
     const hasNFT = data.hasNFT || false;
     const tokenId = data.tokenId || null;
     
-    // Cache the result
-    setCachedNFTVerification(walletAddress, hasNFT, tokenId);
+    // Cache the result using lowercase key for consistency
+    setCachedNFTVerification(cacheKey, hasNFT, tokenId);
     
     return {
       hasNFT,
       tokenId,
       fromCache: false,
     };
-  } catch (error) {
-    console.error("Error checking NFT ownership:", error);
+  } catch (error: any) {
+    console.error("❌ Error checking NFT ownership:", {
+      error: error.message,
+      walletAddress,
+    });
     return { hasNFT: false, tokenId: null, fromCache: false };
   }
 }

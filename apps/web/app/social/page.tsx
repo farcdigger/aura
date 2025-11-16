@@ -64,11 +64,23 @@ export default function SocialPage() {
     if (!address) return;
     setCheckingNFT(true);
     try {
+      // Use address as-is, API will normalize it properly
+      // But for cache key, use lowercase for consistency
+      const cacheKey = address.toLowerCase();
       const result = await checkNFTOwnershipWithCache(address);
+      console.log("NFT check result:", {
+        address,
+        result,
+        hasNFT: result.hasNFT,
+        tokenId: result.tokenId,
+      });
       setNftVerified(result.hasNFT);
       setNftTokenId(result.tokenId);
-    } catch (err) {
-      console.error("Error checking NFT:", err);
+    } catch (err: any) {
+      console.error("Error checking NFT:", {
+        error: err.message,
+        address,
+      });
       setNftVerified(false);
       setNftTokenId(null);
     } finally {
@@ -79,7 +91,9 @@ export default function SocialPage() {
   // Handle wallet change
   useEffect(() => {
     if (address) {
-      clearCachedNFTVerification(address);
+      // Normalize address before clearing cache
+      const normalizedAddress = address.toLowerCase();
+      clearCachedNFTVerification(normalizedAddress);
       checkNFT();
       loadTokenBalance();
     } else {
@@ -240,7 +254,7 @@ export default function SocialPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-extrabold text-black dark:text-black italic mb-2">
             XFroraSocial
           </h1>
           <p className="text-gray-600 dark:text-slate-400">
@@ -344,12 +358,8 @@ export default function SocialPage() {
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-16 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-slate-700/50">
-              <div className="text-6xl mb-4">🎉</div>
               <p className="text-xl font-semibold text-gray-800 dark:text-slate-200 mb-2">
                 No posts yet
-              </p>
-              <p className="text-gray-600 dark:text-slate-400">
-                Be the first to share something!
               </p>
             </div>
           ) : (

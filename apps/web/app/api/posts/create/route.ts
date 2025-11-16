@@ -34,10 +34,18 @@ async function checkNFTOwnership(walletAddress: string): Promise<{ hasNFT: boole
     ];
 
     if (!ethers.isAddress(walletAddress)) {
+      console.error("Invalid wallet address:", walletAddress);
       return { hasNFT: false, tokenId: null };
     }
 
+    // Normalize address - ethers.getAddress handles both lowercase and checksum
     const normalizedAddress = ethers.getAddress(walletAddress);
+    console.log("🔍 Checking NFT ownership:", {
+      originalAddress: walletAddress,
+      normalizedAddress,
+      contractAddress: CONTRACT_ADDRESS,
+      rpcUrl: RPC_URL,
+    });
 
     try {
       const provider = new ethers.JsonRpcProvider(RPC_URL);
@@ -45,6 +53,12 @@ async function checkNFTOwnership(walletAddress: string): Promise<{ hasNFT: boole
       
       const balanceResult = await contract.balanceOf(normalizedAddress);
       const hasNFT = balanceResult > 0n;
+      
+      console.log("📊 NFT balance check result:", {
+        address: normalizedAddress,
+        balance: balanceResult.toString(),
+        hasNFT,
+      });
 
       if (!hasNFT) {
         return { hasNFT: false, tokenId: null };
@@ -53,14 +67,27 @@ async function checkNFTOwnership(walletAddress: string): Promise<{ hasNFT: boole
       // Get the first token ID
       const firstTokenId = await contract.tokenOfOwnerByIndex(normalizedAddress, 0);
       const tokenId = Number(firstTokenId);
+      
+      console.log("✅ NFT found:", {
+        address: normalizedAddress,
+        tokenId,
+      });
 
       return { hasNFT: true, tokenId };
-    } catch (error) {
-      console.error("Error checking NFT via contract:", error);
+    } catch (error: any) {
+      console.error("❌ Error checking NFT via contract:", {
+        error: error.message,
+        code: error.code,
+        address: normalizedAddress,
+        contractAddress: CONTRACT_ADDRESS,
+      });
       return { hasNFT: false, tokenId: null };
     }
-  } catch (error) {
-    console.error("Error checking NFT ownership:", error);
+  } catch (error: any) {
+    console.error("❌ Error checking NFT ownership:", {
+      error: error.message,
+      walletAddress,
+    });
     return { hasNFT: false, tokenId: null };
   }
 }
@@ -100,7 +127,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedAddress = walletAddress.toLowerCase();
+    // Normalize address - use ethers.getAddress for proper checksum format
+    const normalizedAddress = ethers.isAddress(walletAddress) 
+      ? ethers.getAddress(walletAddress) 
+      : walletAddress.toLowerCase();
 
     // Check NFT ownership
     const { hasNFT, tokenId } = await checkNFTOwnership(normalizedAddress);
