@@ -230,12 +230,28 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // If still no token ID, try to get from the post being faved
+    // If still no token ID, try to get from user's existing posts
     if (!tokenId || tokenId === 0) {
-      if (post.nft_token_id && post.nft_token_id > 0) {
-        // Use the post's owner's token ID as reference
-        // But actually, we should get the fav-er's token ID, not the post owner's
-        // So this is not ideal, but better than failing
+      try {
+        const existingPosts = await db
+          .select()
+          .from(posts)
+          .where(eq(posts.wallet_address, normalizedAddressLower));
+        
+        // Sort by id descending (newest first) and get first one
+        const existingPost = existingPosts
+          .sort((a: any, b: any) => Number(b.id) - Number(a.id))
+          .slice(0, 1);
+        
+        if (existingPost && existingPost.length > 0 && existingPost[0].nft_token_id > 0) {
+          tokenId = Number(existingPost[0].nft_token_id);
+          console.log("✅ NFT token ID from existing post for fav:", {
+            address: normalizedAddress,
+            tokenId,
+          });
+        }
+      } catch (error) {
+        console.warn("⚠️ Could not get token ID from existing posts for fav:", error);
       }
     }
     
