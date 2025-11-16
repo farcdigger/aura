@@ -245,7 +245,7 @@ export const chat_tokens = isSupabaseConfigured ? supabaseChatTokens : {
 } as any;
 
 // Export new table objects
-import { posts as supabasePosts, post_favs as supabasePostFavs, weekly_rewards as supabaseWeeklyRewards } from "./db-supabase";
+// Note: supabasePosts, supabasePostFavs, supabaseWeeklyRewards are already imported at the top
 
 export const posts = isSupabaseConfigured ? supabasePosts : {
   name: "posts",
