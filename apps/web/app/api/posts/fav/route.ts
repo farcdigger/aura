@@ -360,12 +360,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update post fav_count
+    // Update post fav_count - try Supabase first
     const newFavCount = (Number(post.fav_count) || 0) + 1;
-    await db
-      .update(posts)
-      .set({ fav_count: newFavCount })
-      .where(eq(posts.id, postId));
+    try {
+      const { supabaseClient } = await import("@/lib/db-supabase");
+      if (supabaseClient) {
+        const { error } = await (supabaseClient as any)
+          .from("posts")
+          .update({ fav_count: newFavCount })
+          .eq("id", postIdNum);
+        
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw error;
+        }
+      } else {
+        throw new Error("Supabase client not available");
+      }
+    } catch (supabaseError) {
+      console.warn("⚠️ Supabase update failed, trying Drizzle:", supabaseError);
+      // Fallback to Drizzle
+      await db
+        .update(posts)
+        .set({ fav_count: newFavCount })
+        .where(eq(posts.id, postIdNum));
+    }
 
     return NextResponse.json({
       success: true,
