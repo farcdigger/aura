@@ -1058,9 +1058,9 @@ function HomePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Navbar - Top */}
-      <nav className="bg-white/70 backdrop-blur-md shadow-md sticky top-0 z-50 dark:bg-slate-900/80 dark:border-b dark:border-slate-800">
+      <nav className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Logo */}
@@ -1080,7 +1080,7 @@ function HomePageContent() {
                 href="https://opensea.io/collection/xfrora"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold"
               >
                 <span className="text-lg">
                   <img src="/opensea-icon.png" alt="OpenSea icon" className="w-5 h-5" />
@@ -1102,7 +1102,7 @@ function HomePageContent() {
               
               <Link
                 href="/social"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white rounded-lg transition-colors font-semibold flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1112,7 +1112,7 @@ function HomePageContent() {
               
               <Link
                 href="/leaderboard"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-lg transition-colors font-semibold flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -1123,7 +1123,7 @@ function HomePageContent() {
               {isConnected && address && (
                 <button
                   onClick={() => setShowPaymentModal(true)}
-                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-colors font-semibold flex items-center gap-2"
+                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1134,7 +1134,7 @@ function HomePageContent() {
               
               <button
                 onClick={() => setChatbotOpen(true)}
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg transition-colors font-semibold flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors font-semibold flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1376,8 +1376,8 @@ function HomePageContent() {
               <h3 className="text-2xl font-bold mb-4 text-gray-800">Your xFrora NFT</h3>
               
               {paymentReady && (
-                <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 dark:border-blue-500/50 dark:bg-blue-500/10 dark:text-blue-200">
-                  Payment received! Click “Complete Mint” to finish on-chain minting.
+                <div className="mb-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-sm text-black dark:text-white">
+                  Payment received! Click "Complete Mint" to finish on-chain minting.
                 </div>
               )}
               
@@ -1413,21 +1413,21 @@ function HomePageContent() {
                     }}
                   />
                 ) : (
-                  <div className="w-full aspect-square rounded-lg bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 flex items-center justify-center">
+                  <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center">
                     <span className="text-6xl">🎨</span>
                   </div>
                 )}
                 {/* Placeholder for error state */}
-                <div className="image-placeholder hidden w-full aspect-square rounded-lg bg-gradient-to-br from-purple-200 via-blue-200 to-teal-200 items-center justify-center">
+                <div className="image-placeholder hidden w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 items-center justify-center">
                   <span className="text-6xl">🎨</span>
                 </div>
               </div>
               
               {/* Traits */}
               {generated.traits && (
-                <div className="text-left max-w-md mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold mb-2 text-purple-700">Traits:</h4>
-                  <p className="text-sm text-gray-700">{generated.traits.description}</p>
+                <div className="text-left max-w-md mx-auto border border-gray-200 dark:border-gray-800 p-4 mb-6">
+                  <h4 className="font-semibold mb-2 text-black dark:text-white">Traits:</h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{generated.traits.description}</p>
                 </div>
               )}
               
@@ -1464,7 +1464,7 @@ function HomePageContent() {
               
               {mintedTokenId && (
                 <div className="mb-6">
-                  <p className="text-2xl font-bold text-purple-600">Token #{mintedTokenId}</p>
+                  <p className="text-2xl font-bold text-black dark:text-white">Token #{mintedTokenId}</p>
                 </div>
               )}
               
@@ -1585,7 +1585,7 @@ function HomePageContent() {
                 href="https://x.com/daydreamsagents"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-600 hover:text-purple-700 font-semibold"
+                className="text-black dark:text-white hover:underline font-semibold"
               >
                 Daydreams infrastructure
               </a>
@@ -1594,7 +1594,7 @@ function HomePageContent() {
                 href="https://base.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-700 font-semibold"
+                className="text-black dark:text-white hover:underline font-semibold"
               >
                 @base
               </a>
@@ -1931,8 +1931,8 @@ function HomePageContent() {
 export default function HomePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <div className="text-black dark:text-white text-xl">Loading...</div>
       </div>
     }>
       <HomePageContent />
