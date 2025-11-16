@@ -46,7 +46,8 @@ export default function SocialPage() {
   const loadPosts = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/posts");
+      // Add cache-busting timestamp to ensure fresh data
+      const response = await fetch(`/api/posts?t=${Date.now()}`);
       if (!response.ok) throw new Error("Failed to load posts");
       const data = await response.json();
       setPosts(data.posts || []);
