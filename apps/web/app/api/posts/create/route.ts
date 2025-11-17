@@ -97,8 +97,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { walletAddress, content } = body;
 
+    console.log("📝 POST /api/posts/create - Request body:", {
+      walletAddress: walletAddress?.substring(0, 10) + "...",
+      contentLength: content?.length,
+    });
+
     // Validate input
     if (!walletAddress || !content) {
+      console.error("❌ POST /api/posts/create - Missing required fields");
       return NextResponse.json(
         { error: "Missing required fields: walletAddress and content" },
         { status: 400 }
@@ -131,7 +137,14 @@ export async function POST(request: NextRequest) {
     const normalizedAddress = ethers.getAddress(walletAddress);
     const normalizedAddressLower = normalizedAddress.toLowerCase();
 
+    console.log("🔄 POST /api/posts/create - Normalized address:", {
+      original: walletAddress.substring(0, 10) + "...",
+      normalized: normalizedAddress.substring(0, 10) + "...",
+      lower: normalizedAddressLower.substring(0, 10) + "...",
+    });
+
     // Check token balance first - if user has tokens, they have NFT (NFT check happens during token purchase)
+    console.log("💰 POST /api/posts/create - Checking token balance...");
     const tokenBalanceResult = await db
       .select()
       .from(chat_tokens)
@@ -142,7 +155,14 @@ export async function POST(request: NextRequest) {
       ? Number(tokenBalanceResult[0].balance) || 0
       : 0;
 
+    console.log("💰 POST /api/posts/create - Token balance:", {
+      currentBalance,
+      required: TOKENS_TO_BURN,
+      sufficient: currentBalance >= TOKENS_TO_BURN,
+    });
+
     if (currentBalance < TOKENS_TO_BURN) {
+      console.error("❌ POST /api/posts/create - Insufficient token balance");
       return NextResponse.json(
         { 
           error: "Insufficient token balance",
@@ -155,8 +175,8 @@ export async function POST(request: NextRequest) {
 
     // Simple solution: Use wallet address as identifier
     // This way we can always show NFT image from database
-    console.log("✅ Using wallet address as post identifier:", {
-      address: normalizedAddress,
+    console.log("✅ POST /api/posts/create - Using wallet address as identifier:", {
+      address: normalizedAddress.substring(0, 10) + "...",
     });
 
     // Get current points and total tokens spent
