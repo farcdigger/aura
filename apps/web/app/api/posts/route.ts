@@ -31,15 +31,16 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Filter out posts with NFT #0, then sort by id (newest first)
-      // Since we already ordered by id descending, just filter and take first N
+      // Get posts (already ordered by id descending)
+      // Note: We now use wallet_address instead of nft_token_id for identification
       const validPosts = (data || [])
-        .filter((post: any) => post.nft_token_id && Number(post.nft_token_id) > 0) // Exclude NFT #0
+        .filter((post: any) => post.wallet_address) // Only posts with wallet_address
         .slice(0, POSTS_LIMIT); // Take first N (already sorted by id descending)
 
       return NextResponse.json({
         posts: validPosts.map((post: any) => ({
           id: Number(post.id),
+          wallet_address: post.wallet_address, // Add wallet address for NFT image lookup
           nft_token_id: Number(post.nft_token_id) || 0,
           content: post.content || "",
           fav_count: Number(post.fav_count) || 0,
@@ -79,12 +80,13 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, POSTS_LIMIT);
 
-    // Filter out posts with NFT #0
-    const validPosts = sortedPosts.filter((post: any) => post.nft_token_id && Number(post.nft_token_id) > 0);
+    // Filter posts with wallet_address (now used instead of nft_token_id)
+    const validPosts = sortedPosts.filter((post: any) => post.wallet_address);
 
     return NextResponse.json({
       posts: validPosts.map((post: any) => ({
         id: Number(post.id),
+        wallet_address: post.wallet_address, // Add wallet address for NFT image lookup
         nft_token_id: Number(post.nft_token_id) || 0,
         content: post.content || "",
         fav_count: Number(post.fav_count) || 0,

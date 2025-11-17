@@ -9,6 +9,7 @@ import PaymentModal from "@/components/PaymentModal";
 
 interface Post {
   id: number;
+  wallet_address: string; // Add wallet address for NFT image lookup
   nft_token_id: number;
   content: string;
   fav_count: number;
@@ -41,23 +42,24 @@ export default function SocialPage() {
   const [weeklyWinners, setWeeklyWinners] = useState<WeeklyWinner[]>([]);
   const [mostFavedPost, setMostFavedPost] = useState<Post | null>(null);
   const [topFaver, setTopFaver] = useState<{ wallet_address: string; fav_count: number } | null>(null);
-  const [nftImages, setNftImages] = useState<Record<number, string>>({});  // NFT token_id -> image URL
+  const [nftImages, setNftImages] = useState<Record<string, string>>({});  // wallet_address -> image URL
 
-  // Load NFT image for a specific token ID
-  const loadNftImage = async (nftTokenId: number) => {
-    // Skip if already loaded
-    if (nftImages[nftTokenId]) return;
+  // Load NFT image for a specific wallet address
+  const loadNftImage = async (walletAddress: string) => {
+    // Skip if already loaded or invalid
+    if (!walletAddress || nftImages[walletAddress]) return;
     
     try {
-      const response = await fetch(`/api/nft-image?nft_token_id=${nftTokenId}`);
+      const response = await fetch(`/api/nft-image?wallet=${walletAddress}`);
       if (response.ok) {
         const data = await response.json();
         if (data.hasNFT && data.imageUrl) {
-          setNftImages((prev) => ({ ...prev, [nftTokenId]: data.imageUrl }));
+          setNftImages((prev) => ({ ...prev, [walletAddress]: data.imageUrl }));
+          console.log("✅ NFT image loaded for wallet:", walletAddress.substring(0, 10));
         }
       }
     } catch (err) {
-      console.error(`Error loading NFT image for token ${nftTokenId}:`, err);
+      console.error(`Error loading NFT image for wallet ${walletAddress}:`, err);
     }
   };
 
@@ -71,10 +73,10 @@ export default function SocialPage() {
       const loadedPosts = data.posts || [];
       setPosts(loadedPosts);
       
-      // Load NFT images for all posts
+      // Load NFT images for all posts using wallet address
       loadedPosts.forEach((post: Post) => {
-        if (post.nft_token_id) {
-          loadNftImage(post.nft_token_id);
+        if (post.wallet_address) {
+          loadNftImage(post.wallet_address);
         }
       });
     } catch (err: any) {
@@ -549,10 +551,10 @@ export default function SocialPage() {
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    {nftImages[post.nft_token_id] ? (
+                    {nftImages[post.wallet_address] ? (
                       <img
-                        src={nftImages[post.nft_token_id]}
-                        alt={`NFT #${post.nft_token_id}`}
+                        src={nftImages[post.wallet_address]}
+                        alt={`${post.wallet_address.substring(0, 6)}'s NFT`}
                         className="w-12 h-12 rounded-full object-cover border-2 border-black dark:border-white"
                         onError={(e) => {
                           // Fallback to default avatar if image fails to load
@@ -564,16 +566,16 @@ export default function SocialPage() {
                       />
                     ) : null}
                     <div 
-                      className="w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-sm border border-black dark:border-white"
-                      style={{ display: nftImages[post.nft_token_id] ? 'none' : 'flex' }}
+                      className="w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs border border-black dark:border-white"
+                      style={{ display: nftImages[post.wallet_address] ? 'none' : 'flex' }}
                     >
-                      #{post.nft_token_id}
+                      {post.wallet_address.substring(0, 6)}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="font-bold text-black dark:text-white">
-                        NFT #{post.nft_token_id}
+                        {post.wallet_address.substring(0, 6)}...{post.wallet_address.substring(38)}
                       </span>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {formatTimeAgo(post.created_at)}
