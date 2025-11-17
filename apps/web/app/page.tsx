@@ -35,13 +35,40 @@ function HomePageContent() {
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null); // Credits
+  const [points, setPoints] = useState<number>(0); // Points
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const introVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setWallet(address ?? null);
-  }, [address]);
+    
+    // Fetch token balance and points when wallet connects
+    if (address && isConnected) {
+      fetchTokenBalanceAndPoints(address);
+    } else {
+      setTokenBalance(null);
+      setPoints(0);
+    }
+  }, [address, isConnected]);
+
+  // Fetch token balance and points
+  const fetchTokenBalanceAndPoints = async (walletAddress: string) => {
+    try {
+      const response = await fetch(`/api/chat/token-balance?walletAddress=${walletAddress}`, {
+        cache: 'no-store',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setTokenBalance(data.balance || 0);
+        setPoints(data.points || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching token balance:", error);
+    }
+  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -1103,6 +1130,30 @@ function HomePageContent() {
             {/* Right: User Info & Buttons */}
             <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-end">
               <ThemeToggle />
+              
+              {/* Credits & Points Display (only when wallet connected) */}
+              {isConnected && address && (
+                <div className="flex items-center gap-2">
+                  {/* Credits */}
+                  {tokenBalance !== null && (
+                    <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-full bg-white dark:bg-black">
+                      <div className="w-1.5 h-1.5 bg-black dark:bg-white rounded-full"></div>
+                      <span className="text-xs sm:text-sm font-semibold text-black dark:text-white whitespace-nowrap">
+                        {tokenBalance.toLocaleString('en-US')} credits
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Points */}
+                  <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-full">
+                    <div className="w-1.5 h-1.5 bg-black dark:bg-white rounded-full"></div>
+                    <span className="text-xs sm:text-sm font-semibold text-black dark:text-white whitespace-nowrap">
+                      {points.toLocaleString('en-US')} points
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               {/* Dropdown Menu */}
               <div className="relative">
                 <button

@@ -290,16 +290,13 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-black dark:border-white flex-shrink-0 bg-black dark:bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="/frora-logo.png" 
-                  alt="xFrora" 
+                  src={nftImage || "/frora-logo.png"} 
+                  alt={nftImage ? "Your NFT" : "xFrora"} 
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Fallback to text if image fails
+                    // Fallback to frora logo if NFT image fails
                     const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    if (target.parentElement) {
-                      target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-white font-bold text-lg">xF</div>';
-                    }
+                    target.src = "/frora-logo.png";
                   }}
                 />
               </div>
@@ -443,8 +440,27 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </p>
                 </div>
                 {message.role === "user" && (
-                  <div className="w-8 h-8 rounded-full bg-black dark:bg-white border border-black dark:border-white flex items-center justify-center text-white dark:text-black text-sm font-bold flex-shrink-0">
-                    {walletAddress?.substring(2, 4).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border-2 border-black dark:border-white flex-shrink-0 bg-black dark:bg-white">
+                    {nftImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img 
+                        src={nftImage} 
+                        alt="Your NFT" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to wallet address if image fails
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white dark:text-black text-xs font-bold">${walletAddress?.substring(2, 4).toUpperCase()}</div>`;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white dark:text-black text-sm font-bold">
+                        {walletAddress?.substring(2, 4).toUpperCase()}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
