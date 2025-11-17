@@ -5,7 +5,7 @@ import { generateImage } from "@/lib/ai";
 import { pinToIPFS, pinJSONToIPFS } from "@/lib/ipfs";
 import { checkGenerateRateLimit } from "@/lib/rate-limit";
 import { acquireLock, releaseLock } from "@/lib/kv";
-import { db, tokens } from "@/lib/db";
+import { db, tokens, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { env } from "@/env.mjs";
 import type { GenerateRequest, GenerateResponse } from "@/lib/types";
@@ -365,11 +365,31 @@ export async function POST(request: NextRequest) {
       
       // Save to database (REQUIRED - for preventing duplicate generation)
       // IMPORTANT: Only save AFTER image and metadata are successfully uploaded to IPFS
+      // Get wallet_address from users table for this x_user_id
+      let walletAddress: string | null = null;
+      try {
+        const userResult = await db
+          .select()
+          .from(users)
+          .where(eq(users.x_user_id, x_user_id))
+          .limit(1);
+        
+        if (userResult && userResult.length > 0) {
+          walletAddress = userResult[0].wallet_address;
+          console.log(`✅ Found wallet_address for x_user_id ${x_user_id}:`, walletAddress?.substring(0, 10) + "...");
+        } else {
+          console.log(`⚠️ No user found for x_user_id ${x_user_id}, wallet_address will be NULL`);
+        }
+      } catch (userError) {
+        console.warn(`⚠️ Error fetching user wallet_address:`, userError);
+      }
+
       // This must succeed to prevent duplicate generation and cost
       try {
         console.log(`💾 Saving generated NFT to database for x_user_id: ${x_user_id}`);
         console.log(`   Image URL: ${imageUrl}`);
         console.log(`   Metadata URL: ${metadataUrl}`);
+        console.log(`   Wallet Address: ${walletAddress || 'NULL'}`);
         
         const insertResult = await db.insert(tokens).values({
           x_user_id,
@@ -378,6 +398,7 @@ export async function POST(request: NextRequest) {
           token_uri: metadataUrl,
           metadata_uri: metadataUrl,
           image_uri: imageUrl,
+          wallet_address: walletAddress, // ✅ ADDED: wallet_address from users table
           image_id: metadataUrl, // Use metadata URL as unique image_id
           traits: traits as any, // 'traits' objesi JSON olarak DB'ye kaydedilir
           status: "generated", // ✅ Initial status

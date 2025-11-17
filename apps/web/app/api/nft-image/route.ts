@@ -265,6 +265,7 @@ export async function GET(request: NextRequest) {
     // This handles cases where user posted but isn't in users table yet
     if (!nftImage && normalizedAddress) {
       console.log(`🔍 [${requestId}] Method 3: Direct wallet lookup in tokens table...`);
+      console.log(`🔍 [${requestId}] Method 3: Searching for wallet: ${normalizedAddress}`);
       try {
         const tokenResult = await db
           .select()
@@ -274,6 +275,7 @@ export async function GET(request: NextRequest) {
 
         console.log(`📊 [${requestId}] Method 3: Database query result:`, {
           found: tokenResult && tokenResult.length > 0,
+          count: tokenResult?.length || 0,
           wallet: normalizedAddress?.substring(0, 10) + "...",
         });
 
@@ -282,14 +284,19 @@ export async function GET(request: NextRequest) {
           nftImage = token.image_uri || "";
           tokenId = token.token_id || null;
           
-          console.log(`✅ [${requestId}] Method 3: SUCCESS - Found NFT image:`, {
+          console.log(`✅ [${requestId}] Method 3: SUCCESS - Token found in database:`, {
             wallet: normalizedAddress?.substring(0, 10) + "...",
-            hasImage: !!nftImage,
-            imageUrl: nftImage?.substring(0, 50) + "...",
-            tokenId,
+            hasImageUri: !!token.image_uri,
+            imageUri: token.image_uri?.substring(0, 50) + "..." || "NULL",
+            tokenId: token.token_id,
+            xUserId: token.x_user_id,
           });
+          
+          if (!nftImage) {
+            console.log(`⚠️  [${requestId}] Method 3: Token found BUT image_uri is EMPTY/NULL!`);
+          }
         } else {
-          console.log(`❌ [${requestId}] Method 3: NOT FOUND - No token with this wallet address`);
+          console.log(`❌ [${requestId}] Method 3: NOT FOUND - No token with this wallet address in database`);
         }
       } catch (error: any) {
         console.error(`❌ [${requestId}] Method 3: ERROR:`, {
@@ -299,42 +306,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Method 4: Blockchain fallback (if database doesn't have image)
-    // Only use this as last resort to avoid rate limits
+    // Method 4: DISABLED - Blockchain fallback
+    // ❌ DISABLED: Contract doesn't have ERC721Enumerable (tokenOfOwnerByIndex doesn't exist)
+    // ❌ DISABLED: Rate limit issues with RPC provider
+    // ✅ SOLUTION: Use database only (Methods 1-3)
     if (!nftImage && normalizedAddress) {
-      console.log(`🔗 [${requestId}] Method 4: Blockchain fallback - Querying smart contract...`);
-      console.log(`⚠️  [${requestId}] RATE LIMIT WARNING: This will make RPC calls to blockchain!`);
-      
-      const blockchainResult = await fetchNFTImageFromBlockchain(normalizedAddress);
-      
-      if (blockchainResult.imageUrl) {
-        nftImage = blockchainResult.imageUrl;
-        tokenId = blockchainResult.tokenId;
-        
-        console.log(`✅ [${requestId}] Method 4: SUCCESS - Got image from blockchain:`, {
-          tokenId,
-          imageUrl: nftImage?.substring(0, 50) + "...",
-        });
-        
-        console.log(`💾 [${requestId}] Method 4: Updating database to cache image...`);
-        
-        // Update database with the fetched image for future requests
-        try {
-          if (tokenId && tokenId > 0) {
-            await db
-              .update(tokens)
-              .set({ image_uri: nftImage })
-              .where(eq(tokens.token_id, tokenId));
-            console.log(`✅ [${requestId}] Method 4: Database updated successfully`);
-          }
-        } catch (updateError: any) {
-          console.error(`❌ [${requestId}] Method 4: Database update ERROR:`, {
-            error: updateError.message,
-          });
-        }
-      } else {
-        console.log(`❌ [${requestId}] Method 4: FAILED - Could not get image from blockchain`);
-      }
+      console.log(`⚠️  [${requestId}] Method 4: SKIPPED - Blockchain fallback disabled`);
+      console.log(`📝 [${requestId}] Reason: Contract lacks ERC721Enumerable (tokenOfOwnerByIndex)`);
+      console.log(`💡 [${requestId}] Solution: NFT image must be in database (tokens.image_uri)`);
     }
 
     // If STILL no NFT found after all methods

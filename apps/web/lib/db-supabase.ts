@@ -14,6 +14,7 @@ type Database = {
           token_uri: string;
           metadata_uri: string;
           image_uri: string;
+          wallet_address: string | null;
           traits: any;
           created_at: string | null;
         };
@@ -25,6 +26,7 @@ type Database = {
           token_uri: string;
           metadata_uri: string;
           image_uri: string;
+          wallet_address?: string | null;
           traits: any;
           created_at?: string | null;
         };
@@ -36,6 +38,7 @@ type Database = {
           token_uri?: string;
           metadata_uri?: string;
           image_uri?: string;
+          wallet_address?: string | null;
           traits?: any;
           created_at?: string | null;
         };
