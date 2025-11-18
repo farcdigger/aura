@@ -54,9 +54,18 @@ export async function GET(
       );
     }
 
+    // Type assertion for conversation
+    const conv = conversation as {
+      id: string;
+      participant1_wallet: string;
+      participant2_wallet: string;
+      last_message_at: string | null;
+      created_at: string | null;
+    };
+
     const isParticipant =
-      conversation.participant1_wallet.toLowerCase() === normalizedWallet ||
-      conversation.participant2_wallet.toLowerCase() === normalizedWallet;
+      conv.participant1_wallet.toLowerCase() === normalizedWallet ||
+      conv.participant2_wallet.toLowerCase() === normalizedWallet;
 
     if (!isParticipant) {
       return NextResponse.json(
@@ -93,16 +102,16 @@ export async function GET(
 
     // Get other participant info
     const otherParticipant =
-      conversation.participant1_wallet.toLowerCase() === normalizedWallet
-        ? conversation.participant2_wallet
-        : conversation.participant1_wallet;
+      conv.participant1_wallet.toLowerCase() === normalizedWallet
+        ? conv.participant2_wallet
+        : conv.participant1_wallet;
 
     return NextResponse.json({
       conversation: {
-        id: conversation.id,
+        id: conv.id,
         otherParticipant,
-        createdAt: conversation.created_at,
-        lastMessageAt: conversation.last_message_at,
+        createdAt: conv.created_at,
+        lastMessageAt: conv.last_message_at,
       },
       messages: messages || [],
       hasMore: (messages?.length || 0) === limit,

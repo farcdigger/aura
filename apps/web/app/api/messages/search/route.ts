@@ -70,28 +70,34 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .single();
 
-    // Check if there's an existing conversation
+    // Check if there's an existing conversation between these two wallets
+    // We need to check both possible orderings (wallet1-wallet2 or wallet2-wallet1)
+    const [wallet1, wallet2] = 
+      normalizedQuery < normalizedCurrentWallet 
+        ? [normalizedQuery, normalizedCurrentWallet]
+        : [normalizedCurrentWallet, normalizedQuery];
+
     const { data: existingConv } = await supabaseClient
       .from("conversations")
       .select("id")
-      .or(
-        `participant1_wallet.eq.${normalizedQuery},participant2_wallet.eq.${normalizedQuery}`
-      )
-      .or(
-        `participant1_wallet.eq.${normalizedCurrentWallet},participant2_wallet.eq.${normalizedCurrentWallet}`
-      )
+      .eq("participant1_wallet", wallet1)
+      .eq("participant2_wallet", wallet2)
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    const token = tokenData as { token_id: number; image_uri: string; wallet_address: string } | null;
+    const user = userData as { x_user_id: string; username: string; profile_image_url: string | null; wallet_address: string } | null;
+    const conv = existingConv as { id: string } | null;
 
     return NextResponse.json({
       wallet: normalizedQuery,
-      hasNFT: !!tokenData,
-      tokenId: tokenData?.token_id || null,
-      nftImageUrl: tokenData?.image_uri || null,
-      username: userData?.username || null,
-      profileImageUrl: userData?.profile_image_url || null,
-      hasExistingConversation: !!existingConv,
-      conversationId: existingConv?.id || null,
+      hasNFT: !!token,
+      tokenId: token?.token_id || null,
+      nftImageUrl: token?.image_uri || null,
+      username: user?.username || null,
+      profileImageUrl: user?.profile_image_url || null,
+      hasExistingConversation: !!conv,
+      conversationId: conv?.id || null,
     });
   } catch (error: any) {
     console.error("Error in search API:", error);

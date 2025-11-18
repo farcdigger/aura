@@ -91,6 +91,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Type assertion for message
+    const msg = message as {
+      id: string;
+      conversation_id: string;
+      sender_wallet: string;
+      receiver_wallet: string;
+      content: string;
+      read: boolean;
+      created_at: string;
+    };
+
     // Update conversation's last_message_at (trigger should handle this, but just in case)
     await supabaseClient
       .from("conversations")
@@ -100,13 +111,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: {
-        id: message.id,
-        conversationId: message.conversation_id,
-        senderWallet: message.sender_wallet,
-        receiverWallet: message.receiver_wallet,
-        content: message.content,
-        read: message.read,
-        createdAt: message.created_at,
+        id: msg.id,
+        conversationId: msg.conversation_id,
+        senderWallet: msg.sender_wallet,
+        receiverWallet: msg.receiver_wallet,
+        content: msg.content,
+        read: msg.read,
+        createdAt: msg.created_at,
       },
     });
   } catch (error: any) {

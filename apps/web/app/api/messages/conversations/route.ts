@@ -46,25 +46,33 @@ export async function GET(request: NextRequest) {
 
     // For each conversation, get the other participant's info
     const conversationsWithParticipants = await Promise.all(
-      (conversations || []).map(async (conv) => {
+      (conversations || []).map(async (conv: any) => {
+        const conversation = conv as {
+          id: string;
+          participant1_wallet: string;
+          participant2_wallet: string;
+          last_message_at: string | null;
+          created_at: string | null;
+        };
+
         const otherParticipant =
-          conv.participant1_wallet.toLowerCase() === normalizedWallet
-            ? conv.participant2_wallet
-            : conv.participant1_wallet;
+          conversation.participant1_wallet.toLowerCase() === normalizedWallet
+            ? conversation.participant2_wallet
+            : conversation.participant1_wallet;
 
         // Get unread message count
         const { count: unreadCount } = await supabaseClient
           .from("messages")
           .select("*", { count: "exact", head: true })
-          .eq("conversation_id", conv.id)
+          .eq("conversation_id", conversation.id)
           .eq("receiver_wallet", normalizedWallet)
           .eq("read", false);
 
         return {
-          id: conv.id,
+          id: conversation.id,
           otherParticipant: otherParticipant,
-          lastMessageAt: conv.last_message_at,
-          createdAt: conv.created_at,
+          lastMessageAt: conversation.last_message_at,
+          createdAt: conversation.created_at,
           unreadCount: unreadCount || 0,
         };
       })
