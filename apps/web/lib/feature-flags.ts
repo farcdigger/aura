@@ -11,18 +11,23 @@ export function isMessagingEnabled(walletAddress?: string | null): boolean {
     return true;
   }
   
-  // Feature flag kapalıysa hiç kimse için aktif değil
-  if (env.NEXT_PUBLIC_ENABLE_MESSAGING_FEATURE !== "true") {
-    return false;
+  // GEÇICI: Hard-coded developer wallet (environment variables çalışmıyor)
+  const DEVELOPER_WALLET = "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d";
+  
+  // Geliştirici cüzdan kontrolü
+  if (walletAddress?.toLowerCase() === DEVELOPER_WALLET.toLowerCase()) {
+    return true;
   }
   
-  // Geliştirici cüzdan adresi belirtilmişse, sadece o adres için aktif
-  if (env.NEXT_PUBLIC_DEVELOPER_WALLET_ADDRESS) {
-    return walletAddress?.toLowerCase() === env.NEXT_PUBLIC_DEVELOPER_WALLET_ADDRESS.toLowerCase();
+  // Feature flag kontrolü (fallback)
+  if (env.NEXT_PUBLIC_ENABLE_MESSAGING_FEATURE === "true") {
+    if (env.NEXT_PUBLIC_DEVELOPER_WALLET_ADDRESS) {
+      return walletAddress?.toLowerCase() === env.NEXT_PUBLIC_DEVELOPER_WALLET_ADDRESS.toLowerCase();
+    }
+    return true;
   }
   
-  // Hiçbir kısıtlama yoksa herkese açık
-  return true;
+  return false;
 }
 
 /**
