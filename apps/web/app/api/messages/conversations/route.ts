@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!supabaseClient) {
+    const client = supabaseClient;
+
+    if (!client) {
       return NextResponse.json(
         { error: "Database not available" },
         { status: 500 }
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest) {
     const normalizedWallet = walletAddress.toLowerCase();
 
     // Get all conversations where user is a participant
-    const { data: conversations, error } = await supabaseClient
+    const { data: conversations, error } = await client
       .from("conversations")
       .select("*")
       .or(`participant1_wallet.eq.${normalizedWallet},participant2_wallet.eq.${normalizedWallet}`)
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
             : conversation.participant1_wallet;
 
         // Get unread message count
-        const { count: unreadCount } = await supabaseClient
+        const { count: unreadCount } = await client
           .from("messages")
           .select("*", { count: "exact", head: true })
           .eq("conversation_id", conversation.id)

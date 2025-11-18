@@ -31,7 +31,9 @@ export async function GET(
       );
     }
 
-    if (!supabaseClient) {
+    const client = supabaseClient;
+
+    if (!client) {
       return NextResponse.json(
         { error: "Database not available" },
         { status: 500 }
@@ -41,7 +43,7 @@ export async function GET(
     const normalizedWallet = walletAddress.toLowerCase();
 
     // Verify user is a participant in this conversation
-    const { data: conversation, error: convError } = await supabaseClient
+    const { data: conversation, error: convError } = await client
       .from("conversations")
       .select("*")
       .eq("id", conversationId)
@@ -75,7 +77,7 @@ export async function GET(
     }
 
     // Get messages for this conversation
-    const { data: messages, error: messagesError } = await supabaseClient
+    const { data: messages, error: messagesError } = await client
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
@@ -92,7 +94,7 @@ export async function GET(
 
     // Mark received messages as read
     if (messages && messages.length > 0) {
-      await (supabaseClient as any)
+      await (client as any)
         .from("messages")
         .update({ read: true })
         .eq("conversation_id", conversationId)

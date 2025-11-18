@@ -10,7 +10,7 @@ interface PaymentModalProps {
   walletAddress: string | null;
 }
 
-const paymentOptions = [0.5, 1, 1.5, 2];
+const paymentOptions = [0.01, 0.5, 1, 1.5, 2];
 
 export default function PaymentModal({
   onClose,
