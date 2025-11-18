@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface Conversation {
   id: string;
@@ -52,9 +53,42 @@ export default function ConversationList({
 
   useEffect(() => {
     loadConversations();
-    // Refresh conversations every 10 seconds
+    // Refresh conversations every 10 seconds as fallback
     const interval = setInterval(loadConversations, 10000);
-    return () => clearInterval(interval);
+
+    const client = getSupabaseBrowserClient();
+    if (!client || !currentWallet) {
+      return () => clearInterval(interval);
+    }
+
+    const channel = client
+      .channel(`conversations-realtime-${currentWallet}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_wallet=eq.${currentWallet}`,
+        },
+        () => loadConversations()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `sender_wallet=eq.${currentWallet}`,
+        },
+        () => loadConversations()
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      channel.unsubscribe();
+    };
   }, [currentWallet]);
 
   const parseTimestamp = (value: string) => {

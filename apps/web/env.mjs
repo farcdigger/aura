@@ -18,6 +18,7 @@ const envSchema = z.object({
   INFERENCE_API_KEY: z.string().optional(),
   // Supabase REST API (no PostgreSQL connection string needed)
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   UPDATE_TOKEN_SECRET: z.string().optional(),
   // Legacy: DATABASE_URL is optional now (Supabase REST API is preferred)
@@ -47,6 +48,7 @@ const envSchema = z.object({
   INFERENCE_API_KEY: data.INFERENCE_API_KEY === "" ? undefined : data.INFERENCE_API_KEY,
   // Supabase credentials - boş string'leri undefined yap
   NEXT_PUBLIC_SUPABASE_URL: data.NEXT_PUBLIC_SUPABASE_URL === "" ? undefined : data.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: data.NEXT_PUBLIC_SUPABASE_ANON_KEY === "" ? undefined : data.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY: data.SUPABASE_SERVICE_ROLE_KEY === "" ? undefined : data.SUPABASE_SERVICE_ROLE_KEY,
   UPDATE_TOKEN_SECRET: data.UPDATE_TOKEN_SECRET === "" ? undefined : data.UPDATE_TOKEN_SECRET,
   // Ensure RPC_URL and CONTRACT_ADDRESS have defaults for Base Mainnet

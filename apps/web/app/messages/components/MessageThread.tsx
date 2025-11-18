@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -61,11 +63,36 @@ export default function MessageThread({
   };
 
   useEffect(() => {
-    if (conversationId) {
+    let channel: RealtimeChannel | null = null;
+    const client = getSupabaseBrowserClient();
+
+    if (conversationId && client) {
       loadMessages();
-      // Refresh messages every 5 seconds
-      const interval = setInterval(loadMessages, 5000);
-      return () => clearInterval(interval);
+
+      channel = client
+        .channel(`message-thread-${conversationId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const newMessage = payload.new as Message;
+            if (!newMessage) return;
+            setMessages((prev) => {
+              const exists = prev.some((msg) => msg.id === newMessage.id);
+              return exists ? prev : [...prev, newMessage];
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        channel?.unsubscribe();
+      };
     } else {
       setMessages([]);
     }
