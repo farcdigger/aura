@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert message
-    const { data: message, error: messageError } = await supabaseClient
+    const { data: message, error: messageError } = await (supabaseClient as any)
       .from("messages")
       .insert({
         conversation_id: conversationId,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Update conversation's last_message_at (trigger should handle this, but just in case)
-    await supabaseClient
+    await (supabaseClient as any)
       .from("conversations")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", conversationId);
@@ -160,7 +160,7 @@ async function checkRateLimit(walletAddress: string): Promise<{
 
   // If no record exists, create one
   if (!rateLimit) {
-    await supabaseClient
+    await (supabaseClient as any)
       .from("message_rate_limits")
       .insert({
         wallet_address: walletAddress,
@@ -231,7 +231,7 @@ async function checkRateLimit(walletAddress: string): Promise<{
     updateData.messages_sent_hour = messagesSentHour + 1;
   }
 
-  await supabaseClient
+  await (supabaseClient as any)
     .from("message_rate_limits")
     .update(updateData)
     .eq("wallet_address", walletAddress);
@@ -255,7 +255,7 @@ async function getOrCreateConversation(
     wallet1 < wallet2 ? [wallet1, wallet2] : [wallet2, wallet1];
 
   // Try to find existing conversation
-  const { data: existing, error: fetchError } = await supabaseClient
+  const { data: existing, error: fetchError } = await (supabaseClient as any)
     .from("conversations")
     .select("id")
     .eq("participant1_wallet", participant1)
@@ -263,11 +263,11 @@ async function getOrCreateConversation(
     .single();
 
   if (existing) {
-    return existing.id;
+    return (existing as { id: string }).id;
   }
 
   // Create new conversation
-  const { data: newConv, error: insertError } = await supabaseClient
+  const { data: newConv, error: insertError } = await (supabaseClient as any)
     .from("conversations")
     .insert({
       participant1_wallet: participant1,
@@ -281,5 +281,5 @@ async function getOrCreateConversation(
     return null;
   }
 
-  return newConv.id;
+  return (newConv as { id: string }).id;
 }

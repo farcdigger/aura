@@ -92,7 +92,7 @@ export async function GET(
 
     // Mark received messages as read
     if (messages && messages.length > 0) {
-      await supabaseClient
+      await (supabaseClient as any)
         .from("messages")
         .update({ read: true })
         .eq("conversation_id", conversationId)
