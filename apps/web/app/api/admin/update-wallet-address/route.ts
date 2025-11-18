@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, tokens, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
+// Next.js 14 için dynamic route olarak işaretle
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
