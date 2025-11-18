@@ -17,10 +17,11 @@ const NETWORK = "base";
 
 // Payment amounts in USDC (6 decimals)
 const PAYMENT_OPTIONS = {
-  0.5: "500000",   // 0.5 USDC
-  1: "1000000",    // 1 USDC
-  1.5: "1500000",  // 1.5 USDC
-  2: "2000000",    // 2 USDC
+  0.01: "10000",    // 0.01 USDC
+  0.5: "500000",    // 0.5 USDC
+  1: "1000000",     // 1 USDC
+  1.5: "1500000",   // 1.5 USDC
+  2: "2000000",     // 2 USDC
 };
 
 // x402 payment requirements

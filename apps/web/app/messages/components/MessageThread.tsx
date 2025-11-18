@@ -71,8 +71,14 @@ export default function MessageThread({
     }
   }, [conversationId, currentWallet]);
 
+  const parseTimestamp = (value: string) => {
+    if (!value) return null;
+    return new Date(value.endsWith("Z") ? value : `${value}Z`);
+  };
+
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseTimestamp(dateString);
+    if (!date || isNaN(date.getTime())) return "";
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 

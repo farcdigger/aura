@@ -110,7 +110,7 @@ export default function UserSearch({ onSelectUser, currentWallet }: UserSearchPr
             )}
             <div className="flex-1">
               <p className="font-semibold text-black dark:text-white">
-                {searchResult.username || searchResult.wallet.substring(0, 6) + "..." + searchResult.wallet.substring(38)}
+                {searchResult.wallet.substring(0, 6)}...{searchResult.wallet.substring(38)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                 {searchResult.wallet}
