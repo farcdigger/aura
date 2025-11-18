@@ -17,12 +17,14 @@ interface MessageThreadProps {
   conversationId: string | null;
   currentWallet: string;
   otherParticipant: string;
+  refreshSignal: number;
 }
 
 export default function MessageThread({
   conversationId,
   currentWallet,
   otherParticipant,
+  refreshSignal,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,10 +39,12 @@ export default function MessageThread({
     scrollToBottom();
   }, [messages]);
 
-  const loadMessages = async () => {
+  const loadMessages = async (showLoading = true) => {
     if (!conversationId || !currentWallet) return;
 
-    setLoading(true);
+    if (showLoading || messages.length === 0) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -58,7 +62,9 @@ export default function MessageThread({
     } catch (err: any) {
       setError(err.message || "Failed to load messages");
     } finally {
-      setLoading(false);
+      if (showLoading || messages.length === 0) {
+        setLoading(false);
+      }
     }
   };
 
@@ -67,7 +73,7 @@ export default function MessageThread({
     const client = getSupabaseBrowserClient();
 
     if (conversationId && client) {
-      loadMessages();
+      loadMessages(true);
 
       channel = client
         .channel(`message-thread-${conversationId}`)
@@ -97,6 +103,12 @@ export default function MessageThread({
       setMessages([]);
     }
   }, [conversationId, currentWallet]);
+
+  useEffect(() => {
+    if (conversationId) {
+      loadMessages(false);
+    }
+  }, [refreshSignal]);
 
   const parseTimestamp = (value: string) => {
     if (!value) return null;

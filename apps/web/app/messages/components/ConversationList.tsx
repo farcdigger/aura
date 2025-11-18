@@ -29,7 +29,7 @@ export default function ConversationList({
   const loadConversations = async (showLoading = false) => {
     if (!currentWallet) return;
 
-    if (showLoading) {
+    if (showLoading || conversations.length === 0) {
       setLoading(true);
     }
     setError(null);
@@ -49,7 +49,7 @@ export default function ConversationList({
     } catch (err: any) {
       setError(err.message || "Failed to load conversations");
     } finally {
-      if (showLoading) {
+      if (showLoading || conversations.length === 0) {
         setLoading(false);
       }
     }
@@ -60,8 +60,11 @@ export default function ConversationList({
 
     const client = getSupabaseBrowserClient();
     if (!client || !currentWallet) {
-      return;
+      const intervalFallback = setInterval(() => loadConversations(false), 10000);
+      return () => clearInterval(intervalFallback);
     }
+
+    const intervalFallback = setInterval(() => loadConversations(false), 10000);
 
     const channel = client
       .channel(`conversations-realtime-${currentWallet}`)
@@ -93,6 +96,7 @@ export default function ConversationList({
       });
 
     return () => {
+      clearInterval(intervalFallback);
       channel.unsubscribe();
     };
   }, [currentWallet]);

@@ -18,6 +18,7 @@ export default function MessagesPage() {
   const [accessReason, setAccessReason] = useState<string>("");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [otherParticipant, setOtherParticipant] = useState<string>("");
+  const [messageRefreshSignal, setMessageRefreshSignal] = useState(0);
   const [showUserSearch, setShowUserSearch] = useState(false);
 
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function MessagesPage() {
               conversationId={selectedConversationId}
               currentWallet={address}
               otherParticipant={otherParticipant}
+              refreshSignal={messageRefreshSignal}
             />
           )}
 
@@ -239,6 +241,7 @@ export default function MessagesPage() {
               senderWallet={address}
               receiverWallet={otherParticipant}
               onMessageSent={(newConversationId) => {
+                setMessageRefreshSignal((prev) => prev + 1);
                 if (newConversationId && newConversationId !== selectedConversationId) {
                   setSelectedConversationId(newConversationId);
                 }
