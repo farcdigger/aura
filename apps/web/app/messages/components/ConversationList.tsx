@@ -71,7 +71,7 @@ export default function ConversationList({
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `receiver_wallet=eq.${currentWallet}`,
+        filter: `receiver_wallet=eq.${currentWallet}`,
         },
         () => loadConversations()
       )
@@ -81,7 +81,7 @@ export default function ConversationList({
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `sender_wallet=eq.${currentWallet}`,
+        filter: `sender_wallet=eq.${currentWallet}`,
         },
         () => loadConversations()
       )
