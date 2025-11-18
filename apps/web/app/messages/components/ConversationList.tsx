@@ -26,6 +26,14 @@ export default function ConversationList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const normalizeTimestamp = (value: string | null) => {
+    if (!value) {
+      return new Date().toISOString();
+    }
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  };
+
   const loadConversations = async (showLoading = false) => {
     if (!currentWallet) return;
 
@@ -71,6 +79,7 @@ export default function ConversationList({
         message.sender_wallet.toLowerCase() === currentWallet.toLowerCase()
           ? message.receiver_wallet
           : message.sender_wallet;
+      const timestamp = normalizeTimestamp(message.created_at ?? null);
 
       setConversations((prev) => {
         const existingIndex = prev.findIndex((c) => c.id === conversationId);
@@ -84,8 +93,8 @@ export default function ConversationList({
         updated[existingIndex] = {
           ...updated[existingIndex],
           otherParticipant,
-          lastMessageAt: message.created_at,
-          createdAt: updated[existingIndex].createdAt ?? message.created_at,
+          lastMessageAt: timestamp,
+          createdAt: updated[existingIndex].createdAt ?? timestamp,
           unreadCount:
             message.receiver_wallet.toLowerCase() === currentWallet.toLowerCase()
               ? updated[existingIndex].unreadCount + 1
