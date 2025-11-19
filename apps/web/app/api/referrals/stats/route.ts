@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
-    const normalizedWallet = wallet.toLowerCase();
+    const normalizedWallet = wallet.toLowerCase().trim();
 
     console.log("🔍 Fetching referral stats for wallet:", normalizedWallet);
 

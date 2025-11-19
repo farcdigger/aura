@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
-    const normalizedWallet = wallet.toLowerCase();
+    const normalizedWallet = wallet.toLowerCase().trim();
 
     console.log("🔍 Looking for pending referral:", { x_user_id, wallet: normalizedWallet });
 
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid referral code" }, { status: 404 });
     }
 
-    // IMPORTANT: Normalize referrer wallet to lowercase for consistency
-    const referrerWallet = referrerData.wallet_address.toLowerCase();
+    // IMPORTANT: Normalize referrer wallet to lowercase and trim whitespace
+    const referrerWallet = referrerData.wallet_address.toLowerCase().trim();
 
     // 3. Prevent self-referral
     if (referrerWallet === normalizedWallet) {
