@@ -26,6 +26,13 @@ export default function LeaderboardPage() {
   const [userRank, setUserRank] = useState<UserRank | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedWallet, setCopiedWallet] = useState<string | null>(null);
+
+  const handleCopy = (wallet: string) => {
+    navigator.clipboard.writeText(wallet);
+    setCopiedWallet(wallet);
+    setTimeout(() => setCopiedWallet(null), 2000);
+  };
 
   const loadLeaderboard = async () => {
     try {
@@ -187,16 +194,33 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-black dark:text-white">
-                            {isCurrentUser ? (
-                              <span className="font-bold">
-                                {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)} (You)
-                              </span>
-                            ) : (
-                              <span>
-                                {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)}
-                              </span>
-                            )}
+                          <div className="flex items-center gap-2 group">
+                            <div className="text-sm font-medium text-black dark:text-white">
+                              {isCurrentUser ? (
+                                <span className="font-bold">
+                                  {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)} (You)
+                                </span>
+                              ) : (
+                                <span>
+                                  {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleCopy(entry.wallet_address)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
+                              title="Copy full address"
+                            >
+                              {copiedWallet === entry.wallet_address ? (
+                                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </button>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
