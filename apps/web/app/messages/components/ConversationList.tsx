@@ -30,7 +30,9 @@ export default function ConversationList({
     if (!value) {
       return new Date().toISOString();
     }
-    const date = new Date(value);
+    // Supabase'den gelen timestamp'in UTC olduğunu garanti et (Z harfi eksikse ekle)
+    const timeString = value.endsWith("Z") ? value : `${value}Z`;
+    const date = new Date(timeString);
     return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
   };
 
@@ -79,7 +81,10 @@ export default function ConversationList({
         message.sender_wallet.toLowerCase() === currentWallet.toLowerCase()
           ? message.receiver_wallet
           : message.sender_wallet;
-      const timestamp = normalizeTimestamp(message.created_at ?? null);
+      
+      // KRİTİK DÜZELTME: Sunucu saatini beklemek yerine, anlık "Just now" 
+      // yazması için doğrudan istemci saatini (new Date) kullanıyoruz.
+      const timestamp = new Date().toISOString();
 
       setConversations((prev) => {
         const existingIndex = prev.findIndex((c) => c.id === conversationId);
