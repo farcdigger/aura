@@ -60,6 +60,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1. NFT Ownership Check (Access Control)
+    // Users MUST have an NFT to use messaging
+    const { data: tokenData } = await client
+      .from("tokens")
+      .select("id")
+      .eq("wallet_address", normalizedSender)
+      .limit(1)
+      .maybeSingle();
+
+    if (!tokenData && process.env.NODE_ENV !== "development") { // Dev modunda bypass edilebilir
+      // Check if it's developer wallet (fallback)
+      const DEVELOPER_WALLET = "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d";
+      if (normalizedSender.toLowerCase() !== DEVELOPER_WALLET.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Access denied. You must own an xFrora NFT to use messaging." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Get or create conversation
     const conversationId = await getOrCreateConversation(
       normalizedSender,
@@ -111,6 +131,56 @@ export async function POST(request: NextRequest) {
       .from("conversations")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", conversationId);
+
+    // 2. Points System Logic (1 point for every 5 messages)
+    try {
+      // Get updated total message count from rate limits table
+      const { data: rateLimitData } = await client
+        .from("message_rate_limits")
+        .select("total_messages_sent")
+        .eq("wallet_address", normalizedSender)
+        .single();
+      
+      const totalSent = rateLimitData?.total_messages_sent || 0;
+      
+      // Check if multiple of 5
+      if (totalSent > 0 && totalSent % 5 === 0) {
+        console.log(`🎉 Awarding point to ${normalizedSender} for ${totalSent}th message`);
+        
+        // Get current points
+        const { data: userPoints } = await client
+          .from("chat_tokens")
+          .select("points, wallet_address")
+          .eq("wallet_address", normalizedSender)
+          .single();
+
+        if (userPoints) {
+          // Update existing record
+          await client
+            .from("chat_tokens")
+            .update({ 
+              points: (userPoints.points || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq("wallet_address", normalizedSender);
+        } else {
+          // Create new record
+          await client
+            .from("chat_tokens")
+            .insert({
+              wallet_address: normalizedSender,
+              points: 1,
+              balance: 0, // No free tokens for chat, only points
+              total_tokens_spent: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+        }
+      }
+    } catch (pointError) {
+      // Don't fail the request if point update fails, just log it
+      console.error("Error updating points:", pointError);
+    }
 
     return NextResponse.json({
       success: true,

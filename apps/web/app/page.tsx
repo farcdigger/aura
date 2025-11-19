@@ -74,6 +74,19 @@ function HomePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, isConnected]);
 
+  // Capture referral code from URL (?ref=...)
+  useEffect(() => {
+    const refCode = searchParams?.get("ref");
+    if (refCode && typeof window !== "undefined") {
+      try {
+        localStorage.setItem("referralCode", refCode);
+        console.log("💾 Referral code stored:", refCode);
+      } catch (e) {
+        console.error("Failed to store referral code:", e);
+      }
+    }
+  }, [searchParams]);
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1081,6 +1094,30 @@ function HomePageContent() {
         
         setTransactionHash(receipt.hash);
         console.log("✅ NFT minted successfully!");
+
+        // 🔗 Referral tracking: if user came via a ?ref=CODE link, record referral after successful mint
+        try {
+          if (typeof window !== "undefined") {
+            const storedCode = localStorage.getItem("referralCode");
+            if (storedCode) {
+              console.log("🔗 Tracking referral for wallet:", wallet, "code:", storedCode);
+              await fetch("/api/referrals/track", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  refereeWallet: wallet.toLowerCase(),
+                  referralCode: storedCode,
+                }),
+              }).catch((e) => {
+                console.error("Referral track request failed:", e);
+              });
+            }
+          }
+        } catch (refError) {
+          console.error("Referral tracking error:", refError);
+        }
         
         // 💾 Update localStorage to persist mint success
         if (xUser) {
@@ -1215,6 +1252,17 @@ function HomePageContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
                       <span>Leaderboard</span>
+                    </Link>
+
+                    <Link
+                      href="/referrals"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7H7m6 4H7m6 4H7m6-8h4m-4 4h4m-4 4h4M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                      </svg>
+                      <span>Referrals</span>
                     </Link>
                     
                     {isConnected && address && (
