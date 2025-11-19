@@ -289,6 +289,7 @@ type Database = {
           wallet_address: string;
           messages_sent_minute: number;
           messages_sent_hour: number;
+          total_messages_sent: number;
           last_minute_reset: string | null;
           last_hour_reset: string | null;
           created_at: string | null;
@@ -298,6 +299,7 @@ type Database = {
           wallet_address: string;
           messages_sent_minute?: number;
           messages_sent_hour?: number;
+          total_messages_sent?: number;
           last_minute_reset?: string | null;
           last_hour_reset?: string | null;
           created_at?: string | null;
@@ -307,6 +309,7 @@ type Database = {
           wallet_address?: string;
           messages_sent_minute?: number;
           messages_sent_hour?: number;
+          total_messages_sent?: number;
           last_minute_reset?: string | null;
           last_hour_reset?: string | null;
           created_at?: string | null;
