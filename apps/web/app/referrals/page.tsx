@@ -96,7 +96,7 @@ export default function ReferralsPage() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
         <h1 className="text-3xl font-bold text-black dark:text-white mb-6">
-          Invite Friends & Earn USDC
+          Invite Friends & Earn Credits
         </h1>
         
         <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 p-6 rounded-lg mb-8">
@@ -106,7 +106,7 @@ export default function ReferralsPage() {
           <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
             <li className="flex gap-2">
               <span className="font-bold text-black dark:text-white">1.</span>
-              Share your unique referral link.
+              Share your unique referral link (NFT owners only).
             </li>
             <li className="flex gap-2">
               <span className="font-bold text-black dark:text-white">2.</span>
@@ -114,11 +114,11 @@ export default function ReferralsPage() {
             </li>
             <li className="flex gap-2">
               <span className="font-bold text-black dark:text-white">3.</span>
-              You earn <span className="font-bold text-green-600">0.50 USDC</span> for each mint!
+              You earn <span className="font-bold text-green-600 dark:text-green-400">50,000 Credits</span> instantly for each mint!
             </li>
             <li className="flex gap-2">
                <span className="font-bold text-black dark:text-white">4.</span>
-               Rewards are paid manually after the sale ends.
+               Credits are automatically added to your account after mint confirmation.
             </li>
           </ul>
         </div>
