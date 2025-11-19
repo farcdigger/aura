@@ -1494,7 +1494,7 @@ function HomePageContent() {
                       }
                       alt="Generated NFT"
                       className={`w-full rounded-lg shadow-2xl transition-all duration-700 ${
-                        !alreadyMinted ? "blur-md brightness-90 scale-110" : "scale-100"
+                        !alreadyMinted ? "blur-2xl brightness-75 scale-110" : "scale-100"
                       }`}
                       onError={(e) => {
                         console.error("Image load error:", e);
