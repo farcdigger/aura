@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseClient } from "@/lib/db-supabase";
 import { MESSAGING_RATE_LIMITS } from "@/lib/feature-flags";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ethers } from "ethers";
+import { env } from "@/env.mjs";
 
 export const dynamic = 'force-dynamic';
+
+const CONTRACT_ADDRESS = env.CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396";
+const RPC_URL = env.RPC_URL || "https://mainnet.base.org";
+
+const ERC721_ABI = [
+  "function balanceOf(address owner) external view returns (uint256)",
+];
 
 /**
  * POST /api/messages/send
@@ -60,23 +69,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. NFT Ownership Check (Access Control)
+    // 1. NFT Ownership Check via Blockchain (Access Control)
     // Users MUST have an NFT to use messaging
-    const { data: tokenData } = await client
-      .from("tokens")
-      .select("id")
-      .eq("wallet_address", normalizedSender)
-      .limit(1)
-      .maybeSingle();
-
-    if (!tokenData && process.env.NODE_ENV !== "development") { // Dev modunda bypass edilebilir
-      // Check if it's developer wallet (fallback)
+    if (process.env.NODE_ENV !== "development") {
       const DEVELOPER_WALLET = "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d";
+      
       if (normalizedSender.toLowerCase() !== DEVELOPER_WALLET.toLowerCase()) {
-        return NextResponse.json(
-          { error: "Access denied. You must own an xFrora NFT to use messaging." },
-          { status: 403 }
-        );
+        try {
+          const provider = new ethers.JsonRpcProvider(RPC_URL);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC721_ABI, provider);
+          
+          // Use checksummed address for contract call
+          const checksummedAddress = ethers.getAddress(senderWallet);
+          const balanceResult = await contract.balanceOf(checksummedAddress);
+          const hasNFT = balanceResult > 0n;
+          
+          if (!hasNFT) {
+            console.log("❌ NFT ownership check failed for messaging:", {
+              sender: checksummedAddress,
+              balance: balanceResult.toString(),
+            });
+            return NextResponse.json(
+              { error: "Access denied. You must own an xFrora NFT to use messaging." },
+              { status: 403 }
+            );
+          }
+          
+          console.log("✅ NFT ownership verified for messaging:", {
+            sender: checksummedAddress,
+            balance: balanceResult.toString(),
+          });
+        } catch (error: any) {
+          console.error("❌ Error checking NFT ownership for messaging:", error);
+          // In case of RPC error, deny access to be safe
+          return NextResponse.json(
+            { error: "Failed to verify NFT ownership. Please try again." },
+            { status: 500 }
+          );
+        }
       }
     }
 

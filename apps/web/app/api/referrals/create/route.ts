@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseClient } from "@/lib/db-supabase";
+import { ethers } from "ethers";
+import { env } from "@/env.mjs";
 
 export const dynamic = 'force-dynamic';
+
+const CONTRACT_ADDRESS = env.CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396";
+const RPC_URL = env.RPC_URL || "https://mainnet.base.org";
+
+const ERC721_ABI = [
+  "function balanceOf(address owner) external view returns (uint256)",
+];
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,21 +28,38 @@ export async function POST(request: NextRequest) {
 
     const normalizedWallet = walletAddress.toLowerCase();
 
-    // ✅ Check if user owns an NFT (required to create referral link)
-    const { data: nftData } = await (client as any)
-      .from("tokens")
-      .select("id")
-      .eq("wallet_address", normalizedWallet)
-      .limit(1)
-      .maybeSingle();
-
-    if (!nftData && process.env.NODE_ENV !== "development") {
+    // ✅ Check if user owns an NFT via blockchain (required to create referral link)
+    if (process.env.NODE_ENV !== "development") {
       const DEVELOPER_WALLET = "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d";
+      
       if (normalizedWallet.toLowerCase() !== DEVELOPER_WALLET.toLowerCase()) {
-        return NextResponse.json(
-          { error: "You must own an xFrora NFT to create a referral link." },
-          { status: 403 }
-        );
+        try {
+          const provider = new ethers.JsonRpcProvider(RPC_URL);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC721_ABI, provider);
+          
+          const normalizedAddress = ethers.getAddress(walletAddress);
+          const balanceResult = await contract.balanceOf(normalizedAddress);
+          const hasNFT = balanceResult > 0n;
+          
+          console.log("🔍 NFT ownership check for referral link:", {
+            wallet: normalizedAddress,
+            balance: balanceResult.toString(),
+            hasNFT,
+          });
+          
+          if (!hasNFT) {
+            return NextResponse.json(
+              { error: "You must own an xFrora NFT to create a referral link." },
+              { status: 403 }
+            );
+          }
+        } catch (error: any) {
+          console.error("❌ Error checking NFT ownership:", error);
+          return NextResponse.json(
+            { error: "Failed to verify NFT ownership. Please try again." },
+            { status: 500 }
+          );
+        }
       }
     }
 

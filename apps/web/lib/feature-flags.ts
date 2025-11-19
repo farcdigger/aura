@@ -11,11 +11,15 @@ export function isMessagingEnabled(walletAddress?: string | null): boolean {
     return true;
   }
   
-  // GEÇICI: Hard-coded developer wallet (environment variables çalışmıyor)
-  const DEVELOPER_WALLET = "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d";
+  // Whitelist: Test için izin verilen cüzdanlar
+  const WHITELISTED_WALLETS = [
+    "0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d", // Developer wallet
+    "0xb6347f43163442403c31c990e11c3c87a18713b1", // Test wallet
+  ];
   
-  // Geliştirici cüzdan kontrolü
-  if (walletAddress?.toLowerCase() === DEVELOPER_WALLET.toLowerCase()) {
+  // Whitelist kontrolü
+  const normalizedWallet = walletAddress?.toLowerCase();
+  if (normalizedWallet && WHITELISTED_WALLETS.some(w => w.toLowerCase() === normalizedWallet)) {
     return true;
   }
   
