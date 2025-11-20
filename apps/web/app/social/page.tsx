@@ -495,39 +495,42 @@ export default function SocialPage() {
 
       {/* Navbar */}
       <nav className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="text-xl font-bold text-black dark:text-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="text-lg sm:text-xl font-bold text-black dark:text-white whitespace-nowrap">
                 XFRORA
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Social</span>
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Social</span>
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <ThemeToggle />
-              <ConnectButton />
+              <div className="scale-90 sm:scale-100 origin-right">
+                <ConnectButton />
+              </div>
             </div>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-black dark:text-white italic">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-2">
+            <h1 className="text-2xl sm:text-4xl font-bold text-black dark:text-white italic">
               XFroraSocial
             </h1>
             {/* Direct Message Button - Herkese görünür, sadece NFT sahipleri kullanabilir */}
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
-              className="relative flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors"
+              className="relative flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              <span>Direct Messages</span>
+              <span className="hidden sm:inline">Direct Messages</span>
+              <span className="sm:hidden">Messages</span>
               {process.env.NODE_ENV === "development" && (
                 <span className="text-xs bg-yellow-400 text-black px-1 rounded">DEV</span>
               )}
@@ -538,20 +541,20 @@ export default function SocialPage() {
               )}
             </button>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Connect with the xFrora community
           </p>
         </div>
 
         {/* Stats Card */}
         {isConnected && address && (
-          <div className="mb-6 p-6 border border-gray-200 dark:border-gray-800">
-            <div className="grid grid-cols-3 gap-4">
+          <div className="mb-6 p-4 sm:p-6 border border-gray-200 dark:border-gray-800">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div className="text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">
                   Credits
                 </p>
-                <p className="text-2xl font-bold text-black dark:text-white">
+                <p className="text-xl sm:text-2xl font-bold text-black dark:text-white">
                   {tokenBalance !== null ? tokenBalance.toLocaleString() : "..."}
                 </p>
               </div>
@@ -559,14 +562,14 @@ export default function SocialPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">
                   Points
                 </p>
-                <p className="text-2xl font-bold text-black dark:text-white">
+                <p className="text-xl sm:text-2xl font-bold text-black dark:text-white">
                   {points !== null ? points.toLocaleString() : "..."}
                 </p>
               </div>
-              <div className="text-center">
+              <div className="text-center flex items-center justify-center">
                 <button
                   onClick={() => setShowPaymentModal(true)}
-                  className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors"
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors text-xs sm:text-sm whitespace-nowrap"
                 >
                   Load Credits
                 </button>
@@ -577,23 +580,23 @@ export default function SocialPage() {
 
         {/* Create Post Form */}
         {isConnected && address && tokenBalance !== null && tokenBalance > 0 && (
-          <div className="mb-6 p-6 border border-gray-200 dark:border-gray-800">
+          <div className="mb-6 p-4 sm:p-6 border border-gray-200 dark:border-gray-800">
             <textarea
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder="What's happening?"
               maxLength={280}
-              className="w-full p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black text-black dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white mb-4"
+              className="w-full p-3 sm:p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black text-black dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white mb-4 text-sm sm:text-base"
               rows={4}
             />
-            <div className="flex items-center justify-between">
-              <span className={`text-sm ${newPostContent.length > 260 ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-xs sm:text-sm ${newPostContent.length > 260 ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}>
                 {newPostContent.length}/280
               </span>
               <button
                 onClick={handleCreatePost}
                 disabled={posting || !newPostContent.trim() || newPostContent.length > 280}
-                className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors"
+                className="px-4 sm:px-6 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors text-xs sm:text-sm whitespace-nowrap"
               >
                 {posting ? "Posting..." : "Post (20K credits)"}
               </button>
@@ -642,13 +645,13 @@ export default function SocialPage() {
         {/* Load Tokens Message */}
         {isConnected && address && (tokenBalance === null || tokenBalance === 0) && (
           <div className="mb-6 p-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
-            <div className="flex items-center justify-between">
-              <p className="text-black dark:text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm sm:text-base text-black dark:text-white">
                 <span className="font-semibold">Load credits to get started.</span> Credit purchase requires NFT ownership verification.
               </p>
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap w-full sm:w-auto"
               >
                 Load Credits
               </button>
@@ -677,15 +680,15 @@ export default function SocialPage() {
             posts.map((post) => (
               <div
                 key={post.id}
-                className="p-6 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                className="p-4 sm:p-6 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="flex-shrink-0">
                     {nftImages[post.wallet_address] ? (
                       <img
                         src={nftImages[post.wallet_address]}
                         alt={`${post.wallet_address.substring(0, 6)}'s NFT`}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-black dark:border-white"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-black dark:border-white"
                         onError={(e) => {
                           // Fallback to default avatar if image fails to load
                           e.currentTarget.style.display = 'none';
@@ -696,32 +699,32 @@ export default function SocialPage() {
                       />
                     ) : null}
                     <div 
-                      className="w-12 h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs border border-black dark:border-white"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs border border-black dark:border-white"
                       style={{ display: nftImages[post.wallet_address] ? 'none' : 'flex' }}
                     >
                       {post.wallet_address.substring(0, 6)}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-bold text-black dark:text-white">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-1 mb-2">
+                      <span className="font-bold text-sm sm:text-base text-black dark:text-white">
                         {post.wallet_address.substring(0, 6)}...{post.wallet_address.substring(38)}
                       </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         {formatTimeAgo(post.created_at)}
                       </span>
                     </div>
-                    <p className="text-black dark:text-white mb-4 whitespace-pre-wrap break-words leading-relaxed">
+                    <p className="text-sm sm:text-base text-black dark:text-white mb-3 sm:mb-4 whitespace-pre-wrap break-words leading-relaxed">
                       {post.content}
                     </p>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6">
                       <button
                         onClick={() => handleFav(post.id)}
                         disabled={!isConnected || (tokenBalance !== null && tokenBalance < 100) || favLoading[post.id]}
-                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-1.5 sm:gap-2 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <svg
-                          className={`w-5 h-5 ${post.fav_count > 0 ? "text-red-500 fill-current" : ""}`}
+                          className={`w-4 h-4 sm:w-5 sm:h-5 ${post.fav_count > 0 ? "text-red-500 fill-current" : ""}`}
                           fill={post.fav_count > 0 ? "currentColor" : "none"}
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -733,7 +736,7 @@ export default function SocialPage() {
                             d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                           />
                         </svg>
-                        <span className="font-semibold">{post.fav_count}</span>
+                        <span className="font-semibold text-sm sm:text-base">{post.fav_count}</span>
                         {favLoading[post.id] && (
                           <span className="text-xs">...</span>
                         )}
