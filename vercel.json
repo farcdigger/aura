@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/yama-agent/run",
-      "schedule": "30 7,19 * * *"
+      "schedule": "0 8,20 * * *"
     }
   ]
 }
