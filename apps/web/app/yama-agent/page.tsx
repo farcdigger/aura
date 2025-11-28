@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { supabaseClient } from "@/lib/db-supabase";
 
+// Type for graph_reports table row
+type GraphReport = {
+  report_date: string;
+  generated_at: string;
+  model_used: string;
+  tokens_used: number;
+  report_content: any;
+};
+
 async function getLatestReport() {
   if (!supabaseClient) {
     return null;
@@ -13,7 +22,7 @@ async function getLatestReport() {
     )
     .order("generated_at", { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle() as { data: GraphReport | null; error: any };
 
   if (error || !data) {
     if (error) {
