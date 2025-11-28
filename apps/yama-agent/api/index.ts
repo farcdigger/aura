@@ -2,35 +2,65 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Dynamically import the agent app
 let app: any = null;
+let appLoadError: string | null = null;
 
 async function getApp() {
   if (app) return app;
   
   try {
-    // Try different import paths for Vercel environment
-    const paths = [
-      '../src/lib/agent.js',
-      '../src/lib/agent',
-      './src/lib/agent.js',
-      './src/lib/agent',
+    // In Vercel, we need to use absolute path from project root
+    // Vercel sets process.cwd() to the project root
+    const projectRoot = process.cwd();
+    console.log('[Vercel] Project root:', projectRoot);
+    console.log('[Vercel] __dirname:', __dirname);
+    
+    // Try different import strategies
+    const importStrategies = [
+      // Strategy 1: Direct relative import from api folder
+      async () => {
+        const path = '../src/lib/agent.js';
+        console.log('[Vercel] Trying relative path:', path);
+        return await import(path);
+      },
+      // Strategy 2: Absolute path using process.cwd()
+      async () => {
+        const path = `${projectRoot}/src/lib/agent.js`;
+        console.log('[Vercel] Trying absolute path:', path);
+        return await import(path);
+      },
+      // Strategy 3: Without .js extension
+      async () => {
+        const path = '../src/lib/agent';
+        console.log('[Vercel] Trying without extension:', path);
+        return await import(path);
+      },
+      // Strategy 4: From apps/yama-agent
+      async () => {
+        const path = `${projectRoot}/apps/yama-agent/src/lib/agent.js`;
+        console.log('[Vercel] Trying monorepo path:', path);
+        return await import(path);
+      },
     ];
     
-    for (const path of paths) {
+    for (let i = 0; i < importStrategies.length; i++) {
       try {
-        const agentModule = await import(path);
+        console.log(`[Vercel] Attempting strategy ${i + 1}...`);
+        const agentModule = await importStrategies[i]();
         app = agentModule.app;
         if (app) {
-          console.log(`[Vercel] Successfully loaded agent from: ${path}`);
+          console.log(`[Vercel] ✅ Successfully loaded agent using strategy ${i + 1}`);
           return app;
         }
-      } catch (err) {
-        // Try next path
+      } catch (err: any) {
+        console.log(`[Vercel] Strategy ${i + 1} failed:`, err.message);
         continue;
       }
     }
     
-    throw new Error('Could not load agent from any path');
-  } catch (error) {
+    appLoadError = 'Could not load agent from any path';
+    throw new Error(appLoadError);
+  } catch (error: any) {
+    appLoadError = error.message;
     console.error('[Vercel] Failed to load agent:', error);
     throw error;
   }
@@ -49,7 +79,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ 
       error: 'Agent not initialized',
       message: 'Failed to load agent module',
-      details: error.message
+      details: error.message,
+      cwd: process.cwd(),
+      dirname: __dirname,
+      loadError: appLoadError
     });
   }
 
@@ -85,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Set status and headers
     res.status(response.status);
-    response.headers.forEach((value, key) => {
+    response.headers.forEach((value: string, key: string) => {
       res.setHeader(key, value);
     });
 
