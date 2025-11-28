@@ -5,6 +5,29 @@ import { env } from "../env.mjs";
 type Database = {
   public: {
     Tables: {
+      graph_reports: {
+        Row: {
+          report_date: string | null;
+          report_content: any;
+          generated_at: string | null;
+          model_used: string | null;
+          tokens_used: number | null;
+        };
+        Insert: {
+          report_date?: string | null;
+          report_content?: any;
+          generated_at?: string | null;
+          model_used?: string | null;
+          tokens_used?: number | null;
+        };
+        Update: {
+          report_date?: string | null;
+          report_content?: any;
+          generated_at?: string | null;
+          model_used?: string | null;
+          tokens_used?: number | null;
+        };
+      };
       tokens: {
         Row: {
           id: number;
