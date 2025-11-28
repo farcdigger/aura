@@ -57,7 +57,7 @@ export default async function YamaAgentPage() {
             Yama Agent Latest Report
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Raporlar her 12 saatte (TR 06:00 & 18:00) otomatik güncellenir.
+            Raporlar her 12 saatte (TR 10:00 & 22:00) otomatik güncellenir.
           </p>
         </div>
         <Link

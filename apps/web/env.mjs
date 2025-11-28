@@ -42,6 +42,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_ENABLE_MESSAGING_FEATURE: z.string().optional().default("false"), // Feature flag
   YAMA_AGENT_TRIGGER_URL: z.string().url().optional(),
   YAMA_AGENT_TRIGGER_TOKEN: z.string().optional(),
+  CRON_SECRET: z.string().optional(), // Secret for manual cron trigger protection
 }).transform((data) => ({
   ...data,
   // Boş string'leri undefined yap
@@ -57,6 +58,7 @@ const envSchema = z.object({
   ADMIN_API_KEY: data.ADMIN_API_KEY === "" ? undefined : data.ADMIN_API_KEY,
   YAMA_AGENT_TRIGGER_URL: data.YAMA_AGENT_TRIGGER_URL === "" ? undefined : data.YAMA_AGENT_TRIGGER_URL,
   YAMA_AGENT_TRIGGER_TOKEN: data.YAMA_AGENT_TRIGGER_TOKEN === "" ? undefined : data.YAMA_AGENT_TRIGGER_TOKEN,
+  CRON_SECRET: data.CRON_SECRET === "" ? undefined : data.CRON_SECRET,
   // Ensure RPC_URL and CONTRACT_ADDRESS have defaults for Base Mainnet
   RPC_URL: data.RPC_URL || "https://mainnet.base.org",
   CONTRACT_ADDRESS: data.CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396",
