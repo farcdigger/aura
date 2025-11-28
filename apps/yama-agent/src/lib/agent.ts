@@ -1147,7 +1147,10 @@ Goal: act like an on-chain professor distilling complex raw data into clear, dat
       throw new Error(`AI API failed: ${response.status} ${errorBody}`);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { total_tokens?: number };
+    };
     const report = result.choices?.[0]?.message?.content;
     const tokensUsed = result.usage?.total_tokens;
 

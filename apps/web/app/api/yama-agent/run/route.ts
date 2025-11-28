@@ -64,35 +64,27 @@ async function triggerAgent(limit?: number) {
 }
 
 export async function GET(request: Request) {
-  // Security: Only allow Vercel Cron or requests with valid authorization
+  // Security: Vercel cron jobs send Authorization: Bearer ${CRON_SECRET}
+  // According to Vercel docs: https://vercel.com/docs/cron-jobs
   const authHeader = request.headers.get("authorization");
-  const vercelCronHeader = request.headers.get("x-vercel-cron");
   
-  // Vercel cron jobs send: x-vercel-cron header
-  // OR Authorization: Bearer ${CRON_SECRET} (if CRON_SECRET is set)
-  const isVercelCron = vercelCronHeader === "1";
-  const isAuthorized = env.CRON_SECRET && authHeader === `Bearer ${env.CRON_SECRET}`;
-  const isAuthorizedRequest = isVercelCron || isAuthorized;
+  // Check if request is from Vercel cron job
+  const isVercelCron = env.CRON_SECRET && authHeader === `Bearer ${env.CRON_SECRET}`;
   
-  // Log for debugging (will help us see what Vercel cron sends)
-  if (!isAuthorizedRequest) {
-    console.log("[api/yama-agent/run] Unauthorized access attempt", {
+  if (!isVercelCron) {
+    console.log("[api/yama-agent/run] Unauthorized access attempt blocked", {
       hasAuthHeader: !!authHeader,
-      hasVercelCronHeader: !!vercelCronHeader,
-      vercelCronValue: vercelCronHeader,
       hasCronSecret: !!env.CRON_SECRET,
+      authHeaderValue: authHeader?.substring(0, 30),
       userAgent: request.headers.get("user-agent"),
     });
-  }
-  
-  if (!isAuthorizedRequest) {
     return NextResponse.json(
       { error: "Unauthorized. This endpoint is only accessible via scheduled cron jobs." },
       { status: 401 },
     );
   }
   
-  console.log("[api/yama-agent/run] ✅ Authorized trigger:", isVercelCron ? "Vercel Cron" : "Manual with secret");
+  console.log("[api/yama-agent/run] ✅ Authorized trigger: Vercel Cron");
   
   const url = new URL(request.url);
   const limitParam = url.searchParams.get("limit");
@@ -101,10 +93,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Security: Only allow Vercel Cron (with CRON_SECRET)
+  // Security: Vercel cron jobs send Authorization: Bearer ${CRON_SECRET}
   const authHeader = request.headers.get("authorization");
   
-  // Vercel cron jobs send: Authorization: Bearer ${CRON_SECRET}
   const isVercelCron = env.CRON_SECRET && authHeader === `Bearer ${env.CRON_SECRET}`;
   
   if (!isVercelCron) {
@@ -115,7 +106,7 @@ export async function POST(request: Request) {
     );
   }
   
-  console.log("[api/yama-agent/run] Authorized POST trigger: Vercel Cron");
+  console.log("[api/yama-agent/run] ✅ Authorized POST trigger: Vercel Cron");
   
   const { limit } = await request.json().catch(() => ({ limit: undefined }));
   return triggerAgent(typeof limit === "number" ? limit : undefined);
