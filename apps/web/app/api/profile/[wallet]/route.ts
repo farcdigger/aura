@@ -61,7 +61,14 @@ export async function GET(
         .eq("x_user_id", userData.x_user_id)
         .limit(1)
         .maybeSingle();
-      nftData = tokenByXUserId;
+      // Map x_user_id result to match expected structure
+      if (tokenByXUserId) {
+        nftData = {
+          token_id: tokenByXUserId.token_id,
+          image_uri: tokenByXUserId.image_uri,
+          wallet_address: wallet, // Use the wallet from the request
+        };
+      }
     }
 
     // Get post count
