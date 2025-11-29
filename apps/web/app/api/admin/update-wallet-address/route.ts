@@ -272,10 +272,8 @@ export async function GET(request: NextRequest) {
             `).join('')}
 
             <p style="margin-top: 30px;">
-              <strong>✅ Now you can tweet and your NFT image will appear!</strong>
+              <strong>✅ Wallet update completed successfully.</strong>
             </p>
-
-            <a href="/social" class="button">Go to Social Page →</a>
           </div>
         </body>
       </html>
