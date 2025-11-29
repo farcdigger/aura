@@ -232,12 +232,9 @@ export default function ProfileSidebar({
 
         {/* Profile Info */}
         <div className="text-center">
-          <h4 className="font-bold text-black dark:text-white mb-1">
-            {profileData.username || `${profileData.wallet.substring(0, 6)}...${profileData.wallet.substring(38)}`}
-          </h4>
-          <p className="text-xs text-gray-600 dark:text-gray-400 font-mono break-all">
+          <h4 className="font-bold text-black dark:text-white mb-1 break-all">
             {profileData.wallet}
-          </p>
+          </h4>
         </div>
 
         {/* Stats */}

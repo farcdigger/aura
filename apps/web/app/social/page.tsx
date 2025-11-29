@@ -35,7 +35,12 @@ interface WeeklyWinner {
   created_at: string;
 }
 
-const DEV_WALLET = "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d".toLowerCase();
+const FEATURE_WALLETS = new Set(
+  [
+    "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d",
+    "0x7d2ceb7a0e0c39a3d0f7b5b491659fde4bb7bcfe",
+  ].map((addr) => addr.toLowerCase()),
+);
 
 export default function SocialPage() {
   const router = useRouter();
@@ -72,7 +77,8 @@ export default function SocialPage() {
   const [checkingProfile, setCheckingProfile] = useState(false);
 
   // Check if profile feature is enabled
-  const isProfileFeatureEnabled = address?.toLowerCase() === DEV_WALLET;
+  const isProfileFeatureEnabled =
+    address && FEATURE_WALLETS.has(address.toLowerCase());
 
   // Check NFT ownership and profile existence
   useEffect(() => {

@@ -32,7 +32,12 @@ interface ProfileData {
   isOwnProfile: boolean;
 }
 
-const DEV_WALLET = "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d".toLowerCase();
+const FEATURE_WALLETS = new Set(
+  [
+    "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d",
+    "0x7d2ceb7a0e0c39a3d0f7b5b491659fde4bb7bcfe",
+  ].map((addr) => addr.toLowerCase()),
+);
 
 export default function ProfilePage() {
   const params = useParams();
@@ -56,7 +61,8 @@ export default function ProfilePage() {
   const [profileCreated, setProfileCreated] = useState(false);
 
   // Check if feature is enabled for current user
-  const isFeatureEnabled = address?.toLowerCase() === DEV_WALLET;
+  const isFeatureEnabled =
+    address && FEATURE_WALLETS.has(address.toLowerCase());
 
   // Check NFT ownership
   useEffect(() => {
@@ -404,12 +410,9 @@ export default function ProfilePage() {
 
                 {/* Profile Info */}
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-2">
-                    {profileData.username || `${profileData.wallet.substring(0, 6)}...${profileData.wallet.substring(38)}`}
-                  </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mb-4 break-all">
+                  <h1 className="text-xl sm:text-2xl font-bold text-black dark:text-white mb-3 break-all">
                     {profileData.wallet}
-                  </p>
+                  </h1>
 
                   {/* Stats */}
                   <div className="flex gap-6 mb-4">
