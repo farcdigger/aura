@@ -452,10 +452,8 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            )}
 
             {/* Posts */}
-            {profileData && (
             <div>
               <h2 className="text-xl font-bold text-black dark:text-white mb-4">Posts</h2>
               {postsLoading ? (
@@ -523,7 +521,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            )}
           </>
         ) : null}
       </main>
