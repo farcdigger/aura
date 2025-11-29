@@ -41,12 +41,7 @@ function HomePageContent() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const introVideoRef = useRef<HTMLVideoElement | null>(null);
-  const openMenu = () => setMenuOpen(true);
   const closeMenu = () => setMenuOpen(false);
-  const scrollToHero = () => {
-    if (typeof window === "undefined") return;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   // Fetch token balance and points
   const fetchTokenBalanceAndPoints = async (walletAddress: string) => {
@@ -132,27 +127,16 @@ function HomePageContent() {
     }
   }, []); // Empty deps - only run once on mount
 
-  // Lock scroll + close with Escape when overlay menu is open
+  // Close menu when clicking outside
   useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuOpen && !(event.target as Element).closest('.fixed.top-20.right-4') && !(event.target as Element).closest('.fixed.top-4.right-4')) {
         setMenuOpen(false);
       }
     };
-
-    const previousOverflow = document.body.style.overflow;
-
-    if (menuOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuOpen]);
 
   useEffect(() => {
@@ -1255,21 +1239,6 @@ function HomePageContent() {
                 )}
               </Link>
               
-              {/* Fullscreen menu trigger */}
-              <button
-                onClick={openMenu}
-                aria-expanded={menuOpen}
-                aria-label="Open menu"
-                className="inline-flex items-center gap-2 rounded-full border border-gray-900/15 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:px-4 sm:text-sm"
-              >
-                <span className="flex flex-col gap-0.5">
-                  <span className="block h-0.5 w-5 rounded-full bg-current"></span>
-                  <span className="block h-0.5 w-5 rounded-full bg-current"></span>
-                  <span className="block h-0.5 w-5 rounded-full bg-current"></span>
-                </span>
-                <span>Menu</span>
-              </button>
-              
               <div className="flex items-center gap-2">
                 {xUser && (
                   <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full text-sm dark:bg-slate-800 dark:text-slate-100">
@@ -1337,200 +1306,159 @@ function HomePageContent() {
         </div>
       </nav>
 
+      {/* Menu Button - Fixed top right */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-expanded={menuOpen}
+        aria-label="Toggle menu"
+        className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 rounded-full border border-gray-900/15 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:px-4 sm:text-sm"
+      >
+        <span className="flex flex-col gap-0.5">
+          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
+        </span>
+        <span>Menu</span>
+      </button>
+
+      {/* Dropdown Menu */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[80] flex flex-col bg-black/90 text-white backdrop-blur-md">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <img src="/frora-logo.png" alt="XFrora" className="w-12 h-12 rounded-full border border-white/20 object-cover" />
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">Explore</p>
-                <p className="text-xl font-semibold">XFrora navigation</p>
-              </div>
-            </div>
-            <button
-              onClick={closeMenu}
-              aria-label="Close menu"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/80 hover:border-white hover:text-white transition-colors"
-            >
-              <span className="sr-only">Close</span>
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 text-3xl sm:text-4xl font-semibold tracking-wide text-white">
-            <button
-              onClick={() => {
-                scrollToHero();
-                closeMenu();
-              }}
-              className="transition-colors hover:text-white/60 text-white/80"
-            >
-              Create Avatar
-            </button>
-            <Link
-              href="/yama-agent"
-              onClick={() => {
-                setYamaAgentLoading(true);
-                closeMenu();
-              }}
-              className="transition-colors hover:text-white"
-            >
-              Yama Agent
-            </Link>
-            <Link
-              href="/social"
-              onClick={closeMenu}
-              className="transition-colors hover:text-white"
-            >
-              Social
-            </Link>
-            <Link
-              href="/leaderboard"
-              onClick={closeMenu}
-              className="transition-colors hover:text-white"
-            >
-              Leaderboard
-            </Link>
-            <Link
-              href="/referrals"
-              onClick={closeMenu}
-              className="transition-colors hover:text-white"
-            >
-              Referrals
-            </Link>
-            <a
-              href="https://opensea.io/collection/xfrora"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMenu}
-              className="transition-colors hover:text-white"
-            >
-              OpenSea
-            </a>
-            <a
-              href="https://x.com/XFroraNFT"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMenu}
-              className="transition-colors hover:text-white"
-            >
-              Follow on X
-            </a>
-          </div>
-
-          <div className="px-6 pb-8 space-y-4 border-t border-white/10">
-            {isConnected && address ? (
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-white/50">Wallet</p>
-                <p className="text-lg font-semibold">
-                  {address.substring(0, 6)}...{address.substring(address.length - 4)}
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-[55] bg-black/20 backdrop-blur-sm"
+            onClick={closeMenu}
+          />
+          
+          {/* Dropdown Menu */}
+          <div className="fixed top-20 right-4 z-[60] w-80 rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2">
+            {isConnected && address && (
+              <div className="border-b border-gray-100/70 px-4 py-3 text-sm dark:border-gray-800/80">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Wallet stats
                 </p>
-                <p className="text-sm text-white/70">
-                  {tokenBalance !== null ? tokenBalance.toLocaleString("en-US") : "0"} credits · {points.toLocaleString("en-US")} points
-                </p>
+                <div className="mt-1 flex flex-col gap-1 font-semibold text-gray-900 dark:text-gray-100">
+                  <span>
+                    {tokenBalance !== null ? tokenBalance.toLocaleString("en-US") : "0"} credits
+                  </span>
+                  <span>{points.toLocaleString("en-US")} points</span>
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-white/70">Connect your wallet to view credits and points.</p>
             )}
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <ConnectButton.Custom>
-                {({
-                  account,
-                  chain,
-                  openAccountModal,
-                  openChainModal,
-                  openConnectModal,
-                  mounted,
-                }: {
-                  account?: any;
-                  chain?: any;
-                  openAccountModal: () => void;
-                  openChainModal: () => void;
-                  openConnectModal: () => void;
-                  mounted: boolean;
-                }) => {
-                  const ready = mounted;
-                  const connected = ready && account && chain;
-
-                  if (!ready) {
-                    return (
-                      <button className="rounded-full border border-white/20 px-6 py-2 text-sm text-white/60" disabled>
-                        Loading wallet...
-                      </button>
-                    );
-                  }
-
-                  if (!connected) {
-                    return (
-                      <button
-                        onClick={() => {
-                          closeMenu();
-                          openConnectModal();
-                        }}
-                        className="rounded-full border border-white px-6 py-2 text-sm font-semibold text-black bg-white hover:bg-white/90 transition-colors"
-                      >
-                        Connect Wallet
-                      </button>
-                    );
-                  }
-
-                  if (chain.unsupported) {
-                    return (
-                      <button
-                        onClick={() => {
-                          closeMenu();
-                          openChainModal();
-                        }}
-                        className="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white hover:border-white transition-colors"
-                      >
-                        Switch Network
-                      </button>
-                    );
-                  }
-
-                  return (
-                    <button
-                      onClick={() => {
-                        closeMenu();
-                        openAccountModal();
-                      }}
-                      className="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white hover:border-white transition-colors"
-                    >
-                      {account?.displayName ?? "Wallet"}
-                    </button>
-                  );
+            <div className="py-2">
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  closeMenu();
                 }}
-              </ConnectButton.Custom>
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Create Avatar</span>
+              </button>
+              <Link
+                href="/yama-agent"
+                onClick={() => {
+                  setYamaAgentLoading(true);
+                  closeMenu();
+                }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span>Yama Agent</span>
+              </Link>
+              <a
+                href="https://opensea.io/collection/xfrora"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                onClick={closeMenu}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/opensea-icon.png" alt="OpenSea" className="w-5 h-5" />
+                <span>OpenSea</span>
+              </a>
+              
+              <a
+                href="https://x.com/XFroraNFT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                onClick={closeMenu}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span>Follow on X</span>
+              </a>
+              
+              <Link
+                href="/social"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                onClick={closeMenu}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Social</span>
+              </Link>
+              
+              <Link
+                href="/leaderboard"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                onClick={closeMenu}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                <span>Leaderboard</span>
+              </Link>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Link
+                href="/referrals"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                onClick={closeMenu}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7H7m6 4H7m6 4H7m6-8h4m-4 4h4m-4 4h4M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                </svg>
+                <span>Referrals</span>
+              </Link>
+              
+              {isConnected && address && (
                 <button
                   onClick={() => {
+                    setShowPaymentModal(true);
                     closeMenu();
-                    if (isConnected && address) {
-                      setShowPaymentModal(true);
-                    }
                   }}
-                  className="rounded-full border border-white/20 px-5 py-2 text-sm text-white/80 hover:text-white transition-colors disabled:opacity-40"
-                  disabled={!isConnected || !address}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
                 >
-                  View Credits
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Credits</span>
                 </button>
-                <button
-                  onClick={() => {
-                    closeMenu();
-                    setChatbotOpen(true);
-                  }}
-                  className="rounded-full border border-white/20 px-5 py-2 text-sm text-white/80 hover:text-white transition-colors"
-                >
-                  Open Chat
-                </button>
-              </div>
+              )}
+              
+              <button
+                onClick={() => {
+                  setChatbotOpen(true);
+                  closeMenu();
+                }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Chat</span>
+              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
       
       <div className="container mx-auto px-4 py-8">
