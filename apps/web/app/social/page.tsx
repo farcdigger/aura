@@ -4,11 +4,14 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import PaymentModal from "@/components/PaymentModal";
 import { isMessagingEnabled } from "@/lib/feature-flags";
 import ChatWidget from "./components/ChatWidget";
+import ProfileSidebar from "./components/ProfileSidebar";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 interface Post {
   id: number;
@@ -32,7 +35,10 @@ interface WeeklyWinner {
   created_at: string;
 }
 
+const DEV_WALLET = "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d".toLowerCase();
+
 export default function SocialPage() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +57,96 @@ export default function SocialPage() {
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Profile search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedProfileWallet, setSelectedProfileWallet] = useState<string | null>(null);
+
+  // Profile creation state
+  const [hasNFT, setHasNFT] = useState(false);
+  const [checkingNFT, setCheckingNFT] = useState(false);
+  const [creatingProfile, setCreatingProfile] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(false);
+
+  // Check if profile feature is enabled
+  const isProfileFeatureEnabled = address?.toLowerCase() === DEV_WALLET;
+
+  // Check NFT ownership and profile existence
+  useEffect(() => {
+    const checkNFTAndProfile = async () => {
+      if (!address || !isProfileFeatureEnabled) {
+        setHasNFT(false);
+        setHasProfile(false);
+        return;
+      }
+
+      setCheckingNFT(true);
+      const hasNFTResult = await checkNFTOwnershipClientSide(address);
+      setHasNFT(hasNFTResult);
+      setCheckingNFT(false);
+
+      if (hasNFTResult) {
+        // Check if profile exists
+        setCheckingProfile(true);
+        try {
+          const response = await fetch(
+            `/api/profile/${address.toLowerCase()}?currentWallet=${address.toLowerCase()}&t=${Date.now()}`,
+            { cache: 'no-store' }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setHasProfile(!!data);
+          }
+        } catch (err) {
+          console.error("Error checking profile:", err);
+        } finally {
+          setCheckingProfile(false);
+        }
+      }
+    };
+    checkNFTAndProfile();
+  }, [address, isProfileFeatureEnabled]);
+
+  // Handle create profile
+  const handleCreateProfile = async () => {
+    if (!address) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    if (!hasNFT) {
+      alert("You need to own an xFrora NFT to create a profile");
+      return;
+    }
+
+    setCreatingProfile(true);
+    try {
+      const response = await fetch("/api/profile/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: address,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create profile");
+      }
+
+      setHasProfile(true);
+      // Redirect to profile page
+      router.push(`/profile/${address.toLowerCase()}`);
+    } catch (err: any) {
+      alert(err.message || "Failed to create profile");
+    } finally {
+      setCreatingProfile(false);
+    }
+  };
 
   // Load NFT image for a specific wallet address or x_user_id
   const loadNftImage = async (walletAddress: string, xUserId?: string | null) => {
@@ -444,6 +540,39 @@ export default function SocialPage() {
     }
   };
 
+  // Handle profile search
+  const handleProfileSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchError("Please enter a wallet address");
+      return;
+    }
+
+    // Basic wallet address validation
+    if (!/^0x[a-fA-F0-9]{40}$/.test(searchQuery.trim())) {
+      setSearchError("Invalid wallet address format");
+      return;
+    }
+
+    setSearching(true);
+    setSearchError(null);
+
+    try {
+      // Select profile in sidebar instead of navigating
+      setSelectedProfileWallet(searchQuery.trim().toLowerCase());
+      setSearchQuery("");
+    } catch (err: any) {
+      setSearchError(err.message || "Failed to search profile");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleProfileSearch();
+    }
+  };
+
   const formatTimeAgo = (dateString: string) => {
     if (!dateString) return "just now";
     
@@ -490,12 +619,16 @@ export default function SocialPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black relative">
-      {/* Chat Widget */}
-      <ChatWidget isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* Chat Widget - Fixed on right side */}
+      <ChatWidget 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)}
+        initialWallet={selectedProfileWallet || undefined}
+      />
 
       {/* Navbar */}
       <nav className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2">
             <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="text-lg sm:text-xl font-bold text-black dark:text-white whitespace-nowrap">
@@ -513,14 +646,39 @@ export default function SocialPage() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
+      {/* Main Content - 3 Column Layout */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Left Sidebar - Profiles */}
+          {isProfileFeatureEnabled && (
+            <aside className="lg:col-span-3 space-y-4">
+              <ProfileSidebar
+                selectedWallet={selectedProfileWallet}
+                onSelectProfile={(wallet) => setSelectedProfileWallet(wallet)}
+                onMessage={(wallet) => {
+                  setSelectedProfileWallet(wallet);
+                  setIsChatOpen(true);
+                }}
+              />
+            </aside>
+          )}
+
+          {/* Center Column - Posts */}
+          <div className={`${isProfileFeatureEnabled ? 'lg:col-span-6' : 'lg:col-span-8 lg:col-start-3'}`}>
+            {/* Header */}
+            <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-2">
             <h1 className="text-2xl sm:text-4xl font-bold text-black dark:text-white italic">
               XFroraSocial
             </h1>
+            {isConnected && address && isProfileFeatureEnabled && (
+              <button
+                onClick={() => setSelectedProfileWallet(address.toLowerCase())}
+                className="text-sm sm:text-base text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+              >
+                My Profile
+              </button>
+            )}
             {/* Direct Message Button - Herkese görünür, sadece NFT sahipleri kullanabilir */}
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
@@ -541,9 +699,38 @@ export default function SocialPage() {
               )}
             </button>
           </div>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">
             Connect with the xFrora community
           </p>
+
+          {/* Profile Search - Only visible to dev wallet */}
+          {isProfileFeatureEnabled && (
+            <div className="mb-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchError(null);
+                  }}
+                  onKeyPress={handleSearchKeyPress}
+                  placeholder="Search wallet address to view profile..."
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white text-sm sm:text-base"
+                />
+                <button
+                  onClick={handleProfileSearch}
+                  disabled={searching || !searchQuery.trim()}
+                  className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                >
+                  {searching ? "..." : "Search"}
+                </button>
+              </div>
+              {searchError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{searchError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Stats Card */}
@@ -707,9 +894,18 @@ export default function SocialPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-1 mb-2">
-                      <span className="font-bold text-sm sm:text-base text-black dark:text-white">
-                        {post.wallet_address.substring(0, 6)}...{post.wallet_address.substring(38)}
-                      </span>
+                      {isProfileFeatureEnabled ? (
+                        <button
+                          onClick={() => setSelectedProfileWallet(post.wallet_address.toLowerCase())}
+                          className="font-bold text-sm sm:text-base text-black dark:text-white hover:underline text-left"
+                        >
+                          {post.wallet_address.substring(0, 6)}...{post.wallet_address.substring(38)}
+                        </button>
+                      ) : (
+                        <span className="font-bold text-sm sm:text-base text-black dark:text-white">
+                          {post.wallet_address.substring(0, 6)}...{post.wallet_address.substring(38)}
+                        </span>
+                      )}
                       <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         {formatTimeAgo(post.created_at)}
                       </span>
@@ -747,6 +943,8 @@ export default function SocialPage() {
               </div>
             ))
           )}
+            </div>
+          </div>
         </div>
       </main>
 

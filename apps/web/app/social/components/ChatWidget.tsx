@@ -11,9 +11,11 @@ import UserSearch from "../../messages/components/UserSearch";
 interface ChatWidgetProps {
   isOpen: boolean;
   onClose: () => void;
+  initialWallet?: string; // Optional: pre-select a wallet when opening
+  onWalletSelect?: (wallet: string) => void; // Callback when wallet is selected
 }
 
-export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
+export default function ChatWidget({ isOpen, onClose, initialWallet }: ChatWidgetProps) {
   const { address } = useAccount();
   const [view, setView] = useState<"LIST" | "THREAD">("LIST");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -23,6 +25,33 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   const [messageRefreshSignal, setMessageRefreshSignal] = useState(0);
   const [hasNFT, setHasNFT] = useState(false);
   const [checkingNFT, setCheckingNFT] = useState(true);
+
+  // Handle initial wallet selection
+  useEffect(() => {
+    if (isOpen && initialWallet && hasNFT && address) {
+      // Search for the user and open conversation
+      const openInitialConversation = async () => {
+        try {
+          const response = await fetch(
+            `/api/messages/search?q=${encodeURIComponent(initialWallet)}&wallet=${address.toLowerCase()}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.conversationId) {
+              handleSelectConversation(data.conversationId, initialWallet.toLowerCase());
+            } else {
+              handleSelectConversation("temp", initialWallet.toLowerCase());
+            }
+          }
+        } catch (err) {
+          console.error("Error opening initial conversation:", err);
+          // Fallback: just set the participant
+          handleSelectConversation("temp", initialWallet.toLowerCase());
+        }
+      };
+      openInitialConversation();
+    }
+  }, [isOpen, initialWallet, hasNFT, address]);
 
   // Check NFT ownership using client-side blockchain check (same as credit purchase system)
   useEffect(() => {
@@ -53,11 +82,65 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
     }
   }, [isOpen]);
 
+  // Handle initial wallet selection
+  useEffect(() => {
+    if (isOpen && initialWallet && hasNFT && address) {
+      // Search for the user and open conversation
+      const openInitialConversation = async () => {
+        try {
+          const response = await fetch(
+            `/api/messages/search?q=${encodeURIComponent(initialWallet)}&wallet=${address.toLowerCase()}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.conversationId) {
+              handleSelectConversation(data.conversationId, initialWallet.toLowerCase());
+            } else {
+              handleSelectConversation("temp", initialWallet.toLowerCase());
+            }
+          }
+        } catch (err) {
+          console.error("Error opening initial conversation:", err);
+          // Fallback: just set the participant
+          handleSelectConversation("temp", initialWallet.toLowerCase());
+        }
+      };
+      openInitialConversation();
+    }
+  }, [isOpen, initialWallet, hasNFT, address]);
+
   const handleSelectConversation = (conversationId: string, participant: string) => {
     setSelectedConversationId(conversationId);
     setOtherParticipant(participant);
     setView("THREAD");
   };
+
+  // Handle initial wallet selection
+  useEffect(() => {
+    if (isOpen && initialWallet && hasNFT && address) {
+      // Search for the user and open conversation
+      const openInitialConversation = async () => {
+        try {
+          const response = await fetch(
+            `/api/messages/search?q=${encodeURIComponent(initialWallet)}&wallet=${address.toLowerCase()}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.conversationId) {
+              handleSelectConversation(data.conversationId, initialWallet.toLowerCase());
+            } else {
+              handleSelectConversation("temp", initialWallet.toLowerCase());
+            }
+          }
+        } catch (err) {
+          console.error("Error opening initial conversation:", err);
+          // Fallback: just set the participant
+          handleSelectConversation("temp", initialWallet.toLowerCase());
+        }
+      };
+      openInitialConversation();
+    }
+  }, [isOpen, initialWallet, hasNFT, address]);
 
   const handleBackToList = () => {
     setView("LIST");
