@@ -381,13 +381,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   };
 
   const handleNewChat = () => {
-    setMode("chat");
+    if (mode === "chat") {
+      // Clear only chat messages
     setMessages([]);
-    setImageResults([]);
-    setShowImageLimitWarning(false);
     if (walletAddress) {
       const storageKey = getStorageKey(walletAddress);
-      const imageStorageKey = getImageStorageKey(walletAddress);
       if (storageKey) {
         try {
           localStorage.removeItem(storageKey);
@@ -395,37 +393,71 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           console.error("Error clearing messages from localStorage:", error);
         }
       }
-      if (imageStorageKey) {
-        try {
-          localStorage.removeItem(imageStorageKey);
-        } catch (error) {
-          console.error("Error clearing image results from localStorage:", error);
+    }
+    } else if (mode === "image") {
+      // Clear only image results
+      setImageResults([]);
+      setImagePrompt("");
+      setShowImageLimitWarning(false);
+      if (walletAddress) {
+        const imageStorageKey = getImageStorageKey(walletAddress);
+        if (imageStorageKey) {
+          try {
+            localStorage.removeItem(imageStorageKey);
+          } catch (error) {
+            console.error("Error clearing image results from localStorage:", error);
+          }
         }
       }
     }
     fetchTokenBalance();
   };
 
-  const handleNewImageChat = () => {
-    setImageResults([]);
-    setImagePrompt("");
-    setShowImageLimitWarning(false);
-    if (walletAddress) {
-      const imageStorageKey = getImageStorageKey(walletAddress);
-      if (imageStorageKey) {
-        try {
-          localStorage.removeItem(imageStorageKey);
-        } catch (error) {
-          console.error("Error clearing image results from localStorage:", error);
-        }
-      }
-    }
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleDownloadImage = (imageUrl: string, prompt: string) => {
+    try {
+      // Extract base64 data from data URL
+      const base64Data = imageUrl.split(',')[1] || imageUrl;
+      
+      // Convert base64 to blob
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Create filename from prompt (sanitize and limit length)
+      const sanitizedPrompt = prompt
+        .replace(/[^a-z0-9]/gi, '_')
+        .substring(0, 50)
+        .toLowerCase();
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.download = `xfrora-image-${sanitizedPrompt}-${timestamp}.png`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      // Fallback: open in new tab
+      window.open(imageUrl, '_blank');
     }
   };
 
@@ -815,7 +847,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button
-                      onClick={handleNewImageChat}
+                      onClick={handleNewChat}
                       className="px-4 py-2 bg-yellow-600 dark:bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors text-sm"
                     >
                       Start New Image Chat
@@ -852,14 +884,15 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                       </div>
                       <div className="flex items-center justify-between px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>{result.createdAt.toLocaleString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                        <a
-                          href={result.imageUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-semibold text-black dark:text-white underline-offset-4 hover:underline"
+                        <button
+                          onClick={() => handleDownloadImage(result.imageUrl, result.prompt)}
+                          className="flex items-center gap-1.5 text-sm font-semibold text-black dark:text-white hover:opacity-70 transition-opacity"
                         >
-                          Open
-                        </a>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download
+                        </button>
                       </div>
                     </div>
                   ))}
