@@ -1103,8 +1103,9 @@ ${crossSummaryStr}
 - Map Uniswap flows to Aave markets whenever the data hints at leverage loops, hedges, liquidity migration, or stress build-ups.
 - Never mention how many “records” or “rows” were provided; speak only about the on-chain facts.
 - Use markdown tables, bullet grids, or ASCII-style diagrams if they help visualize rankings, ratios, or flow maps.
-- Highlight at least 5 contrarian or “aha” insights (anything a casual observer would miss — e.g., whales hedging contrary to dominant flow, stealth liquidation gaps, stablecoin drains pre-borrow). Label each explicitly (“Insight” / “Heads-up”) and quantify it.
-- Whenever you see a questionable number, double-check the context (e.g., verify that large borrow/deposit amounts align with market totals) so the report doesn’t misinterpret the data.
+- Highlight at least 5 contrarian or "aha" insights (anything a casual observer would miss — e.g., whales hedging contrary to dominant flow, stealth liquidation gaps, stablecoin drains pre-borrow). Label each explicitly ("Insight" / "Heads-up") and quantify it.
+- **Identify and include the top 10 most active whale wallets** from the data you've analyzed. These should be wallets with the highest transaction volumes, largest positions, or most significant activity across DEX and lending protocols. Present them in a dedicated section (e.g., "Top 10 Active Whale Wallets") with wallet addresses, their key activities, transaction volumes, and any notable patterns you observe. This is a required section of the report.
+- Whenever you see a questionable number, double-check the context (e.g., verify that large borrow/deposit amounts align with market totals) so the report doesn't misinterpret the data.
 - Tone: analytical, data-first, no investment advice. Think like an on-chain professor briefing institutional clients.
 
 ## OUTPUT FORMAT
