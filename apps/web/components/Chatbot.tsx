@@ -45,7 +45,6 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [showImageLimitWarning, setShowImageLimitWarning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { address } = useAccount();
@@ -358,11 +357,6 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
       setImageResults(updatedResults);
       setImagePrompt("");
 
-      // Show warning when limit is reached (8 images)
-      if (updatedResults.length >= MAX_IMAGE_RESULTS) {
-        setShowImageLimitWarning(true);
-      }
-
       if (typeof data.newBalance === "number") {
         setTokenBalance(data.newBalance);
       } else {
@@ -398,7 +392,6 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
       // Clear only image results
       setImageResults([]);
       setImagePrompt("");
-      setShowImageLimitWarning(false);
       if (walletAddress) {
         const imageStorageKey = getImageStorageKey(walletAddress);
         if (imageStorageKey) {
@@ -787,6 +780,25 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                 </p>
               </div>
 
+              <div className="rounded-lg border border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1.5">
+                      Storage Information / Depolama Bilgisi
+                    </h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                      <strong>EN:</strong> Your generated images are stored in localStorage. Please download your images after generation, as they may be lost over time in the chat session.
+                    </p>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>TR:</strong> Ürettiğiniz görseller localStorage&apos;da saklanmaktadır. Lütfen görsellerinizi üretim sonrası indiriniz, çünkü görselleriniz zamanla chat oturumunda kaybolabilir.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <textarea
                   value={imagePrompt}
@@ -819,48 +831,6 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </button>
                 </div>
               </div>
-
-              {showImageLimitWarning && imageResults.length > 0 && (
-                <div className="rounded-lg border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">
-                          Storage Limit Warning
-                        </h4>
-                      </div>
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        You have reached the storage limit ({MAX_IMAGE_RESULTS} images). To prevent losing your previous images, consider starting a new image chat. If you continue generating in this chat, the oldest image will be removed for each new image you generate.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowImageLimitWarning(false)}
-                      className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={handleNewChat}
-                      className="px-4 py-2 bg-yellow-600 dark:bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors text-sm"
-                    >
-                      Start New Image Chat
-                    </button>
-                    <button
-                      onClick={() => setShowImageLimitWarning(false)}
-                      className="px-4 py-2 border border-yellow-600 dark:border-yellow-500 text-yellow-900 dark:text-yellow-100 rounded-lg font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors text-sm"
-                    >
-                      Continue Here
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {imageResults.length === 0 ? (
                 renderImageEmptyState()
