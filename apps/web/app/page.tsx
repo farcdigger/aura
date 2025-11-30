@@ -130,7 +130,12 @@ function HomePageContent() {
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuOpen && !(event.target as Element).closest('.fixed.top-20.right-4') && !(event.target as Element).closest('.fixed.top-4.right-4')) {
+      const target = event.target as Element;
+      // Don't close if clicking on menu button or menu content
+      if (menuOpen && 
+          !target.closest('[aria-label="Toggle menu"]') && 
+          !target.closest('.fixed.top-16') && 
+          !target.closest('.fixed.top-20')) {
         setMenuOpen(false);
       }
     };
@@ -1336,7 +1341,10 @@ function HomePageContent() {
           />
           
           {/* Dropdown Menu */}
-          <div className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[60] w-[calc(100vw-1rem)] sm:w-80 max-w-sm rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2">
+          <div 
+            className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[60] w-[calc(100vw-1rem)] sm:w-80 max-w-sm rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             {isConnected && address && (
               <div className="border-b border-gray-100/70 px-4 py-3 text-sm dark:border-gray-800/80">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
