@@ -45,6 +45,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [showImageLimitWarning, setShowImageLimitWarning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { address } = useAccount();
@@ -58,6 +59,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const getStorageKey = (wallet: string | null) => {
     if (!wallet) return null;
     return `chatbot_messages_${wallet.toLowerCase()}`;
+  };
+
+  const getImageStorageKey = (wallet: string | null) => {
+    if (!wallet) return null;
+    return `chatbot_images_${wallet.toLowerCase()}`;
   };
 
   const loadMessagesFromStorage = (wallet: string | null) => {
@@ -94,17 +100,50 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     }
   };
 
+  const loadImageResultsFromStorage = (wallet: string | null) => {
+    if (typeof window === "undefined" || !wallet) return [];
+    
+    try {
+      const storageKey = getImageStorageKey(wallet);
+      if (!storageKey) return [];
+      
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.map((img: any) => ({
+          ...img,
+          createdAt: new Date(img.createdAt),
+        })).slice(0, MAX_IMAGE_RESULTS);
+      }
+    } catch (error) {
+      console.error("Error loading image results from localStorage:", error);
+    }
+    return [];
+  };
+
+  const saveImageResultsToStorage = (wallet: string | null, images: ImageResult[]) => {
+    if (typeof window === "undefined" || !wallet) return;
+    
+    try {
+      const storageKey = getImageStorageKey(wallet);
+      if (!storageKey) return;
+      
+      localStorage.setItem(storageKey, JSON.stringify(images.slice(0, MAX_IMAGE_RESULTS)));
+    } catch (error) {
+      console.error("Error saving image results to localStorage:", error);
+    }
+  };
+
   useEffect(() => {
     if (walletAddress) {
       const loadedMessages = loadMessagesFromStorage(walletAddress);
       setMessages(loadedMessages);
+      const loadedImages = loadImageResultsFromStorage(walletAddress);
+      setImageResults(loadedImages);
     } else {
       setMessages([]);
+      setImageResults([]);
     }
-  }, [walletAddress]);
-
-  useEffect(() => {
-    setImageResults([]);
     setImagePrompt("");
     setImageError(null);
   }, [walletAddress]);
@@ -114,6 +153,12 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
       saveMessagesToStorage(walletAddress, messages);
     }
   }, [messages, walletAddress]);
+
+  useEffect(() => {
+    if (walletAddress && imageResults.length > 0) {
+      saveImageResultsToStorage(walletAddress, imageResults);
+    }
+  }, [imageResults, walletAddress]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -309,8 +354,14 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         createdAt: new Date(),
       };
 
-      setImageResults((prev) => [newResult, ...prev].slice(0, MAX_IMAGE_RESULTS));
+      const updatedResults = [newResult, ...imageResults].slice(0, MAX_IMAGE_RESULTS);
+      setImageResults(updatedResults);
       setImagePrompt("");
+
+      // Show warning when limit is reached (8 images)
+      if (updatedResults.length >= MAX_IMAGE_RESULTS) {
+        setShowImageLimitWarning(true);
+      }
 
       if (typeof data.newBalance === "number") {
         setTokenBalance(data.newBalance);
@@ -332,8 +383,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const handleNewChat = () => {
     setMode("chat");
     setMessages([]);
+    setImageResults([]);
+    setShowImageLimitWarning(false);
     if (walletAddress) {
       const storageKey = getStorageKey(walletAddress);
+      const imageStorageKey = getImageStorageKey(walletAddress);
       if (storageKey) {
         try {
           localStorage.removeItem(storageKey);
@@ -341,8 +395,31 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           console.error("Error clearing messages from localStorage:", error);
         }
       }
+      if (imageStorageKey) {
+        try {
+          localStorage.removeItem(imageStorageKey);
+        } catch (error) {
+          console.error("Error clearing image results from localStorage:", error);
+        }
+      }
     }
     fetchTokenBalance();
+  };
+
+  const handleNewImageChat = () => {
+    setImageResults([]);
+    setImagePrompt("");
+    setShowImageLimitWarning(false);
+    if (walletAddress) {
+      const imageStorageKey = getImageStorageKey(walletAddress);
+      if (imageStorageKey) {
+        try {
+          localStorage.removeItem(imageStorageKey);
+        } catch (error) {
+          console.error("Error clearing image results from localStorage:", error);
+        }
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -710,6 +787,48 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </button>
                 </div>
               </div>
+
+              {showImageLimitWarning && imageResults.length > 0 && (
+                <div className="rounded-lg border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">
+                          Storage Limit Warning
+                        </h4>
+                      </div>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        You have reached the storage limit ({MAX_IMAGE_RESULTS} images). To prevent losing your previous images, consider starting a new image chat. If you continue generating in this chat, the oldest image will be removed for each new image you generate.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowImageLimitWarning(false)}
+                      className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={handleNewImageChat}
+                      className="px-4 py-2 bg-yellow-600 dark:bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors text-sm"
+                    >
+                      Start New Image Chat
+                    </button>
+                    <button
+                      onClick={() => setShowImageLimitWarning(false)}
+                      className="px-4 py-2 border border-yellow-600 dark:border-yellow-500 text-yellow-900 dark:text-yellow-100 rounded-lg font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors text-sm"
+                    >
+                      Continue Here
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {imageResults.length === 0 ? (
                 renderImageEmptyState()
