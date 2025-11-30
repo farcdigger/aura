@@ -1206,42 +1206,45 @@ function HomePageContent() {
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Navbar - Top */}
       <nav className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             {/* Logo */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <img 
                 src="/frora-logo.png" 
                 alt="XFRORA Logo" 
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
               />
-              <span className="text-xl font-bold text-gray-800 uppercase dark:text-slate-100">XFRORA</span>
+              <span className="text-lg sm:text-xl font-bold text-gray-800 uppercase dark:text-slate-100">XFRORA</span>
             </div>
             
             {/* Right: User Info & Buttons */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 w-full sm:w-auto justify-end">
               <ThemeToggle />
               <Link
                 href="/yama-agent"
                 onClick={() => setYamaAgentLoading(true)}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-900/15 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:px-4 sm:text-sm"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-gray-900/15 bg-white/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:text-sm whitespace-nowrap"
               >
                 {yamaAgentLoading ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Loading...
+                    <span className="hidden sm:inline">Loading...</span>
                   </>
                 ) : (
-                  'Yama Agent'
+                  <>
+                    <span className="hidden sm:inline">Yama Agent</span>
+                    <span className="sm:hidden">Yama</span>
+                  </>
                 )}
               </Link>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {xUser && (
-                  <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full text-sm dark:bg-slate-800 dark:text-slate-100">
+                  <div className="hidden lg:flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 rounded-full text-xs sm:text-sm dark:bg-slate-800 dark:text-slate-100">
                     <span className="text-gray-700 dark:text-slate-100">@{xUser.username}</span>
                   </div>
                 )}
@@ -1271,9 +1274,10 @@ function HomePageContent() {
                         return (
                           <button
                             onClick={openConnectModal}
-                            className="btn-primary px-4 py-2 text-sm"
+                            className="btn-primary px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm whitespace-nowrap"
                           >
-                            Connect Wallet
+                            <span className="hidden sm:inline">Connect Wallet</span>
+                            <span className="sm:hidden">Connect</span>
                           </button>
                         );
                       }
@@ -1282,9 +1286,10 @@ function HomePageContent() {
                         return (
                           <button
                             onClick={openChainModal}
-                            className="btn-primary px-4 py-2 text-sm"
+                            className="btn-primary px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm whitespace-nowrap"
                           >
-                            Switch Network
+                            <span className="hidden sm:inline">Switch Network</span>
+                            <span className="sm:hidden">Network</span>
                           </button>
                         );
                       }
@@ -1292,7 +1297,7 @@ function HomePageContent() {
                       return (
                         <button
                           onClick={openAccountModal}
-                          className="btn-secondary px-4 py-2 text-sm"
+                          className="btn-secondary px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm whitespace-nowrap"
                         >
                           {account?.displayName ?? "Wallet"}
                         </button>
@@ -1311,14 +1316,14 @@ function HomePageContent() {
         onClick={() => setMenuOpen(!menuOpen)}
         aria-expanded={menuOpen}
         aria-label="Toggle menu"
-        className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 rounded-full border border-gray-900/15 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:px-4 sm:text-sm"
+        className="fixed top-2 right-2 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-gray-900/15 bg-white/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:text-sm"
       >
         <span className="flex flex-col gap-0.5">
-          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
-          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
-          <span className="block h-0.5 w-5 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-4 sm:w-5 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-4 sm:w-5 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-4 sm:w-5 rounded-full bg-current"></span>
         </span>
-        <span>Menu</span>
+        <span className="hidden sm:inline">Menu</span>
       </button>
 
       {/* Dropdown Menu */}
@@ -1331,7 +1336,7 @@ function HomePageContent() {
           />
           
           {/* Dropdown Menu */}
-          <div className="fixed top-20 right-4 z-[60] w-80 rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2">
+          <div className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[60] w-[calc(100vw-1rem)] sm:w-80 max-w-sm rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2">
             {isConnected && address && (
               <div className="border-b border-gray-100/70 px-4 py-3 text-sm dark:border-gray-800/80">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">

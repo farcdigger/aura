@@ -82,15 +82,15 @@ export default function LeaderboardPage() {
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Navbar */}
       <nav className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="text-xl font-bold text-black dark:text-white">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link href="/" className="text-lg sm:text-xl font-bold text-black dark:text-white">
                 XFRORA
               </Link>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Leaderboard</span>
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Leaderboard</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <ThemeToggle />
               <ConnectButton />
             </div>
@@ -112,21 +112,21 @@ export default function LeaderboardPage() {
 
         {/* User's Rank Card */}
         {isConnected && address && userRank && (
-          <div className="mb-6 p-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
-            <div className="flex items-center justify-between">
+          <div className="mb-6 p-3 sm:p-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Your Rank</p>
-                <p className="text-3xl font-bold text-black dark:text-white">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Your Rank</p>
+                <p className="text-2xl sm:text-3xl font-bold text-black dark:text-white">
                   {userRank.rank ? `#${userRank.rank}` : "Unranked"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Your Points</p>
-                <p className="text-3xl font-bold text-black dark:text-white">{userRank.points.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Your Points</p>
+                <p className="text-2xl sm:text-3xl font-bold text-black dark:text-white">{userRank.points.toLocaleString()}</p>
               </div>
             </div>
             {userRank.total_users > 0 && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Out of {userRank.total_users.toLocaleString()} total players
               </p>
             )}
@@ -152,16 +152,16 @@ export default function LeaderboardPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Rank
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Wallet
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
                       Points
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 dark:text-gray-400 uppercase hidden sm:table-cell">
                       Tokens Spent
                     </th>
                   </tr>
@@ -180,56 +180,56 @@ export default function LeaderboardPage() {
                             : "hover:bg-gray-50 dark:hover:bg-gray-900"
                         } transition-colors`}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
                           <div className="flex items-center">
                             {entry.rank <= 3 ? (
-                              <span className="text-2xl">
+                              <span className="text-xl sm:text-2xl">
                                 {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
                               </span>
                             ) : (
-                              <span className="text-sm font-medium text-black dark:text-white">
+                              <span className="text-xs sm:text-sm font-medium text-black dark:text-white">
                                 #{entry.rank}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2 group">
-                            <div className="text-sm font-medium text-black dark:text-white">
+                        <td className="px-2 sm:px-4 py-2 sm:py-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 group">
+                            <div className="text-xs sm:text-sm font-medium text-black dark:text-white min-w-0">
                               {isCurrentUser ? (
                                 <span className="font-bold">
-                                  {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)} (You)
+                                  {entry.wallet_address.slice(0, 4)}...{entry.wallet_address.slice(-4)} <span className="hidden sm:inline">(You)</span>
                                 </span>
                               ) : (
                                 <span>
-                                  {entry.wallet_address.slice(0, 6)}...{entry.wallet_address.slice(-4)}
+                                  {entry.wallet_address.slice(0, 4)}...{entry.wallet_address.slice(-4)}
                                 </span>
                               )}
                             </div>
                             <button
                               onClick={() => handleCopy(entry.wallet_address)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
+                              className="opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 flex-shrink-0"
                               title="Copy full address"
                             >
                               {copiedWallet === entry.wallet_address ? (
-                                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
                               ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                 </svg>
                               )}
                             </button>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-sm font-semibold text-black dark:text-white">
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
+                          <span className="text-xs sm:text-sm font-semibold text-black dark:text-white">
                             {entry.points.toLocaleString()}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 text-right hidden sm:table-cell">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             {entry.total_tokens_spent.toLocaleString()}
                           </span>
                         </td>

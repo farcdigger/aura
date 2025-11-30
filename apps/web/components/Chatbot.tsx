@@ -514,11 +514,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative w-full max-w-5xl h-[90vh] bg-white dark:bg-black flex flex-col border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-black dark:border-white flex-shrink-0 bg-black dark:bg-white">
+      <div className="relative w-full max-w-5xl h-[90vh] sm:h-[90vh] max-h-screen bg-white dark:bg-black flex flex-col border border-gray-200 dark:border-gray-800 overflow-hidden m-2 sm:m-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-black dark:border-white flex-shrink-0 bg-black dark:bg-white">
                 <img 
                   src={nftImage || "/frora-logo.png"} 
                   alt={nftImage ? "Your NFT" : "xFrora"} 
@@ -529,37 +529,37 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   }}
                 />
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 truncate">
                   xFrora Chat
                 </h2>
-                <p className="text-xs text-gray-500 dark:text-slate-400">
+                <p className="text-xs text-gray-500 dark:text-slate-400 hidden sm:block">
                   Powered by your NFT personality
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
               {nftImage && (
-                <div className="flex items-center gap-2 px-2 py-1 border border-gray-200 dark:border-gray-800 rounded-full bg-white dark:bg-black">
+                <div className="flex items-center gap-1.5 px-2 py-1 border border-gray-200 dark:border-gray-800 rounded-full bg-white dark:bg-black">
                   <img
                     src={nftImage}
                     alt="Your NFT"
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
                   />
-                  <span className="text-xs text-gray-600 dark:text-gray-400 pr-1">Your NFT</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400 pr-1 hidden sm:inline">Your NFT</span>
                 </div>
               )}
               {tokenBalance !== null && (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-gray-800 rounded-full">
-                    <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
-                    <span className="text-sm font-semibold text-black dark:text-white">
+                  <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 dark:border-gray-800 rounded-full">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-black dark:bg-white rounded-full flex-shrink-0"></div>
+                    <span className="text-xs sm:text-sm font-semibold text-black dark:text-white whitespace-nowrap">
                       {formatTokenBalance(tokenBalance)} credits
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-full">
-                    <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
-                    <span className="text-sm font-semibold text-black dark:text-white">
+                  <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-full">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-black dark:bg-white rounded-full flex-shrink-0"></div>
+                    <span className="text-xs sm:text-sm font-semibold text-black dark:text-white whitespace-nowrap">
                       {points.toLocaleString('en-US')} points
                     </span>
                   </div>
@@ -567,13 +567,13 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               )}
             </div>
             {showModeToggle && (
-              <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-4">
+              <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 sm:pl-4 flex-shrink-0">
                 {modeButtons.map((button) => (
                   <button
                     key={button.key}
                     type="button"
                     onClick={() => setMode(button.key)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-colors whitespace-nowrap ${
                       mode === button.key
                         ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white"
                         : "text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
@@ -585,18 +585,18 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handleNewChat}
-              className="px-4 py-2 text-sm font-medium text-black dark:text-white bg-white dark:bg-black rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 border border-gray-200 dark:border-gray-800"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-black dark:text-white bg-white dark:bg-black rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 border border-gray-200 dark:border-gray-800 whitespace-nowrap"
             >
               New Chat
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors flex-shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -604,7 +604,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         </div>
 
         {mode === "chat" && (
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white dark:bg-black">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white dark:bg-black">
           {checkingNFT ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -628,7 +628,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               </p>
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-semibold transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-semibold transition-colors text-sm sm:text-base"
               >
                 Load Credits
               </button>
@@ -739,7 +739,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         )}
 
         {mode === "image" && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white dark:bg-black">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white dark:bg-black">
           {checkingNFT ? (
             renderLoadingState()
           ) : tokenBalance === null || tokenBalance < IMAGE_CREDIT_COST ? (
@@ -804,24 +804,24 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   value={imagePrompt}
                   onChange={(e) => setImagePrompt(e.target.value)}
                   placeholder="Describe the scene you want to generate..."
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none text-sm sm:text-base"
                   rows={3}
                   disabled={imageLoading}
                 />
                 {imageError && (
                   <div className="text-sm text-red-500 dark:text-red-400">{imageError}</div>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     Each generation burns {IMAGE_CREDIT_COST.toLocaleString("en-US")} credits and rewards {IMAGE_POINTS_REWARD} points.
                   </p>
                   <button
                     onClick={handleGenerateImage}
                     disabled={imageLoading || !imagePrompt.trim()}
-                    className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 sm:px-6 py-2 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base whitespace-nowrap w-full sm:w-auto"
                   >
                     {imageLoading ? (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></span>
                         Generating...
                       </span>
@@ -881,31 +881,31 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         )}
 
         {mode === "chat" && (hasNFT || (tokenBalance !== null && tokenBalance > 0)) && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-            {tokenBalance !== null && tokenBalance <= 0 && (
+          <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-800">
+              {tokenBalance !== null && tokenBalance <= 0 && (
               <div className="mb-3 p-3 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-black dark:text-white">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                  <p className="text-xs sm:text-sm text-black dark:text-white">
                     You&apos;re out of credits! Add more to continue chatting.
                   </p>
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className="px-4 py-1.5 text-sm font-medium bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors"
+                    className="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap w-full sm:w-auto"
                   >
                     Add Credits
                   </button>
                 </div>
               </div>
             )}
-            <div className="flex gap-3 items-end">
-              <div className="flex-1 relative">
+            <div className="flex gap-2 sm:gap-3 items-end">
+              <div className="flex-1 relative min-w-0">
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={tokenBalance !== null && tokenBalance <= 0 ? "Add credits to continue..." : "Type your message..."}
-                  className="w-full px-4 py-3 pr-12 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none max-h-32"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 sm:pr-12 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none max-h-32 text-sm sm:text-base"
                   rows={1}
                   disabled={loading || (tokenBalance !== null && tokenBalance <= 0)}
                   onInput={(e) => {
@@ -918,12 +918,12 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
               <button
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim() || (tokenBalance !== null && tokenBalance <= 0)}
-                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 )}

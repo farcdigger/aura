@@ -95,15 +95,15 @@ export default function ReferralsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <nav className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="text-xl font-bold text-black dark:text-white">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link href="/" className="text-lg sm:text-xl font-bold text-black dark:text-white">
                 XFRORA
               </Link>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Referrals</span>
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Referrals</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <ThemeToggle />
               <ConnectButton />
             </div>
@@ -174,15 +174,15 @@ export default function ReferralsPage() {
               <h3 className="font-bold text-black dark:text-white mb-4">Your Referral Link</h3>
               
               {referralCode ? (
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input 
                     readOnly 
                     value={referralLink}
-                    className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-black dark:text-white"
+                    className="flex-1 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs sm:text-sm text-black dark:text-white min-w-0"
                   />
                   <button
                     onClick={() => navigator.clipboard.writeText(referralLink)}
-                    className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black font-semibold rounded hover:opacity-90"
+                    className="px-3 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black font-semibold rounded hover:opacity-90 text-sm sm:text-base whitespace-nowrap"
                   >
                     Copy
                   </button>
@@ -191,7 +191,7 @@ export default function ReferralsPage() {
                 <button
                   onClick={createCode}
                   disabled={creating}
-                  className="w-full py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded hover:opacity-90 disabled:opacity-50"
+                  className="w-full py-2.5 sm:py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded hover:opacity-90 disabled:opacity-50 text-sm sm:text-base"
                 >
                   {creating ? "Creating..." : "Generate Referral Link"}
                 </button>

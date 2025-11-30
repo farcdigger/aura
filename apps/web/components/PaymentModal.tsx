@@ -68,39 +68,39 @@ export default function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-black p-6 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-bold text-black dark:text-white">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-black p-4 sm:p-6 max-w-md w-full border border-gray-200 dark:border-gray-800 rounded-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-xl sm:text-2xl font-bold text-black dark:text-white">
             Add Tokens
           </h3>
           <button
             onClick={onClose}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+            className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors flex-shrink-0"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
           Choose an amount to add tokens to your account. NFT ownership will be verified during payment.
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
           {paymentOptions.map((amount) => (
             <button
               key={amount}
               onClick={() => handlePaymentOption(amount)}
               disabled={processing}
-              className="px-4 py-4 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 sm:px-4 py-3 sm:py-4 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
             >
               ${amount} USD
             </button>
           ))}
         </div>
         {processing && (
-          <div className="flex items-center justify-center gap-2 text-black dark:text-white">
-            <div className="w-5 h-5 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-black dark:text-white">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
             <span>Processing payment...</span>
           </div>
         )}

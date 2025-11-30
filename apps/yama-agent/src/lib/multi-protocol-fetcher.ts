@@ -30,8 +30,8 @@ async function fetchWithPagination(
   limit: number,
 ): Promise<any[]> {
   const records: any[] = [];
-  let skip = 0;
-
+        let skip = 0;
+        
   while (records.length < limit) {
     const batchSize = Math.min(BATCH_SIZE, limit - records.length);
     const query = buildQuery(batchSize, skip);
@@ -46,12 +46,12 @@ async function fetchWithPagination(
   }
 
   return records;
-}
+  }
 
 export async function fetchDEXSwaps(subgraphConfig: SubgraphConfig, limit: number = DEFAULT_LIMIT): Promise<any[]> {
   const client = getGraphClient(subgraphConfig);
   const timestamp = get12HoursAgoTimestamp();
-
+  
   console.log(`[MultiFetcher] Fetching DEX swaps from ${subgraphConfig.name}`);
 
   const swaps = await fetchWithPagination(
@@ -63,9 +63,9 @@ export async function fetchDEXSwaps(subgraphConfig: SubgraphConfig, limit: numbe
         orderBy: timestamp,
         orderDirection: desc,
         where: { timestamp_gte: ${timestamp} }
-      ) {
-        id
-        timestamp
+            ) {
+              id
+              timestamp
         amount0
         amount1
         amountUSD
@@ -87,12 +87,12 @@ export async function fetchDEXSwaps(subgraphConfig: SubgraphConfig, limit: numbe
   );
 
   console.log(`[MultiFetcher] ✅ ${swaps.length} swaps fetched from ${subgraphConfig.name}`);
-
+          
   return swaps.map((swap) => ({
     ...swap,
-    _protocol: subgraphConfig.protocol,
-    _network: subgraphConfig.network,
-    _subgraphName: subgraphConfig.name,
+            _protocol: subgraphConfig.protocol,
+            _network: subgraphConfig.network,
+            _subgraphName: subgraphConfig.name,
     _entityType: 'swap',
   }));
 }
@@ -101,24 +101,24 @@ async function fetchMarkets(client: ReturnType<typeof getGraphClient>): Promise<
   const query = `{
     markets(
       first: 50,
-      orderBy: totalValueLockedUSD,
-      orderDirection: desc
-    ) {
-      id
-      name
+              orderBy: totalValueLockedUSD, 
+              orderDirection: desc
+            ) {
+              id
+              name
       isActive
       canBorrowFrom
       canUseAsCollateral
       maximumLTV
       liquidationThreshold
       liquidationPenalty
-      totalValueLockedUSD
+              totalValueLockedUSD
       totalDepositBalanceUSD
       totalBorrowBalanceUSD
       cumulativeBorrowUSD
       cumulativeLiquidateUSD
       inputToken {
-        id
+              id
         symbol
         name
       }
@@ -126,7 +126,7 @@ async function fetchMarkets(client: ReturnType<typeof getGraphClient>): Promise<
         side
         type
         rate
-      }
+            }
     }
   }`;
   const response = await client.request(query);
@@ -145,34 +145,34 @@ async function fetchLendingEvents(
       ${entity}(
         first: ${first},
         skip: ${skip},
-        orderBy: timestamp,
+            orderBy: timestamp, 
         orderDirection: desc,
         where: { timestamp_gte: ${timestamp} }
-      ) {
-        id
-        timestamp
+          ) {
+            id
+            timestamp
         amount
         amountUSD
         account { id }
         market { id name }
         asset { id symbol name }
-      }
-    }`,
+            }
+         }`,
     limit,
-  );
-
+    );
+    
   return rows.map((row) => ({
     ...row,
     _eventType: entity === 'borrows' ? 'borrow' : 'deposit',
   }));
-}
+  }
 
 export async function fetchLendingData(subgraphConfig: SubgraphConfig, limit: number = DEFAULT_LIMIT): Promise<any[]> {
   const client = getGraphClient(subgraphConfig);
   const timestamp = get12HoursAgoTimestamp();
 
   console.log(`[MultiFetcher] Fetching lending data from ${subgraphConfig.name}`);
-
+    
   const [markets, borrows, deposits] = await Promise.all([
     fetchMarkets(client),
     fetchLendingEvents(client, 'borrows', limit, timestamp),
@@ -196,13 +196,13 @@ export async function fetchLendingData(subgraphConfig: SubgraphConfig, limit: nu
         _network: subgraphConfig.network,
       })),
       deposits: deposits.map((item: any) => ({
-        ...item,
+            ...item,
         _protocol: subgraphConfig.protocol,
         _network: subgraphConfig.network,
       })),
-      _protocol: subgraphConfig.protocol,
-      _network: subgraphConfig.network,
-      _subgraphName: subgraphConfig.name,
+            _protocol: subgraphConfig.protocol,
+            _network: subgraphConfig.network,
+            _subgraphName: subgraphConfig.name,
     },
   ];
 }
@@ -212,14 +212,14 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
     dexLimit = DEFAULT_LIMIT,
     lendingLimit = DEFAULT_LIMIT,
   } = options;
-
+  
   const fetchedAt = new Date().toISOString();
   const result: FetchAllProtocolsResult = {
     fetchedAt,
     dex: {},
     lending: {},
   };
-
+  
   const dexSubgraphs = getSubgraphsByType('dex');
   for (const subgraph of dexSubgraphs) {
     try {
@@ -229,7 +229,7 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
       result.dex[subgraph.protocol] = [];
     }
   }
-
+  
   const lendingSubgraphs = getSubgraphsByType('lending');
   for (const subgraph of lendingSubgraphs) {
     try {
@@ -251,10 +251,10 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
       }, 0)
     );
   }, 0);
-
+  
   console.log('[MultiFetcher] ✅ Fetch complete');
   console.log(`  - DEX swaps: ${totalDex}`);
   console.log(`  - Lending events: ${totalLending}`);
-
+  
   return result;
 }
