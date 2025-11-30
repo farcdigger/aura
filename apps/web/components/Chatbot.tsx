@@ -28,7 +28,6 @@ interface ImageResult {
 const IMAGE_CREDIT_COST = 80_000;
 const IMAGE_POINTS_REWARD = 40;
 const MAX_IMAGE_RESULTS = 8;
-const IMAGE_BETA_WALLET = "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d";
 
 export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,15 +49,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const normalizedWalletAddress = walletAddress?.toLowerCase() ?? null;
-  const canUseImageMode = normalizedWalletAddress === IMAGE_BETA_WALLET;
-  const modeButtons: { key: ChatMode; label: string }[] = canUseImageMode
-    ? [
-        { key: "chat", label: "Chat" },
-        { key: "image", label: "Images" },
-      ]
-    : [{ key: "chat", label: "Chat" }];
-  const showModeToggle = modeButtons.length > 1;
+  const modeButtons: { key: ChatMode; label: string }[] = [
+    { key: "chat", label: "Chat" },
+    { key: "image", label: "Images" },
+  ];
+  const showModeToggle = true;
 
   const getStorageKey = (wallet: string | null) => {
     if (!wallet) return null;
@@ -113,12 +108,6 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     setImagePrompt("");
     setImageError(null);
   }, [walletAddress]);
-
-  useEffect(() => {
-    if (!canUseImageMode && mode !== "chat") {
-      setMode("chat");
-    }
-  }, [canUseImageMode, mode]);
 
   useEffect(() => {
     if (walletAddress && messages.length > 0) {
