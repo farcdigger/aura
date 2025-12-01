@@ -1169,6 +1169,7 @@ Goal: act like an on-chain professor distilling complex raw data into clear, dat
         .upsert(
           {
             report_date: reportDate,
+            source: 'graph', // Explicitly set source for Graph reports
             report_content: {
               report,
               rawDataSummary: dataSummary,
@@ -1180,7 +1181,7 @@ Goal: act like an on-chain professor distilling complex raw data into clear, dat
             model_used: model,
             tokens_used: tokensUsed,
           },
-          { onConflict: 'report_date' },
+          { onConflict: 'report_date,source' }, // Updated to match unique constraint if source column exists
         );
   } catch (error: any) {
       console.error('[fetch-and-analyze-raw] ❌ Failed to save report metadata:', error.message);
