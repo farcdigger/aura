@@ -26,6 +26,13 @@ export const SUBGRAPH_CONFIGS: Record<string, SubgraphConfig> = {
   //   network: 'base',
   //   type: 'lending',
   // },
+  aaveV3_optimism: {
+    id: '3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi',
+    name: 'Aave V3 Optimism (Messari)',
+    protocol: 'aave-v3',
+    network: 'optimism',
+    type: 'lending',
+  },
 };
 
 export function getSubgraphConfig(key: string): SubgraphConfig | undefined {

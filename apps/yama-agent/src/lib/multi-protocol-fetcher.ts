@@ -138,28 +138,65 @@ async function fetchLendingEvents(
   entity: 'borrows' | 'deposits',
   limit: number,
   timestamp: string,
+  subgraphConfig?: SubgraphConfig,
 ): Promise<any[]> {
-  const rows = await fetchWithPagination(
-    client,
-    (first, skip) => `{
-      ${entity}(
-        first: ${first},
-        skip: ${skip},
+  // For Aave V3 Optimism, the market/asset/account relationships may be null
+  // We'll query without nested relationships and handle nulls gracefully
+  const isAaveV3Optimism = subgraphConfig?.id === '3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi';
+  
+  let rows: any[] = [];
+  
+  if (isAaveV3Optimism) {
+    // For Aave V3 Optimism, query without nested relationships to avoid null errors
+    // We'll get market/asset info from the markets query instead
+    try {
+      rows = await fetchWithPagination(
+        client,
+        (first, skip) => `{
+          ${entity}(
+            first: ${first},
+            skip: ${skip},
             orderBy: timestamp, 
-        orderDirection: desc,
-        where: { timestamp_gte: ${timestamp} }
+            orderDirection: desc,
+            where: { timestamp_gte: ${timestamp} }
           ) {
             id
             timestamp
-        amount
-        amountUSD
-        account { id }
-        market { id name }
-        asset { id symbol name }
-            }
-         }`,
-    limit,
+            amount
+            amountUSD
+          }
+        }`,
+        limit,
+      );
+    } catch (error: any) {
+      console.error(`[MultiFetcher] ⚠️ Error fetching ${entity} for Aave V3 Optimism:`, error.message);
+      // Return empty array if query fails
+      return [];
+    }
+  } else {
+    // For other subgraphs, use the full query with relationships
+    rows = await fetchWithPagination(
+      client,
+      (first, skip) => `{
+        ${entity}(
+          first: ${first},
+          skip: ${skip},
+          orderBy: timestamp, 
+          orderDirection: desc,
+          where: { timestamp_gte: ${timestamp} }
+        ) {
+          id
+          timestamp
+          amount
+          amountUSD
+          account { id }
+          market { id name }
+          asset { id symbol name }
+        }
+      }`,
+      limit,
     );
+  }
     
   return rows.map((row) => ({
     ...row,
@@ -175,8 +212,8 @@ export async function fetchLendingData(subgraphConfig: SubgraphConfig, limit: nu
     
   const [markets, borrows, deposits] = await Promise.all([
     fetchMarkets(client),
-    fetchLendingEvents(client, 'borrows', limit, timestamp),
-    fetchLendingEvents(client, 'deposits', limit, timestamp),
+    fetchLendingEvents(client, 'borrows', limit, timestamp, subgraphConfig),
+    fetchLendingEvents(client, 'deposits', limit, timestamp, subgraphConfig),
   ]);
 
   console.log(

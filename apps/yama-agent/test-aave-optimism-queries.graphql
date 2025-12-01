@@ -1,0 +1,181 @@
+# Aave V3 Optimism - Test Queries
+# Bu query'leri The Graph Studio'da veya GraphQL playground'da test edebilirsiniz
+# URL: https://gateway.thegraph.com/api/[YOUR_API_KEY]/subgraphs/id/3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi
+
+# ============================================
+# Query 1: Markets (İlk 10 market)
+# ============================================
+query TestMarkets {
+  markets(
+    first: 10
+    orderBy: totalValueLockedUSD
+    orderDirection: desc
+  ) {
+    id
+    name
+    isActive
+    canBorrowFrom
+    canUseAsCollateral
+    maximumLTV
+    liquidationThreshold
+    liquidationPenalty
+    totalValueLockedUSD
+    totalDepositBalanceUSD
+    totalBorrowBalanceUSD
+    cumulativeBorrowUSD
+    cumulativeLiquidateUSD
+    inputToken {
+      id
+      symbol
+      name
+      decimals
+    }
+    rates {
+      side
+      type
+      rate
+    }
+  }
+}
+
+# ============================================
+# Query 2: Son 12 saatteki Borrows (İlk 100)
+# ============================================
+# NOT: timestamp değerini güncel hale getirmek için şu anki Unix timestamp'ten 43200 saniye (12 saat) çıkarın
+# Örnek: Math.floor(Date.now() / 1000) - 43200
+query TestBorrows {
+  borrows(
+    first: 100
+    skip: 0
+    orderBy: timestamp
+    orderDirection: desc
+    where: { timestamp_gte: "1735689600" }  # Bu değeri güncelleyin!
+  ) {
+    id
+    timestamp
+    amount
+    amountUSD
+    account {
+      id
+    }
+    market {
+      id
+      name
+    }
+    asset {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+# ============================================
+# Query 3: Son 12 saatteki Deposits (İlk 100)
+# ============================================
+query TestDeposits {
+  deposits(
+    first: 100
+    skip: 0
+    orderBy: timestamp
+    orderDirection: desc
+    where: { timestamp_gte: "1735689600" }  # Bu değeri güncelleyin!
+  ) {
+    id
+    timestamp
+    amount
+    amountUSD
+    account {
+      id
+    }
+    market {
+      id
+      name
+    }
+    asset {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+# ============================================
+# Query 4: Pagination Test (Borrows - 1000'er 1000'er)
+# ============================================
+query TestBorrowsPagination {
+  borrows(
+    first: 1000
+    skip: 0
+    orderBy: timestamp
+    orderDirection: desc
+    where: { timestamp_gte: "1735689600" }  # Bu değeri güncelleyin!
+  ) {
+    id
+    timestamp
+    amount
+    amountUSD
+    account {
+      id
+    }
+    market {
+      id
+      name
+    }
+    asset {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+# ============================================
+# Query 5: Pagination Test (Deposits - 1000'er 1000'er)
+# ============================================
+query TestDepositsPagination {
+  deposits(
+    first: 1000
+    skip: 0
+    orderBy: timestamp
+    orderDirection: desc
+    where: { timestamp_gte: "1735689600" }  # Bu değeri güncelleyin!
+  ) {
+    id
+    timestamp
+    amount
+    amountUSD
+    account {
+      id
+    }
+    market {
+      id
+      name
+    }
+    asset {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+# ============================================
+# Query 6: Schema Introspection (Hangi entity'ler var?)
+# ============================================
+query IntrospectSchema {
+  __schema {
+    types {
+      name
+      kind
+      fields {
+        name
+        type {
+          name
+          kind
+        }
+      }
+    }
+  }
+}
+

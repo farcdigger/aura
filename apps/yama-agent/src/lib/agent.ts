@@ -569,10 +569,20 @@ const summarizeLendingData = (lendingData: Record<string, any[]>): LendingSummar
               (depositsUSD || 1)
             : null;
       
-        const borrowVelocityUSD =
-          market.borrowRateMode === 'VARIABLE' ? toNumber(market.totalBorrowBalanceUSD) * 0.01 : 0;
-        const depositVelocityUSD =
-          market.depositRateMode === 'VARIABLE' ? toNumber(market.totalDepositBalanceUSD) * 0.01 : 0;
+        // Extract rates from markets.rates array
+        const rates = market.rates || [];
+        const borrowRate = rates.find((r: any) => r.side === 'BORROWER' && r.type === 'VARIABLE');
+        const depositRate = rates.find((r: any) => r.side === 'LENDER' && r.type === 'VARIABLE');
+        const borrowRateValue = borrowRate?.rate ? Number(borrowRate.rate) : null;
+        const depositRateValue = depositRate?.rate ? Number(depositRate.rate) : null;
+        
+        // Calculate velocity based on actual rates if available
+        const borrowVelocityUSD = borrowRateValue !== null 
+          ? toNumber(market.totalBorrowBalanceUSD) * (borrowRateValue / 100) / 365 // Annual rate to daily
+          : 0;
+        const depositVelocityUSD = depositRateValue !== null
+          ? toNumber(market.totalDepositBalanceUSD) * (depositRateValue / 100) / 365 // Annual rate to daily
+          : 0;
 
         const liquidationThresholdUSD =
           liquidationThreshold !== null ? (liquidationThreshold / 100) * depositsUSD : 0;
@@ -593,6 +603,8 @@ const summarizeLendingData = (lendingData: Record<string, any[]>): LendingSummar
           liquidationBufferUSD: Number(liquidationBufferUSD.toFixed(2)),
           liquidationBufferPct:
             liquidationBufferPct !== null ? Number(liquidationBufferPct.toFixed(4)) : null,
+          borrowRate: borrowRateValue !== null ? Number(borrowRateValue.toFixed(4)) : null,
+          depositRate: depositRateValue !== null ? Number(depositRateValue.toFixed(4)) : null,
           borrowVelocityUSD: Number(borrowVelocityUSD.toFixed(2)),
           depositVelocityUSD: Number(depositVelocityUSD.toFixed(2)),
           liquidationThresholdUSD: Number(liquidationThresholdUSD.toFixed(2)),
