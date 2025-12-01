@@ -26,6 +26,7 @@ export async function GET() {
       .select(
         "report_date, generated_at, model_used, tokens_used, report_content",
       )
+      .or("source.is.null,source.eq.graph") // Only show Graph reports (exclude Raydium)
       .order("generated_at", { ascending: false })
       .limit(1)
       .maybeSingle() as { data: GraphReport | null; error: any };
