@@ -11,9 +11,16 @@ const LENDING_MARKET_TABLE = process.env.SUPABASE_LENDING_MARKET_TABLE || 'graph
 async function saveDexSwaps(allDexData: DexData): Promise<void> {
   const supabase = getSupabaseClient();
   const rows: any[] = [];
+  const seenSwapIds = new Set<string>();
   
   for (const [protocol, swaps] of Object.entries(allDexData)) {
     for (const swap of swaps) {
+      // Skip duplicate swap_id's within the same batch
+      if (seenSwapIds.has(swap.id)) {
+        continue;
+      }
+      seenSwapIds.add(swap.id);
+      
       rows.push({
         swap_id: swap.id,
         protocol: swap._protocol || protocol,
@@ -85,10 +92,17 @@ async function saveLendingMarkets(data: LendingData): Promise<void> {
 async function saveLendingEvents(data: LendingData): Promise<void> {
   const supabase = getSupabaseClient();
   const rows: any[] = [];
+  const seenEventIds = new Set<string>();
   
   for (const [protocol, entries] of Object.entries(data)) {
     for (const entry of entries) {
       for (const event of [...(entry.borrows || []), ...(entry.deposits || [])]) {
+        // Skip duplicate event_id's within the same batch
+        if (seenEventIds.has(event.id)) {
+          continue;
+        }
+        seenEventIds.add(event.id);
+        
         rows.push({
           event_id: event.id,
           protocol,
