@@ -16,13 +16,16 @@ export const SUBGRAPH_CONFIGS: Record<string, SubgraphConfig> = {
     network: 'mainnet',
     type: 'dex',
   },
-  aaveV3_base: {
-    id: 'D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9',
-    name: 'Aave V3 Base (Messari)',
-    protocol: 'aave-v3',
-    network: 'base',
-    type: 'lending',
-  },
+  // Aave V3 Base subgraph temporarily disabled due to The Graph indexer issues
+  // The decentralized network indexers are not working properly
+  // TODO: Re-enable when indexers are fixed or find alternative subgraph
+  // aaveV3_base: {
+  //   id: 'D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9',
+  //   name: 'Aave V3 Base (Messari)',
+  //   protocol: 'aave-v3',
+  //   network: 'base',
+  //   type: 'lending',
+  // },
 };
 
 export function getSubgraphConfig(key: string): SubgraphConfig | undefined {
