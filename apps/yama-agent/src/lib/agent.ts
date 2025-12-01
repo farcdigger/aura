@@ -1043,9 +1043,10 @@ addEntrypoint({
       lendingSummary,
       dexSummary.pairDirectionStats,
     );
-    const dexSummaryStr = safeStringify(dexSummary, 100_000);
-    const lendingSummaryStr = safeStringify(lendingSummary, 100_000);
-    const crossSummaryStr = safeStringify(crossSummary, 30_000);
+    // Graph reports: 160k total limit (was 100k for Helius, restored to original)
+    const dexSummaryStr = safeStringify(dexSummary, 130_000);
+    const lendingSummaryStr = safeStringify(lendingSummary, 20_000);
+    const crossSummaryStr = safeStringify(crossSummary, 10_000);
 
     const safeJoin = (value: any, fallback: string = 'None') => {
       if (!Array.isArray(value) || value.length === 0) {

@@ -43,12 +43,24 @@ async function saveDexSwaps(allDexData: DexData): Promise<void> {
     return;
   }
   
-  const { error } = await supabase.from(DEX_TABLE).upsert(rows, { onConflict: 'swap_id' });
+  // Batch insert to avoid Supabase timeout (1000 rows per batch)
+  const BATCH_SIZE = 1000;
+  let totalSaved = 0;
+  
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase.from(DEX_TABLE).upsert(batch, { onConflict: 'swap_id' });
+    
     if (error) {
-    console.error('[Supabase] ❌ Failed to save DEX swaps:', error.message);
-  } else {
-    console.log(`[Supabase] ✅ Saved ${rows.length} DEX swaps`);
-}
+      console.error(`[Supabase] ❌ Failed to save DEX swaps batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error.message);
+      throw error; // Stop on error
+    } else {
+      totalSaved += batch.length;
+      console.log(`[Supabase] ✅ Saved batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} swaps (total: ${totalSaved}/${rows.length})`);
+    }
+  }
+  
+  console.log(`[Supabase] ✅ Saved ${totalSaved} DEX swaps total`);
 }
 
 async function saveLendingMarkets(data: LendingData): Promise<void> {
