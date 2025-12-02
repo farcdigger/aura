@@ -452,9 +452,9 @@ export async function fetchDerivativesData(
   limit: number = 20000,
 ): Promise<any[]> {
   const client = getGraphClient(subgraphConfig);
-  const timestamp = get12HoursAgoTimestamp();
   
   console.log(`[MultiFetcher] Fetching derivatives data from ${subgraphConfig.name}`);
+  console.log(`[MultiFetcher] Using NO timestamp filter (like working manual queries)`);
   
   // GMX specific queries
   if (subgraphConfig.protocol === 'gmx-perpetuals') {
@@ -466,7 +466,7 @@ export async function fetchDerivativesData(
       // - Active Positions: 500 (2.5%)
       
       const [swaps, positionSnapshots, liquidations, positions] = await Promise.all([
-        // 1. Swaps (7,000 limit)
+        // 1. Swaps (7,000 limit) - NO timestamp filter (like working manual query)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -474,8 +474,7 @@ export async function fetchDerivativesData(
               first: ${first},
               skip: ${skip},
               orderBy: timestamp,
-              orderDirection: desc,
-              where: { timestamp_gte: ${timestamp} }
+              orderDirection: desc
             ) {
               id
               timestamp
@@ -492,7 +491,7 @@ export async function fetchDerivativesData(
           Math.min(limit * 0.35, 7000),
         ),
         
-        // 2. Position Snapshots (12,000 limit) - Critical for trend analysis
+        // 2. Position Snapshots (12,000 limit) - NO timestamp filter (like working manual query)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -500,8 +499,7 @@ export async function fetchDerivativesData(
               first: ${first},
               skip: ${skip},
               orderBy: timestamp,
-              orderDirection: desc,
-              where: { timestamp_gte: ${timestamp} }
+              orderDirection: desc
             ) {
               id
               timestamp
@@ -520,7 +518,7 @@ export async function fetchDerivativesData(
           Math.min(limit * 0.60, 12000),
         ),
         
-        // 3. Liquidations (500 limit)
+        // 3. Liquidations (500 limit) - NO timestamp filter (gets recent ones via orderBy)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -528,8 +526,7 @@ export async function fetchDerivativesData(
               first: ${first},
               skip: ${skip},
               orderBy: timestamp,
-              orderDirection: desc,
-              where: { timestamp_gte: ${timestamp} }
+              orderDirection: desc
             ) {
               id
               timestamp
