@@ -7,6 +7,7 @@ type LendingData = Record<string, any[]>;
 const DEX_TABLE = process.env.SUPABASE_DEX_TABLE || 'graph_dex_swaps';
 const LENDING_EVENT_TABLE = process.env.SUPABASE_LENDING_EVENT_TABLE || 'graph_lending_events';
 const LENDING_MARKET_TABLE = process.env.SUPABASE_LENDING_MARKET_TABLE || 'graph_lending_markets';
+const NFT_DATA_TABLE = process.env.SUPABASE_NFT_TABLE || 'graph_nft_data';
 
 async function saveDexSwaps(allDexData: DexData): Promise<void> {
   const supabase = getSupabaseClient();
@@ -146,11 +147,117 @@ async function saveLendingEvents(data: LendingData): Promise<void> {
     }
   }
   
+async function saveNFTData(allNFTData: Record<string, any[]>): Promise<void> {
+  const supabase = getSupabaseClient();
+  const rows: any[] = [];
+  const seenEntityIds = new Set<string>();
+  
+  for (const [protocol, nftEntries] of Object.entries(allNFTData)) {
+    for (const entry of nftEntries) {
+      const entityType = entry._entityType || 'unknown';
+      const entityId = entry.id || entry.projectId || entry.tokenId || 'unknown';
+      const uniqueKey = `${entityId}-${entityType}-${protocol}`;
+      
+      // Skip duplicates
+      if (seenEntityIds.has(uniqueKey)) {
+        continue;
+      }
+      seenEntityIds.add(uniqueKey);
+      
+      const row: any = {
+        entity_id: entityId,
+        entity_type: entityType,
+        protocol: entry._protocol || protocol,
+        network: entry._network || 'ethereum',
+        subgraph_name: entry._subgraphName || null,
+        raw_data: entry,
+        fetched_at: new Date().toISOString(),
+      };
+      
+      // Project fields
+      if (entityType === 'project') {
+        row.project_id = entry.projectId;
+        row.project_name = entry.name;
+        row.artist_name = entry.artistName;
+        row.invocations = entry.invocations?.toString();
+        row.max_invocations = entry.maxInvocations?.toString();
+        row.price_per_token_wei = entry.pricePerTokenInWei?.toString();
+        row.currency_symbol = entry.currencySymbol;
+        row.active = entry.active === true;
+        row.complete = entry.complete === true;
+      }
+      
+      // Transfer fields
+      if (entityType === 'transfer') {
+        row.transfer_from = entry.from;
+        row.transfer_to = entry.to;
+        row.block_number = entry.blockNumber?.toString();
+        row.block_timestamp = entry.blockTimestamp?.toString();
+        row.transaction_hash = entry.transactionHash;
+        row.token_id = entry.token?.tokenId;
+        row.project_id = entry.token?.project?.projectId;
+        row.project_name = entry.token?.project?.name;
+      }
+      
+      // Token fields
+      if (entityType === 'token') {
+        row.token_id = entry.tokenId;
+        row.owner_address = entry.owner?.id;
+        row.transfer_count = entry.transfers?.length || 0;
+        row.project_id = entry.project?.projectId;
+        row.project_name = entry.project?.name;
+      }
+      
+      // Mint fields (PrimaryPurchase)
+      if (entityType === 'mint') {
+        row.token_id = entry.token?.tokenId;
+        row.project_id = entry.token?.project?.projectId;
+        row.project_name = entry.token?.project?.name;
+        row.minter_address = entry.minterAddress;
+        row.transaction_hash = entry.transactionHash;
+        row.currency_address = entry.currencyAddress;
+        row.currency_symbol = entry.currencySymbol;
+        row.currency_decimals = entry.currencyDecimals;
+      }
+      
+      rows.push(row);
+    }
+  }
+  
+  if (rows.length === 0) {
+    return;
+  }
+  
+  // Batch insert to avoid Supabase timeout (1000 rows per batch)
+  const BATCH_SIZE = 1000;
+  let totalSaved = 0;
+  
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase
+      .from(NFT_DATA_TABLE)
+      .upsert(batch, { 
+        onConflict: 'entity_id,entity_type,protocol,network,fetched_at'
+      });
+    
+    if (error) {
+      console.error(`[Supabase] ❌ Failed to save NFT data batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error.message);
+      throw error;
+    } else {
+      totalSaved += batch.length;
+      console.log(`[Supabase] ✅ Saved batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} NFT records (total: ${totalSaved}/${rows.length})`);
+    }
+  }
+  
+  console.log(`[Supabase] ✅ Saved ${totalSaved} NFT records total`);
+}
+
 export async function saveAllProtocolsData(allData: FetchAllProtocolsResult): Promise<void> {
   try {
     await saveDexSwaps(allData.dex);
     await saveLendingMarkets(allData.lending);
     await saveLendingEvents(allData.lending);
+    await saveNFTData(allData.nft);
   } catch (error: any) {
     console.error('[Supabase] ❌ Failed to save protocol data:', error.message);
   }
