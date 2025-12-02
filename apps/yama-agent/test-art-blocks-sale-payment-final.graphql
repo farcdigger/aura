@@ -1,0 +1,115 @@
+# Art Blocks - Sale ve Payment Final Test
+# Payment entity'sinde price var ama payments query boş dönüyor
+# Sale üzerinden payments'e erişmeyi deneyelim
+
+# 1. Sale - seller ve buyer direkt Bytes (nested değil), payments relation ile
+query GetSaleWithPaymentsCorrected {
+  sales(first: 5, orderBy: blockNumber, orderDirection: desc) {
+    id
+    txHash
+    exchange
+    saleType
+    blockNumber
+    blockTimestamp
+    seller  # Direkt Bytes, nested değil
+    buyer   # Direkt Bytes, nested değil
+    payments {
+      id
+      paymentType
+      paymentToken
+      price  # BigInt - FİYAT BİLGİSİ BURADA!
+      recipient
+    }
+    saleLookupTables {
+      id
+      token {
+        id
+        tokenId
+        project {
+          id
+          projectId
+          name
+        }
+      }
+    }
+  }
+}
+
+# 2. Sale - blockTimestamp ile son 12 saat
+query GetSaleLast12Hours {
+  sales(
+    first: 100,
+    orderBy: blockTimestamp,
+    orderDirection: desc,
+    where: { blockTimestamp_gte: "1764630000" }
+  ) {
+    id
+    txHash
+    exchange
+    saleType
+    blockNumber
+    blockTimestamp
+    seller
+    buyer
+    payments {
+      id
+      paymentType
+      paymentToken
+      price
+      recipient
+    }
+    saleLookupTables {
+      id
+      token {
+        id
+        tokenId
+        project {
+          id
+          projectId
+          name
+        }
+      }
+    }
+  }
+}
+
+# 3. PrimaryPurchase - mint bilgileri (fiyat yok ama mint bilgisi var)
+query GetPrimaryPurchases {
+  primaryPurchases(first: 100, orderBy: transactionHash, orderDirection: desc) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    minterAddress
+    transactionHash
+    currencyAddress
+    currencySymbol
+    currencyDecimals
+  }
+}
+
+# 4. Token - transfers array length ile en çok transfer edilenler
+query GetTokensWithTransferCount {
+  tokens(first: 100) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transfers {
+      id
+    }
+  }
+}
+

@@ -1,0 +1,103 @@
+# Art Blocks - Payment Entity Discovery (Fiyat bilgisi burada olabilir!)
+
+# 1. Payment entity - tüm field'ları keşfet
+query GetPaymentFields {
+  __type(name: "Payment") {
+    fields {
+      name
+      type {
+        kind
+        name
+        ofType {
+          kind
+          name
+        }
+      }
+    }
+  }
+}
+
+# 2. Sale - payments relation ile fiyat bilgisi
+query GetSaleWithPayments {
+  sales(first: 5, orderBy: blockNumber, orderDirection: desc) {
+    id
+    txHash
+    exchange
+    saleType
+    blockNumber
+    blockTimestamp
+    seller {
+      id
+    }
+    buyer {
+      id
+    }
+    payments {
+      id
+      # Payment field'larını görmek için
+    }
+    saleLookupTables {
+      id
+      token {
+        id
+        tokenId
+        project {
+          id
+          projectId
+          name
+        }
+      }
+    }
+  }
+}
+
+# 3. Transfer - blockTimestamp kullanarak son 12 saat
+query GetTransferWithTimestamp {
+  transfers(
+    first: 5,
+    orderBy: blockTimestamp,
+    orderDirection: desc
+  ) {
+    id
+    blockNumber
+    blockTimestamp
+    from
+    to
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 4. Sale - saleLookupTables ile token bilgisi
+query GetSaleWithTokens {
+  sales(first: 3) {
+    id
+    blockNumber
+    blockTimestamp
+    exchange
+    saleType
+    payments {
+      id
+    }
+    saleLookupTables {
+      id
+      token {
+        id
+        tokenId
+        project {
+          id
+          projectId
+          name
+        }
+      }
+    }
+  }
+}
+

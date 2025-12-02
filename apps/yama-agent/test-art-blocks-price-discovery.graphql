@@ -1,0 +1,96 @@
+# Art Blocks - Price Information Discovery
+# Fiyat bilgilerini bulmak için tüm olası entity'leri test ediyoruz
+
+# 1. Sale - tüm field'ları keşfet (boş döndü ama field'ları görelim)
+query GetSaleAllFields {
+  sales(first: 1) {
+    id
+    blockNumber
+    # Diğer olası field'lar
+  }
+}
+
+# 2. PrimaryPurchase - tüm field'ları keşfet
+query GetPrimaryPurchaseAllFields {
+  primaryPurchases(first: 3) {
+    id
+    # Tüm olası field'ları deneyelim
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    to {
+      id
+    }
+    # price field'ları var mı?
+  }
+}
+
+# 3. Payment entity - fiyat bilgisi burada olabilir
+query GetPaymentFields {
+  payments(first: 3) {
+    id
+    # Tüm field'ları görelim
+  }
+}
+
+# 4. Bid entity - teklif bilgileri burada olabilir
+query GetBidFields {
+  bids(first: 3) {
+    id
+    # Tüm field'ları görelim
+  }
+}
+
+# 5. Transfer - belki farklı bir yapıda fiyat var?
+query GetTransferAllFields {
+  transfers(first: 2) {
+    id
+    blockNumber
+    from
+    to
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    # Tüm field'ları görelim
+  }
+}
+
+# 6. Sale - detaylı field keşfi (eğer veri varsa)
+query GetSaleDetailed {
+  sales(first: 10, orderBy: blockNumber, orderDirection: desc) {
+    id
+    blockNumber
+  }
+}
+
+# 7. PrimaryPurchase - token ve to relation'ları
+query GetPrimaryPurchaseWithRelations {
+  primaryPurchases(first: 5) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    to {
+      id
+    }
+  }
+}
+

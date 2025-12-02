@@ -1,0 +1,130 @@
+# Example Test Queries for Subgraphs
+# Use these as templates for testing new subgraphs
+
+# ============================================
+# DEX (Decentralized Exchange) Queries
+# ============================================
+
+# Basic pools/pairs query
+# {
+#   pools(first: 10, orderBy: totalValueLockedUSD, orderDirection: desc) {
+#     id
+#     name
+#     token0 { symbol }
+#     token1 { symbol }
+#     totalValueLockedUSD
+#   }
+# }
+
+# Recent swaps
+# {
+#   swaps(first: 20, orderBy: timestamp, orderDirection: desc) {
+#     id
+#     timestamp
+#     amount0
+#     amount1
+#     amountUSD
+#     sender
+#   }
+# }
+
+# ============================================
+# Lending Protocol Queries
+# ============================================
+
+# Markets overview
+# {
+#   markets(first: 10) {
+#     id
+#     name
+#     inputToken { symbol }
+#     totalValueLockedUSD
+#     totalDepositBalanceUSD
+#     totalBorrowBalanceUSD
+#   }
+# }
+
+# Recent borrows
+# {
+#   borrows(first: 20, orderBy: timestamp, orderDirection: desc) {
+#     id
+#     timestamp
+#     amount
+#     amountUSD
+#     market { name }
+#     account { id }
+#   }
+# }
+
+# Recent deposits
+# {
+#   deposits(first: 20, orderBy: timestamp, orderDirection: desc) {
+#     id
+#     timestamp
+#     amount
+#     amountUSD
+#     market { name }
+#     account { id }
+#   }
+# }
+
+# ============================================
+# NFT Queries
+# ============================================
+
+# Collections
+# {
+#   collections(first: 10) {
+#     id
+#     name
+#     totalSupply
+#     floorPrice
+#     volumeTraded
+#   }
+# }
+
+# Recent transfers
+# {
+#   transfers(first: 20, orderBy: timestamp, orderDirection: desc) {
+#     id
+#     timestamp
+#     from
+#     to
+#     token { id tokenId }
+#     transactionHash
+#   }
+# }
+
+# ============================================
+# Time-filtered Query Example
+# ============================================
+
+# Replace "1733097600" with actual Unix timestamp (12 hours ago)
+# You can calculate: Math.floor((Date.now() - 12*60*60*1000) / 1000)
+# {
+#   swaps(
+#     first: 100
+#     orderBy: timestamp
+#     orderDirection: desc
+#     where: { timestamp_gte: "1733097600" }
+#   ) {
+#     id
+#     timestamp
+#     amountUSD
+#   }
+# }
+
+# ============================================
+# Simple Test Query (Use this first!)
+# ============================================
+
+# Start with this to check basic connectivity
+{
+  _meta {
+    block {
+      number
+      timestamp
+    }
+  }
+}
+

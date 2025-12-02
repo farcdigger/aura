@@ -10,7 +10,9 @@
     "vercel-build": "npm run build",
     "type-check": "tsc --noEmit",
     "get-wallet": "bun run scripts/get-wallet.ts",
-    "sync-env": "bun run scripts/sync-env.ts"
+    "sync-env": "bun run scripts/sync-env.ts",
+    "investigate": "bun run scripts/investigate-new-subgraph.ts",
+    "test-query": "bun run scripts/test-subgraph-query.ts"
   },
   "dependencies": {
     "@lucid-agents/core": "latest",

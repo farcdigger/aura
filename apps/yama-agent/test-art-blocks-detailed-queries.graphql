@@ -1,0 +1,177 @@
+# Art Blocks Subgraph - Detailed Test Queries
+# Subgraph ID: 6bR1oVsRUUs6czNiB6W7NNenTXtVfNd5iSiwvS4QbRPB
+
+# 1. Token detayları - hangi field'lar var?
+query GetTokenDetails {
+  tokens(first: 3) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    # transfers relation var mı?
+    transfers {
+      id
+    }
+  }
+}
+
+# 2. Transfer detayları - hangi field'lar var?
+query GetTransferDetails {
+  transfers(first: 3) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    from {
+      id
+    }
+    to {
+      id
+    }
+    # blockNumber var mı?
+    blockNumber
+    # transactionHash var mı?
+    transactionHash
+  }
+}
+
+# 3. Sale entity'si - fiyat bilgisi burada olabilir
+query GetSaleDetails {
+  sales(first: 3) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    buyer {
+      id
+    }
+    seller {
+      id
+    }
+    # price field'ları var mı?
+    price
+    priceInWei
+    # timestamp var mı?
+    timestamp
+    blockNumber
+    transactionHash
+  }
+}
+
+# 4. PrimaryPurchase - mint işlemleri burada olabilir
+query GetPrimaryPurchaseDetails {
+  primaryPurchases(first: 3) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    to {
+      id
+    }
+    # price field'ları var mı?
+    price
+    priceInWei
+    # timestamp var mı?
+    timestamp
+    blockNumber
+    transactionHash
+  }
+}
+
+# 5. Token orderBy seçenekleri - transfers ile sıralama
+query GetTokensByTransfers {
+  tokens(
+    first: 5,
+    orderBy: transfers,
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    # transfers sayısını nasıl alırız?
+    transfers {
+      id
+    }
+  }
+}
+
+# 6. Transfer orderBy seçenekleri
+query GetTransfersOrdered {
+  transfers(
+    first: 5,
+    orderBy: blockNumber,
+    orderDirection: desc
+  ) {
+    id
+    blockNumber
+    token {
+      id
+      tokenId
+    }
+  }
+}
+
+# 7. Sale orderBy seçenekleri
+query GetSalesOrdered {
+  sales(
+    first: 5,
+    orderBy: timestamp,
+    orderDirection: desc
+  ) {
+    id
+    timestamp
+    price
+    priceInWei
+    token {
+      id
+      tokenId
+    }
+  }
+}
+
+# 8. PrimaryPurchase orderBy seçenekleri
+query GetPrimaryPurchasesOrdered {
+  primaryPurchases(
+    first: 5,
+    orderBy: timestamp,
+    orderDirection: desc
+  ) {
+    id
+    timestamp
+    price
+    priceInWei
+    token {
+      id
+      tokenId
+    }
+  }
+}
+

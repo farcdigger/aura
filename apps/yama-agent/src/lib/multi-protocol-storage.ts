@@ -8,6 +8,7 @@ const DEX_TABLE = process.env.SUPABASE_DEX_TABLE || 'graph_dex_swaps';
 const LENDING_EVENT_TABLE = process.env.SUPABASE_LENDING_EVENT_TABLE || 'graph_lending_events';
 const LENDING_MARKET_TABLE = process.env.SUPABASE_LENDING_MARKET_TABLE || 'graph_lending_markets';
 const NFT_DATA_TABLE = process.env.SUPABASE_NFT_TABLE || 'graph_nft_data';
+const DERIVATIVES_TABLE = process.env.SUPABASE_DERIVATIVES_TABLE || 'graph_derivatives_data';
 
 async function saveDexSwaps(allDexData: DexData): Promise<void> {
   const supabase = getSupabaseClient();
@@ -252,12 +253,101 @@ async function saveNFTData(allNFTData: Record<string, any[]>): Promise<void> {
   console.log(`[Supabase] ✅ Saved ${totalSaved} NFT records total`);
 }
 
+async function saveDerivativesData(allDerivativesData: Record<string, any[]>): Promise<void> {
+  const supabase = getSupabaseClient();
+  const rows: any[] = [];
+  const seenIds = new Set<string>();
+  
+  for (const [protocol, entries] of Object.entries(allDerivativesData)) {
+    for (const entry of entries) {
+      const entityType = entry._entityType;
+      const uniqueId = `${entry.id}-${entityType}-${entry.timestamp || entry.timestampOpened || Date.now()}`;
+      
+      // Skip duplicates
+      if (seenIds.has(uniqueId)) {
+        continue;
+      }
+      seenIds.add(uniqueId);
+      
+      const row: any = {
+        entry_id: entry.id,
+        entity_type: entityType,
+        protocol: entry._protocol || protocol,
+        network: entry._network || null,
+        subgraph_name: entry._subgraphName || null,
+        timestamp: entry.timestamp ? Number(entry.timestamp) : entry.timestampOpened ? Number(entry.timestampOpened) : null,
+        fetched_at: new Date().toISOString(),
+        raw_data: entry,
+      };
+      
+      // Common fields
+      row.account_id = entry.account?.id || null;
+      row.asset_symbol = entry.asset?.symbol || entry.position?.asset?.symbol || null;
+      row.hash = entry.hash || null;
+      
+      // Entity-specific fields
+      if (entityType === 'swap') {
+        row.token_in = entry.tokenIn?.symbol || null;
+        row.token_out = entry.tokenOut?.symbol || null;
+        row.amount_in_usd = entry.amountInUSD ? Number(entry.amountInUSD) : null;
+        row.amount_out_usd = entry.amountOutUSD ? Number(entry.amountOutUSD) : null;
+      } else if (entityType === 'positionSnapshot') {
+        row.balance = entry.balance || null;
+        row.balance_usd = entry.balanceUSD ? Number(entry.balanceUSD) : null;
+        row.collateral_balance = entry.collateralBalance || null;
+        row.collateral_balance_usd = entry.collateralBalanceUSD ? Number(entry.collateralBalanceUSD) : null;
+        row.position_side = entry.position?.side || null;
+      } else if (entityType === 'liquidation') {
+        row.amount = entry.amount || null;
+        row.amount_usd = entry.amountUSD ? Number(entry.amountUSD) : null;
+        row.profit_usd = entry.profitUSD ? Number(entry.profitUSD) : null;
+      } else if (entityType === 'position') {
+        row.balance = entry.balance || null;
+        row.balance_usd = entry.balanceUSD ? Number(entry.balanceUSD) : null;
+        row.position_side = entry.side || null;
+        row.block_number = entry.blockNumberOpened ? Number(entry.blockNumberOpened) : null;
+      }
+      
+      rows.push(row);
+    }
+  }
+  
+  if (rows.length === 0) {
+    console.log('[Supabase] No derivatives data to save');
+    return;
+  }
+  
+  // Batch insert (1000 rows per batch)
+  const BATCH_SIZE = 1000;
+  let totalSaved = 0;
+  
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase
+      .from(DERIVATIVES_TABLE)
+      .upsert(batch, { 
+        onConflict: 'entry_id,entity_type,protocol,network,fetched_at'
+      });
+    
+    if (error) {
+      console.error(`[Supabase] ❌ Failed to save derivatives data batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error.message);
+      throw error;
+    } else {
+      totalSaved += batch.length;
+      console.log(`[Supabase] ✅ Saved batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} derivatives records (total: ${totalSaved}/${rows.length})`);
+    }
+  }
+  
+  console.log(`[Supabase] ✅ Saved ${totalSaved} derivatives records total`);
+}
+
 export async function saveAllProtocolsData(allData: FetchAllProtocolsResult): Promise<void> {
   try {
     await saveDexSwaps(allData.dex);
     await saveLendingMarkets(allData.lending);
     await saveLendingEvents(allData.lending);
     await saveNFTData(allData.nft);
+    await saveDerivativesData(allData.derivatives);
   } catch (error: any) {
     console.error('[Supabase] ❌ Failed to save protocol data:', error.message);
   }

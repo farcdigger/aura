@@ -1,0 +1,76 @@
+# Art Blocks - Final Field Discovery
+
+# 1. Sale - tüm field'ları görelim (sadece id ile başlayalım, sonra ekleyelim)
+query GetSaleAllFields {
+  sales(first: 1) {
+    id
+    blockNumber
+  }
+}
+
+# 2. PrimaryPurchase - tüm field'ları görelim
+query GetPrimaryPurchaseAllFields {
+  primaryPurchases(first: 1) {
+    id
+    blockNumber
+  }
+}
+
+# 3. Transfer - blockNumber'dan timestamp hesaplayabiliriz, ama önce blockNumber'ı kontrol edelim
+query GetTransferWithBlock {
+  transfers(first: 3, orderBy: blockNumber, orderDirection: desc) {
+    id
+    blockNumber
+    from {
+      id
+    }
+    to {
+      id
+    }
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 4. Token - transfers array length ile en çok transfer edilenleri bulalım
+query GetTokensWithTransfers {
+  tokens(first: 10) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transfers {
+      id
+    }
+  }
+}
+
+# 5. Project - invocations ve diğer field'lar
+query GetProjectDetails {
+  projects(first: 3, where: { active: true }) {
+    id
+    projectId
+    name
+    artistName
+    invocations
+    maxInvocations
+    complete
+    pricePerTokenInWei
+    currencySymbol
+    currencyAddress
+  }
+}
+

@@ -1,0 +1,105 @@
+# Art Blocks - Correct Queries Based on Errors
+
+# 1. Transfer - from ve to direkt address (Bytes!), nested değil
+query GetTransferCorrect {
+  transfers(first: 3, orderBy: blockNumber, orderDirection: desc) {
+    id
+    blockNumber
+    from  # Direkt address string
+    to    # Direkt address string
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 2. PrimaryPurchase - blockNumber yok, hangi field'lar var?
+query GetPrimaryPurchaseCorrect {
+  primaryPurchases(first: 3) {
+    id
+    # blockNumber yok, başka ne var?
+  }
+}
+
+# 3. Token - transfers relation ile en çok transfer edilenleri bulalım
+query GetTokensWithTransferCount {
+  tokens(first: 10) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transfers {
+      id
+    }
+  }
+}
+
+# 4. Transfer - son 12 saat için blockNumber filter (timestamp yok, blockNumber kullanacağız)
+# Block number'ı timestamp'e çevirmek için: son 12 saat = ~5000 block (12 saat * 12 block/dakika * 60 dakika)
+# Ama önce mevcut block number'ı öğrenmemiz lazım
+query GetRecentTransfers {
+  transfers(
+    first: 100,
+    orderBy: blockNumber,
+    orderDirection: desc
+  ) {
+    id
+    blockNumber
+    from
+    to
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 5. Project - tüm detaylar
+query GetProjectFull {
+  projects(first: 5, where: { active: true }, orderBy: invocations, orderDirection: desc) {
+    id
+    projectId
+    name
+    artistName
+    invocations
+    maxInvocations
+    complete
+    pricePerTokenInWei
+    currencySymbol
+    currencyAddress
+    active
+  }
+}
+
+# 6. PrimaryPurchase - tüm field'ları keşfet (sadece id ile başla)
+query GetPrimaryPurchaseFields {
+  primaryPurchases(first: 3) {
+    id
+  }
+}
+
+# 7. Sale - tüm field'ları keşfet (boş döndü ama field'ları görelim)
+query GetSaleFields {
+  sales(first: 1) {
+    id
+    blockNumber
+  }
+}
+

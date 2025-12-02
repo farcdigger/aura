@@ -826,6 +826,156 @@ type NFTSummary = {
   }>;
 };
 
+const summarizeDerivativesData = (derivativesData: Record<string, any[]>): any => {
+  const allRecords = Object.values(derivativesData).flat();
+  
+  const swaps = allRecords.filter((r) => r._entityType === 'swap');
+  const positionSnapshots = allRecords.filter((r) => r._entityType === 'positionSnapshot');
+  const liquidations = allRecords.filter((r) => r._entityType === 'liquidation');
+  const positions = allRecords.filter((r) => r._entityType === 'position');
+  
+  // Overall metrics
+  const totalSwapVolumeUSD = swaps.reduce((sum, s) => sum + toNumber(s.amountInUSD) + toNumber(s.amountOutUSD), 0) / 2;
+  const totalLiquidationsUSD = liquidations.reduce((sum, l) => sum + toNumber(l.amountUSD), 0);
+  
+  // Long/Short Analysis from position snapshots
+  const longSnapshots = positionSnapshots.filter((p) => p.position?.side === 'LONG');
+  const shortSnapshots = positionSnapshots.filter((p) => p.position?.side === 'SHORT');
+  
+  const longTotalUSD = longSnapshots.reduce((sum, p) => sum + toNumber(p.balanceUSD), 0);
+  const shortTotalUSD = shortSnapshots.reduce((sum, p) => sum + toNumber(p.balanceUSD), 0);
+  const totalOpenInterest = longTotalUSD + shortTotalUSD;
+  const longPercentage = totalOpenInterest > 0 ? (longTotalUSD / totalOpenInterest) * 100 : 0;
+  
+  // Asset breakdown
+  const assetMap = new Map<string, { long: number; short: number; liquidations: number }>();
+  positionSnapshots.forEach((p) => {
+    const asset = p.position?.asset?.symbol || 'UNKNOWN';
+    const side = p.position?.side;
+    const balanceUSD = toNumber(p.balanceUSD);
+    
+    if (!assetMap.has(asset)) {
+      assetMap.set(asset, { long: 0, short: 0, liquidations: 0 });
+    }
+    const stats = assetMap.get(asset)!;
+    if (side === 'LONG') stats.long += balanceUSD;
+    if (side === 'SHORT') stats.short += balanceUSD;
+  });
+  
+  liquidations.forEach((l) => {
+    const asset = l.asset?.symbol || 'UNKNOWN';
+    if (assetMap.has(asset)) {
+      assetMap.get(asset)!.liquidations += toNumber(l.amountUSD);
+    }
+  });
+  
+  const assetBreakdown = Array.from(assetMap.entries())
+    .map(([asset, stats]) => ({
+      asset,
+      longUSD: Number(stats.long.toFixed(2)),
+      shortUSD: Number(stats.short.toFixed(2)),
+      totalUSD: Number((stats.long + stats.short).toFixed(2)),
+      liquidationsUSD: Number(stats.liquidations.toFixed(2)),
+      longPercentage: stats.long + stats.short > 0 ? Number(((stats.long / (stats.long + stats.short)) * 100).toFixed(1)) : 0,
+    }))
+    .sort((a, b) => b.totalUSD - a.totalUSD)
+    .slice(0, 10);
+  
+  // Top whale wallets
+  const accountMap = new Map<string, {
+    address: string;
+    swapVolumeUSD: number;
+    positionUpdates: number;
+    liquidations: number;
+    maxPositionUSD: number;
+  }>();
+  
+  swaps.forEach((s) => {
+    const addr = s.account?.id || 'unknown';
+    if (!accountMap.has(addr)) {
+      accountMap.set(addr, { address: addr, swapVolumeUSD: 0, positionUpdates: 0, liquidations: 0, maxPositionUSD: 0 });
+    }
+    const stats = accountMap.get(addr)!;
+    stats.swapVolumeUSD += toNumber(s.amountInUSD);
+  });
+  
+  positionSnapshots.forEach((p) => {
+    const addr = p.account?.id || 'unknown';
+    if (!accountMap.has(addr)) {
+      accountMap.set(addr, { address: addr, swapVolumeUSD: 0, positionUpdates: 0, liquidations: 0, maxPositionUSD: 0 });
+    }
+    const stats = accountMap.get(addr)!;
+    stats.positionUpdates += 1;
+    const balanceUSD = toNumber(p.balanceUSD);
+    if (balanceUSD > stats.maxPositionUSD) {
+      stats.maxPositionUSD = balanceUSD;
+    }
+  });
+  
+  liquidations.forEach((l) => {
+    const addr = l.account?.id || 'unknown';
+    if (accountMap.has(addr)) {
+      accountMap.get(addr)!.liquidations += 1;
+    }
+  });
+  
+  const topWhales = Array.from(accountMap.values())
+    .filter((a) => a.swapVolumeUSD > 0 || a.maxPositionUSD > 0)
+    .map((a) => ({
+      ...a,
+      swapVolumeUSD: Number(a.swapVolumeUSD.toFixed(2)),
+      maxPositionUSD: Number(a.maxPositionUSD.toFixed(2)),
+      totalActivityScore: a.swapVolumeUSD + a.maxPositionUSD + (a.positionUpdates * 100),
+    }))
+    .sort((a, b) => b.totalActivityScore - a.totalActivityScore)
+    .slice(0, 20);
+  
+  // Recent large liquidations
+  const largeLiquidations = liquidations
+    .filter((l) => toNumber(l.amountUSD) > 100)
+    .map((l) => ({
+      account: l.account?.id || 'unknown',
+      asset: l.asset?.symbol || 'unknown',
+      amountUSD: Number(toNumber(l.amountUSD).toFixed(2)),
+      profitUSD: Number(toNumber(l.profitUSD).toFixed(2)),
+      timestamp: Number(l.timestamp),
+      hash: l.hash || null,
+    }))
+    .sort((a, b) => b.amountUSD - a.amountUSD)
+    .slice(0, 20);
+  
+  // Top swaps
+  const topSwaps = swaps
+    .map((s) => ({
+      account: s.account?.id || 'unknown',
+      tokenIn: s.tokenIn?.symbol || 'unknown',
+      tokenOut: s.tokenOut?.symbol || 'unknown',
+      amountInUSD: Number(toNumber(s.amountInUSD).toFixed(2)),
+      amountOutUSD: Number(toNumber(s.amountOutUSD).toFixed(2)),
+      timestamp: Number(s.timestamp),
+    }))
+    .sort((a, b) => b.amountInUSD - a.amountInUSD)
+    .slice(0, 20);
+  
+  return {
+    overview: {
+      totalSwaps: swaps.length,
+      totalSwapVolumeUSD: Number(totalSwapVolumeUSD.toFixed(2)),
+      totalPositionSnapshots: positionSnapshots.length,
+      totalLiquidations: liquidations.length,
+      totalLiquidationsUSD: Number(totalLiquidationsUSD.toFixed(2)),
+      activePositions: positions.filter((p) => toNumber(p.balanceUSD) > 0).length,
+      totalOpenInterestUSD: Number(totalOpenInterest.toFixed(2)),
+      longPercentage: Number(longPercentage.toFixed(1)),
+      shortPercentage: Number((100 - longPercentage).toFixed(1)),
+    },
+    assetBreakdown,
+    topWhales,
+    largeLiquidations,
+    topSwaps,
+  };
+};
+
 const summarizeNFTData = (nftData: Record<string, any[]>): NFTSummary => {
   // Art Blocks returns flat array with _entityType field
   const allNFTData = Object.values(nftData).flat();
@@ -1168,6 +1318,7 @@ addEntrypoint({
       dexLimit: params.limitPerProtocol,
       lendingLimit: params.limitPerProtocol,
       nftLimit: params.limitPerProtocol,
+      derivativesLimit: 20000, // Higher limit for GMX perpetuals
     });
 
     console.log('[fetch-and-analyze-raw] Step 2: Saving raw data to Supabase...');
@@ -1187,15 +1338,16 @@ addEntrypoint({
       );
     }, 0);
     const nftTotal = Object.values(rawData.nft).reduce((sum, arr) => sum + arr.length, 0);
+    const derivativesTotal = Object.values(rawData.derivatives).reduce((sum, arr) => sum + arr.length, 0);
 
     const dataSummary: DataSummary = {
       metadata: {
         fetchedAt: rawData.fetchedAt,
         timeframe: '12 hours',
         limitPerProtocol: params.limitPerProtocol,
-        totalRecordsFetched: dexTotal + lendingTotal + nftTotal,
-        recordsSentToAI: dexTotal + lendingTotal + nftTotal,
-        note: `All fetched records included (limit ${params.limitPerProtocol} each, 12h window): Uniswap swaps, Aave borrow/deposit events, and NFT projects`,
+        totalRecordsFetched: dexTotal + lendingTotal + nftTotal + derivativesTotal,
+        recordsSentToAI: dexTotal + lendingTotal + nftTotal + derivativesTotal,
+        note: `All fetched records included (12h window): Uniswap swaps (${params.limitPerProtocol}), GMX Perpetuals (20,000), Lending protocols (${params.limitPerProtocol}), NFT protocols (${params.limitPerProtocol})`,
       },
       dex: {
         protocols: Object.keys(rawData.dex),
@@ -1212,6 +1364,11 @@ addEntrypoint({
         totalRecords: nftTotal,
         data: rawData.nft,
       },
+      derivatives: {
+        protocols: Object.keys(rawData.derivatives),
+        totalRecords: derivativesTotal,
+        data: rawData.derivatives,
+      },
     };
 
     for (const section of SECTION_KEYS) {
@@ -1225,20 +1382,11 @@ addEntrypoint({
     }
 
     const dexSummary = summarizeDexData(rawData.dex);
-    const lendingSummary = summarizeLendingData(rawData.lending);
-    const nftSummary = summarizeNFTData(rawData.nft);
-    const crossSummary = buildCrossSummary(
-      rawData.dex,
-      rawData.lending,
-      dexSummary,
-      lendingSummary,
-      dexSummary.pairDirectionStats,
-    );
-    // Graph reports: 160k total limit (was 100k for Helius, restored to original)
-    const dexSummaryStr = safeStringify(dexSummary, 120_000);
-    const lendingSummaryStr = safeStringify(lendingSummary, 15_000);
-    const nftSummaryStr = safeStringify(nftSummary, 20_000);
-    const crossSummaryStr = safeStringify(crossSummary, 5_000);
+    const derivativesSummary = summarizeDerivativesData(rawData.derivatives);
+    
+    // Token allocation: 70% GMX, 30% Uniswap (160k total)
+    const derivativesSummaryStr = safeStringify(derivativesSummary, 112_000); // 70% of 160k
+    const dexSummaryStr = safeStringify(dexSummary, 48_000); // 30% of 160k
 
     const safeJoin = (value: any, fallback: string = 'None') => {
       if (!Array.isArray(value) || value.length === 0) {
@@ -1261,61 +1409,140 @@ addEntrypoint({
 
     const dexRecords = safeNumber(dataSummary.dex.totalRecords);
     const dexProtocols = safeJoin(dataSummary.dex.protocols);
-    const lendingRecords = safeNumber(dataSummary.lending.totalRecords);
-    const lendingProtocols = safeJoin(dataSummary.lending.protocols);
-    const nftRecords = safeNumber(dataSummary.nft.totalRecords);
-    const nftProtocols = safeJoin(dataSummary.nft.protocols);
+    const derivativesRecords = safeNumber(dataSummary.derivatives.totalRecords);
+    const derivativesProtocols = safeJoin(dataSummary.derivatives.protocols);
 
-    let prompt = `You are an on-chain research lead. Below is raw transaction data pulled from Uniswap (DEX), Aave (lending), and NFT protocols over the past 12 hours.
+    let prompt = `You are an on-chain research lead specializing in derivatives and perpetual futures markets. Below is comprehensive trading data from GMX Perpetuals (Arbitrum) and Uniswap DEX over the past 12 hours.
 
 ## DATASET SUMMARY
 
 **Total Records:** ${totalRecords}  
 **Analysis Window:** Last ${timeframe}  
-**Data Pulled At:** ${fetchedAt}
+**Data Pulled At:** ${fetchedAt}  
+**Focus Distribution:** 70% GMX Perpetuals Analysis, 30% Uniswap DEX Analysis
 
-### DEX Protocols (${dexRecords} records)
+### 🔥 GMX PERPETUALS - ARBITRUM (${derivativesRecords} records) [PRIMARY FOCUS - 70%]
+Protocols: ${derivativesProtocols}  
+**Comprehensive perpetual futures data including:**
+- Position snapshots (long/short positions, collateral, balance changes)
+- Liquidations (forced closures, losses, market stress indicators)  
+- Swaps (token exchanges within GMX ecosystem)
+- Active open positions (current market exposure)
+
+**Detailed Analysis:**
+${derivativesSummaryStr}
+
+### 💱 UNISWAP V3 - MAINNET (${dexRecords} records) [SECONDARY FOCUS - 30%]
 Protocols: ${dexProtocols}  
-Synthesis (top pools, whales, large swaps, samples):
+**Spot market DEX activity for context:**
+- Major token swaps and liquidity flows
+- Whale trading patterns on spot markets
+- Price movements and volume trends
+- Correlation with GMX perpetual positions
+
+**Detailed Analysis:**
 ${dexSummaryStr}
-
-### Lending Protocols (${lendingRecords} records)
-Protocols: ${lendingProtocols}  
-Synthesis (market stats, borrow/deposit ratios, risk signals, large events):
-${lendingSummaryStr}
-
-### NFT Protocols (${nftRecords} records)
-Protocols: ${nftProtocols}  
-Synthesis (most traded NFTs, recent transfers, recent mints, featured projects):
-Note: Price data (floor prices, most expensive/cheapest NFTs) is not available in this subgraph.
-${nftSummaryStr}
-
-### Cross-Protocol Links
-Shared metrics to compare swap flows vs. lending balance velocity:
-${crossSummaryStr}
 
 ---
 
-## ANALYSIS GUIDANCE
+## ANALYSIS REQUIREMENTS - MUST FOLLOW
 
-- Treat this like a quant research note: inspect every segment, surface the most material signals, and back each statement with numbers (USD, %, ratios, counts, timestamps, addresses).
-- Derive whatever metrics are useful (volume/TVL, borrow/deposit deltas, whale share, liquidation buffer, implied leverage, velocity, variability). When you invent a metric, mention how it was derived.
-- Prioritize statistically meaningful items (six-figure USD flows, >5% shifts, unusual wallet activity). Ignore trivial noise.
-- Map Uniswap flows to Aave markets whenever the data hints at leverage loops, hedges, liquidity migration, or stress build-ups.
-- Never mention how many “records” or “rows” were provided; speak only about the on-chain facts.
-- Use markdown tables, bullet grids, or ASCII-style diagrams if they help visualize rankings, ratios, or flow maps.
-- Highlight at least 5 contrarian or "aha" insights (anything a casual observer would miss — e.g., whales hedging contrary to dominant flow, stealth liquidation gaps, stablecoin drains pre-borrow). Label each explicitly ("Insight" / "Heads-up") and quantify it.
-- **Identify and include the top 10 most active whale wallets** from the data you've analyzed. These should be wallets with the highest transaction volumes, largest positions, or most significant activity across DEX and lending protocols. Present them in a dedicated section (e.g., "Top 10 Active Whale Wallets") with wallet addresses, their key activities, transaction volumes, and any notable patterns you observe. This is a required section of the report.
-- Whenever you see a questionable number, double-check the context (e.g., verify that large borrow/deposit amounts align with market totals) so the report doesn't misinterpret the data.
-- Tone: analytical, data-first, no investment advice. Think like an on-chain professor briefing institutional clients.
+### 1. PRIMARY FOCUS: GMX PERPETUALS (70% of analysis)
+
+**Prioritize these GMX-specific insights:**
+- **Long/Short Ratios:** Analyze market sentiment through position distribution. What percentage is long vs. short? Which assets show the strongest directional bias?
+- **Open Interest Trends:** Track total capital locked in positions. Is it growing or declining? What does this signal about market confidence?
+- **Liquidation Analysis:** Identify liquidation clusters, high-risk positions, and market stress points. Which accounts got liquidated and why?
+- **Whale Activity:** Who are the power traders? Track their position sizes, leverage patterns, and trading strategies.
+- **Asset Preferences:** Which perpetual markets (WETH, WBTC, LINK, etc.) are most active? Why?
+- **Leverage Patterns:** Analyze collateral-to-position ratios. Are traders over-leveraged?
+
+### 2. REQUIRED SECTIONS (DO NOT SKIP)
+
+#### A. 📊 "5 Critical Market Insights"
+**REQUIRED:** Identify exactly 5 significant findings that most traders would miss. Each insight must:
+- Be numbered (1-5) with a bold headline
+- Include specific numbers (USD amounts, percentages, ratios, wallet addresses)
+- Explain why it matters in plain language
+- Use user-friendly explanations (avoid jargon, explain technical terms)
+
+**Example format:**
+**1. Hidden Short Squeeze Risk on WETH**
+Long positions on WETH total $2.3M (78% of WETH open interest) while short positions are only $640K. This 3.6:1 ratio creates potential for a violent move if longs start closing. The top 3 long whales (0xabc..., 0xdef..., 0x123...) control $1.1M (48% of longs), meaning their exit strategy dictates market direction.
+
+#### B. 🐋 "Top 10 Whale Wallets - Power Trader Analysis"  
+**REQUIRED:** Present the 10 most influential traders with:
+- Wallet address (first 10 chars: 0x1234567890...)
+- Total activity score (swap volume + max position size + activity count)
+- Key characteristics (e.g., "Serial Short Trader", "High Leverage Long Player", "Swing Trader")
+- Notable patterns (e.g., "Increased WBTC shorts by 300% in last 6 hours")
+- Position preferences (long/short bias, favorite assets)
+
+**Format as a clean markdown table:**
+| Rank | Wallet | Activity Score | Max Position | Swaps Volume | Strategy Type |
+|------|--------|---------------|--------------|--------------|---------------|
+
+### 3. ANALYSIS STYLE
+
+- **Use Plain Language:** Write like you're explaining to a smart friend who isn't a crypto expert
+- **Define Technical Terms:** When you use terms like "open interest", "collateral ratio", or "funding rate", add a quick explanation
+- **Numbers First:** Every claim must cite specific USD amounts, percentages, wallet addresses, or timestamps
+- **Tell the Story:** Connect the dots between GMX perpetual activity and Uniswap spot market flows
+- **Be Conversational:** Use phrases like "Here's what's interesting..." or "Notice how..."
+- **Visual Tables:** Use markdown tables to present rankings, comparisons, and breakdowns
+
+### 4. GMX & UNISWAP CORRELATION ANALYSIS
+
+**Important:** Analyze how these two markets interact:
+- **Volume Comparison:** How does GMX perpetual trading volume compare to Uniswap spot volume?
+- **Whale Correlation:** Do the same whales trade on both platforms? Are GMX traders hedging on Uniswap?
+- **Price Impact:** Do large Uniswap swaps trigger GMX position changes or liquidations?
+- **Arbitrage Signals:** Identify price discrepancies or arbitrage opportunities between spot and perps
+- **Flow Analysis:** Track if Uniswap activity leads or follows GMX position changes
+
+### 5. WHAT TO AVOID
+
+- ❌ DON'T mention "records", "rows", or "data points"
+- ❌ DON'T use financial jargon without explanation
+- ❌ DON'T skip the required sections (5 insights + 10 whales)
+- ❌ DON'T provide investment advice or trading recommendations
+- ❌ DON'T be boring or overly academic
+- ❌ DON'T mention lending, NFT, or other protocols (we only have GMX + Uniswap data)
+
+### 6. TONE & VOICE
+
+**Think:** On-chain detective explaining findings to institutional investors  
+**Voice:** Analytical yet accessible, data-driven but engaging  
+**Goal:** Make complex perpetual futures data understandable and actionable
 
 ## OUTPUT FORMAT
 
-- Markdown with a strong H1 title (# Title).
-- Structure the body into sections of your choice (e.g., “Key Signals”, “Flows & Ratios”, “Cross-Protocol Map”, mini tables). Every section must lean on quantified evidence before interpretation.
-- Finish with a single-sentence takeaway summarizing the most important learning.
+**Required Structure:**
+1. # Compelling Title (e.g., "GMX Arbitrum: $X.XM in Liquidations as Longs Dominate WETH")
+2. ## Executive Summary (2-3 sentences of top findings)
+3. ## 📊 5 Critical Market Insights (numbered, detailed, quantified)
+4. ## 🐋 Top 10 Whale Wallets - Power Trader Analysis (table format)
+5. ## GMX Perpetuals Deep Dive
+   - Open Interest Analysis (total, by asset, long/short ratios)
+   - Liquidation Events (biggest liquidations, patterns, risk levels)
+   - Position Activity (new opens, closes, size changes)
+6. ## Asset-by-Asset Breakdown (WETH, WBTC, LINK, etc.)
+7. ## Uniswap Spot Market Context
+   - Major swaps and whale activity
+   - Volume comparison with GMX
+   - Correlation signals
+8. ## Risk Signals & Market Health
+   - Over-leveraged positions
+   - Liquidation cascade risks
+   - Whale concentration concerns
+9. ## One-Sentence Takeaway (bold, memorable conclusion)
 
-Goal: act like an on-chain professor distilling complex raw data into clear, data-backed insights a human can trust.`;
+**Remember:** 
+- 70% focus on GMX perpetuals (positions, liquidations, leverage, whales)
+- 30% focus on Uniswap (spot trading context, correlations, arbitrage)
+- The GMX whales and their trading patterns are the main story
+- Always connect GMX and Uniswap activity when relevant`;
+
 
     const promptLength = prompt.length;
     const estimatedTokens = Math.ceil(promptLength / 4);

@@ -5,6 +5,7 @@ type FetchOptions = {
   dexLimit?: number;
   lendingLimit?: number;
   nftLimit?: number;
+  derivativesLimit?: number;
 };
 
 export type FetchAllProtocolsResult = {
@@ -12,6 +13,7 @@ export type FetchAllProtocolsResult = {
   dex: Record<string, any[]>;
   lending: Record<string, any[]>;
   nft: Record<string, any[]>;
+  derivatives: Record<string, any[]>;
 };
 
 const DEFAULT_LIMIT = 12000;
@@ -441,11 +443,184 @@ export async function fetchNFTData(subgraphConfig: SubgraphConfig, limit: number
   return [];
 }
 
+/**
+ * Fetch derivatives/perpetuals data (GMX)
+ * Limit: 20,000 records (higher than other protocols due to position snapshots)
+ */
+export async function fetchDerivativesData(
+  subgraphConfig: SubgraphConfig,
+  limit: number = 20000,
+): Promise<any[]> {
+  const client = getGraphClient(subgraphConfig);
+  const timestamp = get12HoursAgoTimestamp();
+  
+  console.log(`[MultiFetcher] Fetching derivatives data from ${subgraphConfig.name}`);
+  
+  // GMX specific queries
+  if (subgraphConfig.protocol === 'gmx-perpetuals') {
+    try {
+      // Smart distribution of 20K limit:
+      // - Swaps: 7,000 (35%)
+      // - Position Snapshots: 12,000 (60%) - Most important for trend analysis
+      // - Liquidations: 500 (2.5%)
+      // - Active Positions: 500 (2.5%)
+      
+      const [swaps, positionSnapshots, liquidations, positions] = await Promise.all([
+        // 1. Swaps (7,000 limit)
+        fetchWithPagination(
+          client,
+          (first, skip) => `{
+            swaps(
+              first: ${first},
+              skip: ${skip},
+              orderBy: timestamp,
+              orderDirection: desc,
+              where: { timestamp_gte: ${timestamp} }
+            ) {
+              id
+              timestamp
+              hash
+              account { id }
+              tokenIn { id symbol name }
+              tokenOut { id symbol name }
+              amountIn
+              amountOut
+              amountInUSD
+              amountOutUSD
+            }
+          }`,
+          Math.min(limit * 0.35, 7000),
+        ),
+        
+        // 2. Position Snapshots (12,000 limit) - Critical for trend analysis
+        fetchWithPagination(
+          client,
+          (first, skip) => `{
+            positionSnapshots(
+              first: ${first},
+              skip: ${skip},
+              orderBy: timestamp,
+              orderDirection: desc,
+              where: { timestamp_gte: ${timestamp} }
+            ) {
+              id
+              timestamp
+              balance
+              balanceUSD
+              collateralBalance
+              collateralBalanceUSD
+              account { id }
+              position {
+                id
+                side
+                asset { id symbol name }
+              }
+            }
+          }`,
+          Math.min(limit * 0.60, 12000),
+        ),
+        
+        // 3. Liquidations (500 limit)
+        fetchWithPagination(
+          client,
+          (first, skip) => `{
+            liquidates(
+              first: ${first},
+              skip: ${skip},
+              orderBy: timestamp,
+              orderDirection: desc,
+              where: { timestamp_gte: ${timestamp} }
+            ) {
+              id
+              timestamp
+              hash
+              account { id }
+              asset { id symbol name }
+              amount
+              amountUSD
+              profitUSD
+            }
+          }`,
+          500,
+        ),
+        
+        // 4. Active Positions (500 limit)
+        fetchWithPagination(
+          client,
+          (first, skip) => `{
+            positions(
+              first: ${first},
+              skip: ${skip},
+              orderBy: blockNumberOpened,
+              orderDirection: desc
+            ) {
+              id
+              account { id }
+              asset { id symbol name }
+              balance
+              balanceUSD
+              side
+              blockNumberOpened
+              timestampOpened
+            }
+          }`,
+          500,
+        ),
+      ]);
+      
+      console.log(`[MultiFetcher] ✅ GMX data fetched:`);
+      console.log(`  - Swaps: ${swaps.length}`);
+      console.log(`  - Position Snapshots: ${positionSnapshots.length}`);
+      console.log(`  - Liquidations: ${liquidations.length}`);
+      console.log(`  - Active Positions: ${positions.length}`);
+      
+      // Combine all data with entity type markers
+      return [
+        ...swaps.map((item: any) => ({
+          ...item,
+          _entityType: 'swap',
+          _protocol: subgraphConfig.protocol,
+          _network: subgraphConfig.network,
+          _subgraphName: subgraphConfig.name,
+        })),
+        ...positionSnapshots.map((item: any) => ({
+          ...item,
+          _entityType: 'positionSnapshot',
+          _protocol: subgraphConfig.protocol,
+          _network: subgraphConfig.network,
+          _subgraphName: subgraphConfig.name,
+        })),
+        ...liquidations.map((item: any) => ({
+          ...item,
+          _entityType: 'liquidation',
+          _protocol: subgraphConfig.protocol,
+          _network: subgraphConfig.network,
+          _subgraphName: subgraphConfig.name,
+        })),
+        ...positions.map((item: any) => ({
+          ...item,
+          _entityType: 'position',
+          _protocol: subgraphConfig.protocol,
+          _network: subgraphConfig.network,
+          _subgraphName: subgraphConfig.name,
+        })),
+      ];
+    } catch (error: any) {
+      console.error(`[MultiFetcher] ❌ Error fetching GMX data:`, error.message);
+      return [];
+    }
+  }
+  
+  // Default empty array for other derivatives protocols
+  return [];
+}
+
 export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise<FetchAllProtocolsResult> {
   const {
     dexLimit = DEFAULT_LIMIT,
     lendingLimit = DEFAULT_LIMIT,
     nftLimit = DEFAULT_LIMIT,
+    derivativesLimit = 20000, // Higher limit for GMX due to position snapshots
   } = options;
   
   const fetchedAt = new Date().toISOString();
@@ -454,6 +629,7 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
     dex: {},
     lending: {},
     nft: {},
+    derivatives: {},
   };
   
   const dexSubgraphs = getSubgraphsByType('dex');
@@ -485,6 +661,16 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
       result.nft[subgraph.protocol] = [];
     }
   }
+  
+  const derivativesSubgraphs = getSubgraphsByType('derivatives');
+  for (const subgraph of derivativesSubgraphs) {
+    try {
+      result.derivatives[subgraph.protocol] = await fetchDerivativesData(subgraph, derivativesLimit);
+    } catch (error: any) {
+      console.error(`[MultiFetcher] ❌ Failed to fetch derivatives data from ${subgraph.name}:`, error.message);
+      result.derivatives[subgraph.protocol] = [];
+    }
+  }
 
   const totalDex = Object.values(result.dex).reduce((sum, pools) => sum + pools.length, 0);
   const totalLending = Object.values(result.lending).reduce((sum, entries) => {
@@ -498,11 +684,13 @@ export async function fetchAllProtocolsData(options: FetchOptions = {}): Promise
     );
   }, 0);
   const totalNft = Object.values(result.nft).reduce((sum, items) => sum + items.length, 0);
+  const totalDerivatives = Object.values(result.derivatives).reduce((sum, items) => sum + items.length, 0);
   
   console.log('[MultiFetcher] ✅ Fetch complete');
   console.log(`  - DEX swaps: ${totalDex}`);
   console.log(`  - Lending events: ${totalLending}`);
   console.log(`  - NFT records: ${totalNft}`);
+  console.log(`  - Derivatives records: ${totalDerivatives}`);
   
   return result;
 }

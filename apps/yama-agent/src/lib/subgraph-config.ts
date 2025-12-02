@@ -26,12 +26,22 @@ export const SUBGRAPH_CONFIGS: Record<string, SubgraphConfig> = {
   //   network: 'base',
   //   type: 'lending',
   // },
-  artBlocks_mainnet: {
-    id: '6bR1oVsRUUs6czNiB6W7NNenTXtVfNd5iSiwvS4QbRPB',
-    name: 'Art Blocks Mainnet',
-    protocol: 'art-blocks',
-    network: 'mainnet',
-    type: 'nft',
+  
+  // Art Blocks NFT pool temporarily disabled - will be replaced with new subgraph
+  // artBlocks_mainnet: {
+  //   id: '6bR1oVsRUUs6czNiB6W7NNenTXtVfNd5iSiwvS4QbRPB',
+  //   name: 'Art Blocks Mainnet',
+  //   protocol: 'art-blocks',
+  //   network: 'mainnet',
+  //   type: 'nft',
+  // },
+  
+  gmxArbitrum_perpetuals: {
+    id: 'DiR5cWwB3pwXXQWWdus7fDLR2mnFRQLiBFsVmHAH9VAs',
+    name: 'GMX Perpetuals Arbitrum (Messari)',
+    protocol: 'gmx-perpetuals',
+    network: 'arbitrum',
+    type: 'derivatives',
   },
 };
 

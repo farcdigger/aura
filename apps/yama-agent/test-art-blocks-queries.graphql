@@ -1,0 +1,169 @@
+# Art Blocks Subgraph Test Queries
+# Subgraph ID: 6bR1oVsRUUs6czNiB6W7NNenTXtVfNd5iSiwvS4QbRPB
+# Update timestamp to last 12 hours: Math.floor(Date.now() / 1000) - (12 * 60 * 60)
+
+# 1. Projects (aktif projeler)
+query GetProjects {
+  projects(
+    first: 100,
+    orderBy: projectId,
+    orderDirection: asc,
+    where: { active: true }
+  ) {
+    id
+    projectId
+    active
+    additionalPayee
+    name
+    artistName
+    description
+    website
+    license
+    maxInvocations
+    invocations
+    complete
+    paused
+    currencySymbol
+    currencyAddress
+    pricePerTokenInWei
+    createdAt
+    updatedAt
+  }
+}
+
+# 2. Tokens (NFT'ler - en çok transfer edilenler için)
+query GetTokens {
+  tokens(
+    first: 100,
+    orderBy: transferCount,
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transferCount
+    createdAt
+  }
+}
+
+# 3. Transfers (transfer işlemleri - fiyat bilgisi varsa)
+query GetTransfers($timestamp: BigInt!) {
+  transfers(
+    first: 1000,
+    skip: 0,
+    orderBy: timestamp,
+    orderDirection: desc,
+    where: { timestamp_gte: $timestamp }
+  ) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    from {
+      id
+    }
+    to {
+      id
+    }
+    price
+    priceInWei
+    timestamp
+    blockNumber
+    transactionHash
+  }
+}
+
+# 4. Mints (mint işlemleri)
+query GetMints($timestamp: BigInt!) {
+  mints(
+    first: 1000,
+    skip: 0,
+    orderBy: timestamp,
+    orderDirection: desc,
+    where: { timestamp_gte: $timestamp }
+  ) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    to {
+      id
+    }
+    price
+    priceInWei
+    timestamp
+    blockNumber
+    transactionHash
+  }
+}
+
+# 5. Sales (satış işlemleri - eğer varsa)
+query GetSales($timestamp: BigInt!) {
+  sales(
+    first: 1000,
+    skip: 0,
+    orderBy: timestamp,
+    orderDirection: desc,
+    where: { timestamp_gte: $timestamp }
+  ) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    buyer {
+      id
+    }
+    seller {
+      id
+    }
+    price
+    priceInWei
+    timestamp
+    blockNumber
+    transactionHash
+  }
+}
+
+# 6. Project Stats (proje istatistikleri)
+query GetProjectStats {
+  projects(
+    first: 50,
+    orderBy: invocations,
+    orderDirection: desc,
+    where: { active: true }
+  ) {
+    id
+    projectId
+    name
+    invocations
+    maxInvocations
+    complete
+    pricePerTokenInWei
+  }
+}
+

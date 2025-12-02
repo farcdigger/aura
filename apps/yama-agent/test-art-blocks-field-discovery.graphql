@@ -1,0 +1,90 @@
+# Art Blocks - Field Discovery Queries
+
+# 1. Sale entity - hangi field'lar var?
+query GetSaleFields {
+  sales(first: 2) {
+    id
+    # Tüm olası field'ları deneyelim
+    blockNumber
+    transactionHash
+    # token relation var mı?
+    # price field'ları var mı?
+  }
+}
+
+# 2. PrimaryPurchase - hangi field'lar var?
+query GetPrimaryPurchaseFields {
+  primaryPurchases(first: 2) {
+    id
+    blockNumber
+    transactionHash
+    # token relation var mı?
+    # price field'ları var mı?
+  }
+}
+
+# 3. Transfer - from ve to var mı?
+query GetTransferFromTo {
+  transfers(first: 2) {
+    id
+    from {
+      id
+    }
+    to {
+      id
+    }
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 4. Token - transfers count nasıl alınır? (array length)
+query GetTokenWithTransferCount {
+  tokens(
+    first: 5,
+    orderBy: transfers,
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transfers {
+      id
+    }
+  }
+}
+
+# 5. Sale - detaylı field keşfi
+query GetSaleDetailed {
+  sales(first: 2) {
+    id
+    blockNumber
+    transactionHash
+    # Diğer olası field'lar
+  }
+}
+
+# 6. PrimaryPurchase - detaylı field keşfi
+query GetPrimaryPurchaseDetailed {
+  primaryPurchases(first: 2) {
+    id
+    blockNumber
+    transactionHash
+    # Diğer olası field'lar
+  }
+}
+

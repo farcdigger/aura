@@ -1,0 +1,127 @@
+# Art Blocks - Final Correct Queries
+# Artık doğru field'ları biliyoruz, fiyat bilgisini bulalım
+
+# 1. Payment entity - tüm field'ları (FİYAT BİLGİSİ BURADA OLABİLİR!)
+query GetPaymentFields {
+  __type(name: "Payment") {
+    fields {
+      name
+      type {
+        kind
+        name
+        ofType {
+          kind
+          name
+        }
+      }
+    }
+  }
+}
+
+# 2. Sale - payments relation ile (fiyat bilgisi burada olabilir)
+query GetSaleWithPayments {
+  sales(first: 5, orderBy: blockNumber, orderDirection: desc) {
+    id
+    txHash
+    exchange
+    saleType
+    blockNumber
+    blockTimestamp
+    seller {
+      id
+    }
+    buyer {
+      id
+    }
+    payments {
+      id
+      # Payment field'larını görmek için
+    }
+    saleLookupTables {
+      id
+      token {
+        id
+        tokenId
+        project {
+          id
+          projectId
+          name
+        }
+      }
+    }
+  }
+}
+
+# 3. Payment - direkt query (eğer varsa)
+query GetPayments {
+  payments(first: 5) {
+    id
+    # Tüm field'ları görmek için
+  }
+}
+
+# 4. Transfer - blockTimestamp ile son 12 saat (ÇALIŞIYOR!)
+query GetTransferLast12Hours {
+  transfers(
+    first: 100,
+    orderBy: blockTimestamp,
+    orderDirection: desc,
+    where: { blockTimestamp_gte: "1764630000" }  # Son 12 saat için timestamp
+  ) {
+    id
+    blockNumber
+    blockTimestamp
+    from
+    to
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+  }
+}
+
+# 5. PrimaryPurchase - mint bilgileri (fiyat yok ama mint bilgisi var)
+query GetPrimaryPurchases {
+  primaryPurchases(first: 100, orderBy: transactionHash, orderDirection: desc) {
+    id
+    token {
+      id
+      tokenId
+      project {
+        id
+        projectId
+        name
+      }
+    }
+    minterAddress
+    transactionHash
+    currencyAddress
+    currencySymbol
+    currencyDecimals
+  }
+}
+
+# 6. Token - transfers array length ile en çok transfer edilenler
+query GetTokensWithTransferCount {
+  tokens(first: 100) {
+    id
+    tokenId
+    project {
+      id
+      projectId
+      name
+    }
+    owner {
+      id
+    }
+    transfers {
+      id
+    }
+  }
+}
+
