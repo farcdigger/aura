@@ -287,6 +287,7 @@ export async function fetchNFTData(subgraphConfig: SubgraphConfig, limit: number
       );
 
       // Fetch transfers (recent transfers - using blockTimestamp filter which works!)
+      // Limit: 8000 (most important data - recent activity)
       const transfers = await fetchWithPagination(
         client,
         (first, skip) => `{
@@ -314,11 +315,11 @@ export async function fetchNFTData(subgraphConfig: SubgraphConfig, limit: number
             }
           }
         }`,
-        limit,
+        Math.min(limit, 8000), // Limit transfers to 8000
       );
 
       // Fetch tokens with transfers relation (to calculate most traded NFTs)
-      // We'll fetch a large sample and calculate transfer counts in code
+      // Limit: 2000 (to find most traded ones)
       const tokens = await fetchWithPagination(
         client,
         (first, skip) => `{
@@ -345,6 +346,7 @@ export async function fetchNFTData(subgraphConfig: SubgraphConfig, limit: number
       );
 
       // Fetch PrimaryPurchase for mint information
+      // Limit: 1500 (mint information)
       // Note: PrimaryPurchase doesn't have blockNumber or timestamp, so we fetch recent ones
       let primaryPurchases: any[] = [];
       try {
@@ -374,7 +376,7 @@ export async function fetchNFTData(subgraphConfig: SubgraphConfig, limit: number
               currencyDecimals
             }
           }`,
-          Math.min(limit, 1000),
+          Math.min(limit, 1500), // Limit mints to 1500
         );
       } catch (mintError: any) {
         console.log(`[MultiFetcher] ⚠️ PrimaryPurchase query not available: ${mintError.message}`);
