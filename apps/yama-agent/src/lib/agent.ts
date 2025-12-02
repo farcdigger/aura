@@ -19,7 +19,7 @@ const agent = await createAgent({
 
 const { app, addEntrypoint } = await createAgentApp(agent);
 
-const SECTION_KEYS = ['dex', 'lending'] as const;
+const SECTION_KEYS = ['dex', 'lending', 'nft'] as const;
 type SectionKey = typeof SECTION_KEYS[number];
 
 type SectionSummary = {
@@ -777,6 +777,186 @@ const summarizeLendingData = (lendingData: Record<string, any[]>): LendingSummar
   };
 };
 
+type NFTSummary = {
+  overview: {
+    totalProjects: number;
+    activeProjects: number;
+    totalTransfers: number;
+    totalMints: number;
+    totalTokens: number;
+    protocols: string[];
+  };
+  mostTradedNFTs: Array<{
+    tokenId: string;
+    projectId: string;
+    projectName: string;
+    transferCount: number;
+    owner: string;
+  }>;
+  recentTransfers: Array<{
+    id: string;
+    blockNumber: string;
+    blockTimestamp: string;
+    from: string;
+    to: string;
+    tokenId: string;
+    projectName: string;
+    transactionHash: string;
+  }>;
+  recentMints: Array<{
+    id: string;
+    tokenId: string;
+    projectId: string;
+    projectName: string;
+    minterAddress: string;
+    transactionHash: string;
+    currencySymbol: string;
+  }>;
+  featuredProjects: Array<{
+    id: string;
+    projectId: string;
+    name: string;
+    artistName: string;
+    invocations: number;
+    maxInvocations: number;
+    complete: boolean;
+    pricePerTokenInWei: string;
+    transferCount: number;
+    mintCount: number;
+  }>;
+};
+
+const toNumber = (value: any): number => {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
+const summarizeNFTData = (nftData: Record<string, any[]>): NFTSummary => {
+  // Art Blocks returns flat array with _entityType field
+  const allNFTData = Object.values(nftData).flat();
+  const protocols = Object.keys(nftData);
+
+  const projects = allNFTData.filter((item: any) => item._entityType === 'project');
+  const transfers = allNFTData.filter((item: any) => item._entityType === 'transfer');
+  const mints = allNFTData.filter((item: any) => item._entityType === 'mint');
+  const tokens = allNFTData.filter((item: any) => item._entityType === 'token');
+
+  const activeProjects = projects.filter((p: any) => p.active === true);
+
+  // 1. Most Traded NFTs (based on transfer count from tokens)
+  const tokenTransferCounts = new Map<string, number>();
+  tokens.forEach((token: any) => {
+    tokenTransferCounts.set(token.id, token.transfers?.length || 0);
+  });
+
+  const mostTradedNFTs = limitArray(
+    tokens
+      .map((token: any) => ({
+        tokenId: token.tokenId,
+        projectId: token.project?.projectId || 'unknown',
+        projectName: token.project?.name || 'Unknown Project',
+        transferCount: token.transfers?.length || 0,
+        owner: token.owner?.id || 'unknown',
+      }))
+      .sort((a, b) => b.transferCount - a.transferCount),
+    50,
+  );
+
+  // 2. Recent Transfers
+  const recentTransfers = limitArray(
+    transfers
+      .sort((a, b) => Number(b.blockTimestamp || b.blockNumber || 0) - Number(a.blockTimestamp || a.blockNumber || 0))
+      .map((transfer: any) => ({
+        id: transfer.id,
+        blockNumber: transfer.blockNumber || 'unknown',
+        blockTimestamp: transfer.blockTimestamp || 'unknown',
+        from: transfer.from || 'unknown',
+        to: transfer.to || 'unknown',
+        tokenId: transfer.token?.tokenId || 'unknown',
+        projectName: transfer.token?.project?.name || 'unknown',
+        transactionHash: transfer.transactionHash || 'unknown',
+      })),
+    100,
+  );
+
+  // 3. Recent Mints (from PrimaryPurchases)
+  const recentMints = limitArray(
+    mints
+      .map((mint: any) => ({
+        id: mint.id,
+        tokenId: mint.token?.tokenId || 'unknown',
+        projectId: mint.token?.project?.projectId || 'unknown',
+        projectName: mint.token?.project?.name || 'Unknown Project',
+        minterAddress: mint.minterAddress || 'unknown',
+        transactionHash: mint.transactionHash || 'unknown',
+        currencySymbol: mint.currencySymbol || 'ETH',
+      })),
+    100,
+  );
+
+  // 4. Featured Projects (based on invocations and activity)
+  const projectActivityMap = new Map<string, { transfers: number; mints: number }>();
+  transfers.forEach((t: any) => {
+    const projectId = t.token?.project?.id || t.token?.project?.projectId;
+    if (projectId) {
+      const current = projectActivityMap.get(projectId) || { transfers: 0, mints: 0 };
+      current.transfers++;
+      projectActivityMap.set(projectId, current);
+    }
+  });
+  mints.forEach((m: any) => {
+    const projectId = m.token?.project?.id || m.token?.project?.projectId;
+    if (projectId) {
+      const current = projectActivityMap.get(projectId) || { transfers: 0, mints: 0 };
+      current.mints++;
+      projectActivityMap.set(projectId, current);
+    }
+  });
+
+  const featuredProjects = limitArray(
+    projects
+      .map((project: any) => ({
+        id: project.id,
+        projectId: project.projectId,
+        name: project.name,
+        artistName: project.artistName,
+        invocations: toNumber(project.invocations),
+        maxInvocations: toNumber(project.maxInvocations),
+        complete: project.complete === true,
+        pricePerTokenInWei: project.pricePerTokenInWei || '0',
+        transferCount: projectActivityMap.get(project.id)?.transfers || 0,
+        mintCount: projectActivityMap.get(project.id)?.mints || 0,
+      }))
+      .sort((a, b) => {
+        // Sort by total activity (transfers + mints) then by invocations
+        const activityA = a.transferCount + a.mintCount;
+        const activityB = b.transferCount + b.mintCount;
+        if (activityA !== activityB) return activityB - activityA;
+        return Number(b.invocations) - Number(a.invocations);
+      }),
+    50,
+  );
+
+  return {
+    overview: {
+      totalProjects: projects.length,
+      activeProjects: activeProjects.length,
+      protocols,
+      totalTransfers: transfers.length,
+      totalMints: mints.length,
+      totalTokens: tokens.length,
+    },
+    mostTradedNFTs,
+    recentTransfers,
+    recentMints,
+    featuredProjects,
+  };
+};
+
 const buildCrossSummary = (
   rawDex: Record<string, any[]>,
   rawLending: Record<string, any[]>,
@@ -996,6 +1176,7 @@ addEntrypoint({
     const rawData = await fetchAllProtocolsData({
       dexLimit: params.limitPerProtocol,
       lendingLimit: params.limitPerProtocol,
+      nftLimit: params.limitPerProtocol,
     });
 
     console.log('[fetch-and-analyze-raw] Step 2: Saving raw data to Supabase...');
@@ -1014,15 +1195,16 @@ addEntrypoint({
         }, 0)
       );
     }, 0);
+    const nftTotal = Object.values(rawData.nft).reduce((sum, arr) => sum + arr.length, 0);
 
     const dataSummary: DataSummary = {
       metadata: {
         fetchedAt: rawData.fetchedAt,
         timeframe: '12 hours',
         limitPerProtocol: params.limitPerProtocol,
-        totalRecordsFetched: dexTotal + lendingTotal,
-        recordsSentToAI: dexTotal + lendingTotal,
-        note: `All fetched records included (limit ${params.limitPerProtocol} each, 12h window): Uniswap swaps & Aave borrow/deposit events`,
+        totalRecordsFetched: dexTotal + lendingTotal + nftTotal,
+        recordsSentToAI: dexTotal + lendingTotal + nftTotal,
+        note: `All fetched records included (limit ${params.limitPerProtocol} each, 12h window): Uniswap swaps, Aave borrow/deposit events, and NFT projects`,
       },
       dex: {
         protocols: Object.keys(rawData.dex),
@@ -1033,6 +1215,11 @@ addEntrypoint({
         protocols: Object.keys(rawData.lending),
         totalRecords: lendingTotal,
         data: rawData.lending,
+      },
+      nft: {
+        protocols: Object.keys(rawData.nft),
+        totalRecords: nftTotal,
+        data: rawData.nft,
       },
     };
 
@@ -1048,6 +1235,7 @@ addEntrypoint({
 
     const dexSummary = summarizeDexData(rawData.dex);
     const lendingSummary = summarizeLendingData(rawData.lending);
+    const nftSummary = summarizeNFTData(rawData.nft);
     const crossSummary = buildCrossSummary(
       rawData.dex,
       rawData.lending,
@@ -1056,9 +1244,10 @@ addEntrypoint({
       dexSummary.pairDirectionStats,
     );
     // Graph reports: 160k total limit (was 100k for Helius, restored to original)
-    const dexSummaryStr = safeStringify(dexSummary, 130_000);
-    const lendingSummaryStr = safeStringify(lendingSummary, 20_000);
-    const crossSummaryStr = safeStringify(crossSummary, 10_000);
+    const dexSummaryStr = safeStringify(dexSummary, 120_000);
+    const lendingSummaryStr = safeStringify(lendingSummary, 15_000);
+    const nftSummaryStr = safeStringify(nftSummary, 20_000);
+    const crossSummaryStr = safeStringify(crossSummary, 5_000);
 
     const safeJoin = (value: any, fallback: string = 'None') => {
       if (!Array.isArray(value) || value.length === 0) {
@@ -1083,8 +1272,10 @@ addEntrypoint({
     const dexProtocols = safeJoin(dataSummary.dex.protocols);
     const lendingRecords = safeNumber(dataSummary.lending.totalRecords);
     const lendingProtocols = safeJoin(dataSummary.lending.protocols);
+    const nftRecords = safeNumber(dataSummary.nft.totalRecords);
+    const nftProtocols = safeJoin(dataSummary.nft.protocols);
 
-    let prompt = `You are an on-chain research lead. Below is raw transaction data pulled from Uniswap (DEX) and Aave (lending) over the past 12 hours.
+    let prompt = `You are an on-chain research lead. Below is raw transaction data pulled from Uniswap (DEX), Aave (lending), and NFT protocols over the past 12 hours.
 
 ## DATASET SUMMARY
 
@@ -1101,6 +1292,12 @@ ${dexSummaryStr}
 Protocols: ${lendingProtocols}  
 Synthesis (market stats, borrow/deposit ratios, risk signals, large events):
 ${lendingSummaryStr}
+
+### NFT Protocols (${nftRecords} records)
+Protocols: ${nftProtocols}  
+Synthesis (most traded NFTs, recent transfers, recent mints, featured projects):
+Note: Price data (floor prices, most expensive/cheapest NFTs) is not available in this subgraph.
+${nftSummaryStr}
 
 ### Cross-Protocol Links
 Shared metrics to compare swap flows vs. lending balance velocity:
