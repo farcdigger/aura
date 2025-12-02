@@ -26,12 +26,12 @@ export const SUBGRAPH_CONFIGS: Record<string, SubgraphConfig> = {
   //   network: 'base',
   //   type: 'lending',
   // },
-  aaveV3_optimism: {
-    id: '3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi',
-    name: 'Aave V3 Optimism (Messari)',
-    protocol: 'aave-v3',
-    network: 'optimism',
-    type: 'lending',
+  artBlocks_mainnet: {
+    id: '6bR1oVsRUUs6czNiB6W7NNenTXtVfNd5iSiwvS4QbRPB',
+    name: 'Art Blocks Mainnet',
+    protocol: 'art-blocks',
+    network: 'mainnet',
+    type: 'nft',
   },
 };
 
