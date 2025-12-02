@@ -826,15 +826,6 @@ type NFTSummary = {
   }>;
 };
 
-const toNumber = (value: any): number => {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-};
-
 const summarizeNFTData = (nftData: Record<string, any[]>): NFTSummary => {
   // Art Blocks returns flat array with _entityType field
   const allNFTData = Object.values(nftData).flat();
