@@ -1,0 +1,44 @@
+{
+  "name": "solana-liquidity-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-powered Raydium liquidity pool analyzer with Helius integration",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "worker": "bun run --watch src/worker.ts",
+    "start": "bun run src/index.ts",
+    "start:worker": "bun run src/worker.ts",
+    "build": "cp -r src api/ || xcopy /E /I src api\\src",
+    "vercel-build": "npm run build",
+    "test:helius": "bun run scripts/test-helius.ts",
+    "test:redis": "bun run scripts/test-redis.ts",
+    "test:worker": "bun run src/worker.ts",
+    "test:full": "bun run scripts/test-full-flow.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lucid-agents/core": "latest",
+    "@lucid-agents/hono": "latest",
+    "@lucid-agents/http": "latest",
+    "@lucid-agents/payments": "latest",
+    "@supabase/supabase-js": "^2.39.0",
+    "@anthropic-ai/sdk": "^0.27.0",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.3.2",
+    "helius-sdk": "^1.3.3",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.0",
+    "dotenv": "^16.3.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.0",
+    "typescript": "^5.9.2"
+  }
+}
+
+
+
+
+
