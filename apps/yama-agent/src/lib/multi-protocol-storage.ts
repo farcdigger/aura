@@ -352,3 +352,45 @@ export async function saveAllProtocolsData(allData: FetchAllProtocolsResult): Pr
     console.error('[Supabase] ❌ Failed to save protocol data:', error.message);
   }
 }
+
+/**
+ * Cleans up old graph data after report generation
+ * Keeps only the graph_reports table, clears derivatives and DEX data
+ */
+export async function cleanupGraphData(): Promise<void> {
+  const supabase = getSupabaseClient();
+  
+  console.log('[Supabase] 🧹 Starting automatic cleanup...');
+  
+  try {
+    // Clear GMX derivatives data
+    const { error: derivativesError } = await supabase
+      .from(DERIVATIVES_TABLE)
+      .delete()
+      .neq('entry_id', ''); // Delete all records (neq ensures all rows match)
+    
+    if (derivativesError) {
+      console.error('[Supabase] ⚠️  Failed to clear derivatives data:', derivativesError.message);
+    } else {
+      console.log('[Supabase] ✅ Cleared graph_derivatives_data');
+    }
+    
+    // Clear Uniswap DEX swaps data
+    const { error: dexError } = await supabase
+      .from(DEX_TABLE)
+      .delete()
+      .neq('swap_id', ''); // Delete all records
+    
+    if (dexError) {
+      console.error('[Supabase] ⚠️  Failed to clear DEX swaps:', dexError.message);
+    } else {
+      console.log('[Supabase] ✅ Cleared graph_dex_swaps');
+    }
+    
+    console.log('[Supabase] ✅ Cleanup completed successfully!');
+    console.log('[Supabase] 📊 Reports are safely preserved in graph_reports');
+  } catch (error: any) {
+    console.error('[Supabase] ❌ Cleanup failed:', error.message);
+    // Don't throw - cleanup failure shouldn't break the main flow
+  }
+}

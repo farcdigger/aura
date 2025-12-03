@@ -42,3 +42,4 @@ ALTER COLUMN token1_symbol SET NOT NULL;
 
 
 
+

@@ -5,7 +5,7 @@ import { payments, paymentsFromEnv } from '@lucid-agents/payments';
 import { createAgentApp } from '@lucid-agents/hono';
 
 import { fetchAllProtocolsData } from './multi-protocol-fetcher';
-import { saveAllProtocolsData } from './multi-protocol-storage';
+import { saveAllProtocolsData, cleanupGraphData } from './multi-protocol-storage';
 import { getSupabaseClient } from './supabase';
 
 const agent = await createAgent({
@@ -41,7 +41,7 @@ type DataSummary = {
 
 const MAX_COMPLETION_TOKENS = Number(process.env.MAX_COMPLETION_TOKENS ?? 8000);
 
-const safeStringify = (obj: any, maxLength: number = 140_000): string => {
+const safeStringify = (obj: any, maxLength: number = 200_000): string => {
   if (obj === null || obj === undefined) {
     return '[]';
   }
@@ -1384,9 +1384,10 @@ addEntrypoint({
     const dexSummary = summarizeDexData(rawData.dex);
     const derivativesSummary = summarizeDerivativesData(rawData.derivatives);
     
-    // Token allocation: 70% GMX, 30% Uniswap (160k total)
-    const derivativesSummaryStr = safeStringify(derivativesSummary, 112_000); // 70% of 160k
-    const dexSummaryStr = safeStringify(dexSummary, 48_000); // 30% of 160k
+    // Token allocation: 70% GMX, 30% Uniswap (190k total, increased to avoid truncation)
+    // Modern LLMs (GPT-4o: 128k tokens ~500k chars) can easily handle this
+    const derivativesSummaryStr = safeStringify(derivativesSummary, 120_000); // 70% (~63% of total)
+    const dexSummaryStr = safeStringify(dexSummary, 70_000); // 30% (~37% of total, extra buffer for growth)
 
     const safeJoin = (value: any, fallback: string = 'None') => {
       if (!Array.isArray(value) || value.length === 0) {
@@ -1611,9 +1612,14 @@ Long positions on WETH total $2.3M (78% of WETH open interest) while short posit
           },
           { onConflict: 'report_date,source' }, // Updated to match unique constraint if source column exists
         );
+      console.log('[fetch-and-analyze-raw] ✅ Report saved to graph_reports');
   } catch (error: any) {
       console.error('[fetch-and-analyze-raw] ❌ Failed to save report metadata:', error.message);
     }
+
+    // Step 6: Automatic cleanup - remove raw graph data (keep reports)
+    console.log('[fetch-and-analyze-raw] Step 6: Cleaning up raw graph data...');
+    await cleanupGraphData();
 
     console.log('[fetch-and-analyze-raw] ✅ Completed successfully');
       
