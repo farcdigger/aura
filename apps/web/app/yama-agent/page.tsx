@@ -43,7 +43,8 @@ async function getLatestReport() {
   };
 }
 
-export const dynamic = "force-static";
+// Make page dynamic to always fetch latest report
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function YamaAgentPage() {

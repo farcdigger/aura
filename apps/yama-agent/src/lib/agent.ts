@@ -1593,7 +1593,7 @@ Long positions on WETH total $2.3M (78% of WETH open interest) while short posit
       const supabase = getSupabaseClient();
       const now = new Date().toISOString();
       const reportDate = now.split('T')[0];
-      await supabase
+      const { data, error } = await supabase
         .from('graph_reports')
         .upsert(
           {
@@ -1612,9 +1612,24 @@ Long positions on WETH total $2.3M (78% of WETH open interest) while short posit
           },
           { onConflict: 'report_date,source' }, // Updated to match unique constraint if source column exists
         );
+      
+      if (error) {
+        console.error('[fetch-and-analyze-raw] ❌ Supabase upsert error:', error);
+        throw new Error(`Supabase save failed: ${error.message || JSON.stringify(error)}`);
+      }
+      
       console.log('[fetch-and-analyze-raw] ✅ Report saved to graph_reports');
+      console.log(`[fetch-and-analyze-raw] 📊 Report data:`, { 
+        report_date: reportDate, 
+        source: 'graph',
+        generated_at: now,
+        model_used: model,
+        tokens_used: tokensUsed 
+      });
   } catch (error: any) {
-      console.error('[fetch-and-analyze-raw] ❌ Failed to save report metadata:', error.message);
+      console.error('[fetch-and-analyze-raw] ❌ Failed to save report metadata:', error.message || error);
+      // Re-throw to ensure caller knows the save failed
+      throw error;
     }
 
     // Step 6: Automatic cleanup - remove raw graph data (keep reports)
