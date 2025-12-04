@@ -459,14 +459,14 @@ export async function fetchDerivativesData(
   // GMX specific queries
   if (subgraphConfig.protocol === 'gmx-perpetuals') {
     try {
-      // Smart distribution of 20K limit:
-      // - Swaps: 7,000 (35%)
-      // - Position Snapshots: 12,000 (60%) - Most important for trend analysis
-      // - Liquidations: 500 (2.5%)
-      // - Active Positions: 500 (2.5%)
+      // TEST: Smart distribution of 10K limit (reduced from 20K):
+      // - Swaps: 3,500 (35%) - reduced from 7,000
+      // - Position Snapshots: 6,000 (60%) - reduced from 12,000 - Most important for trend analysis
+      // - Liquidations: 250 (2.5%) - reduced from 500
+      // - Active Positions: 250 (2.5%) - reduced from 500
       
       const [swaps, positionSnapshots, liquidations, positions] = await Promise.all([
-        // 1. Swaps (7,000 limit) - NO timestamp filter (like working manual query)
+        // 1. Swaps (3,500 limit) - NO timestamp filter (like working manual query)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -488,10 +488,10 @@ export async function fetchDerivativesData(
               amountOutUSD
             }
           }`,
-          Math.min(limit * 0.35, 7000),
+          Math.min(limit * 0.35, 3500),
         ),
         
-        // 2. Position Snapshots (12,000 limit) - NO timestamp filter (like working manual query)
+        // 2. Position Snapshots (6,000 limit) - NO timestamp filter (like working manual query)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -515,10 +515,10 @@ export async function fetchDerivativesData(
               }
             }
           }`,
-          Math.min(limit * 0.60, 12000),
+          Math.min(limit * 0.60, 6000),
         ),
         
-        // 3. Liquidations (500 limit) - NO timestamp filter (gets recent ones via orderBy)
+        // 3. Liquidations (250 limit) - NO timestamp filter (gets recent ones via orderBy)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -538,10 +538,10 @@ export async function fetchDerivativesData(
               profitUSD
             }
           }`,
-          500,
+          250,
         ),
         
-        // 4. Active Positions (500 limit)
+        // 4. Active Positions (250 limit)
         fetchWithPagination(
           client,
           (first, skip) => `{
@@ -561,7 +561,7 @@ export async function fetchDerivativesData(
               timestampOpened
             }
           }`,
-          500,
+          250,
         ),
       ]);
       

@@ -1315,10 +1315,10 @@ addEntrypoint({
 
     console.log('[fetch-and-analyze-raw] Step 1: Fetching data from subgraphs...');
     const rawData = await fetchAllProtocolsData({
-      dexLimit: params.limitPerProtocol,
+      dexLimit: 6000, // TEST: Reduced from 12000 to 6000 for Uniswap
       lendingLimit: params.limitPerProtocol,
       nftLimit: params.limitPerProtocol,
-      derivativesLimit: 20000, // Higher limit for GMX perpetuals
+      derivativesLimit: 10000, // TEST: Reduced from 20000 to 10000 for GMX
     });
 
     console.log('[fetch-and-analyze-raw] Step 2: Saving raw data to Supabase...');
