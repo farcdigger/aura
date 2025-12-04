@@ -2,32 +2,7 @@
 IMPORTANT: UPDATE YOUR .env FILE
 =============================================================================
 
-Please open your .env file and ADD these lines:
 
-1. Daydreams Base URL:
-   DAYDREAMS_BASE_URL=https://api-beta.daydreams.systems/v1
-
-2. Report Model (with anthropic/ prefix):
-   REPORT_MODEL=anthropic/claude-3-5-sonnet-20241022
-
-3. Max Completion Tokens:
-   MAX_COMPLETION_TOKENS=4000
-
-4. Transaction Limit:
-   TRANSACTION_LIMIT=1000
-
-=============================================================================
-
-Your .env file should now include:
-
-# Daydreams API
-INFERENCE_API_KEY=sk-router-2fdb4eca33975eac30c3cde538187c05aa7f05ad6723a723481e80bc537298bc
-DAYDREAMS_BASE_URL=https://api-beta.daydreams.systems/v1
-REPORT_MODEL=anthropic/claude-3-5-sonnet-20241022
-MAX_COMPLETION_TOKENS=4000
-
-# Other settings
-TRANSACTION_LIMIT=1000
 
 =============================================================================
 
