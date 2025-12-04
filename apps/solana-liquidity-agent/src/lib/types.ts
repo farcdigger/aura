@@ -5,21 +5,46 @@ import { z } from 'zod';
 // =============================================================================
 
 /**
- * Pool Analysis Input Schema
+ * Pool Analysis Input Schema (HYBRID)
  * Validates user input for pool analysis requests
+ * 
+ * Users can provide EITHER:
+ * 1. poolId: Direct pool address (for specific pool analysis)
+ * 2. tokenMint: Token mint address (auto-finds best pool)
+ * 3. Both: Token mint + specific pool ID (advanced)
  */
 export const PoolAnalysisInputSchema = z.object({
+  // Pool ID (optional if tokenMint provided)
   poolId: z
     .string()
     .min(32, 'Pool ID must be at least 32 characters')
     .max(44, 'Pool ID must not exceed 44 characters')
-    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana address format'),
+    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana address format')
+    .optional(),
+  
+  // Token Mint (optional if poolId provided)
+  tokenMint: z
+    .string()
+    .min(32, 'Token mint must be at least 32 characters')
+    .max(44, 'Token mint must not exceed 44 characters')
+    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana address format')
+    .optional(),
+  
   userId: z.string().optional(),
+  
   options: z.object({
     transactionLimit: z.number().min(1).max(10000).optional(),
     skipCache: z.boolean().optional(),
+    // If tokenMint provided, prefer specific DEX
+    preferredDEX: z.enum(['raydium-v4', 'raydium-clmm', 'orca', 'meteora', 'auto']).optional(),
   }).optional(),
-});
+}).refine(
+  (data) => data.poolId || data.tokenMint,
+  {
+    message: 'Either poolId or tokenMint must be provided',
+    path: ['poolId', 'tokenMint'],
+  }
+);
 
 export type PoolAnalysisInput = z.infer<typeof PoolAnalysisInputSchema>;
 
@@ -91,8 +116,28 @@ export interface AdjustedPoolReserves {
   tokenAReserve: number;
   /** Token B reserve (human-readable, decimal adjusted) */
   tokenBReserve: number;
+  /** Token A symbol (for display) */
+  tokenASymbol?: string;
+  /** Token B symbol (for display) */
+  tokenBSymbol?: string;
+  /** Token A amount (alias for tokenAReserve) */
+  tokenAAmount?: number;
+  /** Token B amount (alias for tokenBReserve) */
+  tokenBAmount?: number;
   /** Total Value Locked in USD (if price data available) */
   tvlUSD?: number;
+  /** LP token mint address */
+  lpMint?: string;
+  /** LP token supply */
+  lpSupply?: string;
+  /** Pool status text (Active/Disabled/etc) */
+  poolStatus?: string;
+  /** Fee information */
+  feeInfo?: string;
+  /** Estimated TVL (alias) */
+  estimatedTVL?: number;
+  /** Pool type (AMM V4, CLMM, etc) */
+  poolType?: string;
 }
 
 // =============================================================================
@@ -107,10 +152,76 @@ export interface WalletActivity {
   address: string;
   /** Number of transactions */
   txCount: number;
+  /** Total volume (raw amount) */
+  totalVolume?: bigint;
   /** Percentage of total volume */
   volumeShare: number;
   /** Estimated volume in USD (if available) */
   volumeUSD?: number;
+  /** First seen timestamp */
+  firstSeen?: number;
+  /** Last seen timestamp */
+  lastSeen?: number;
+}
+
+/**
+ * Top Trader Information
+ */
+export interface TopTrader {
+  /** Wallet address */
+  wallet: string;
+  /** Number of buy transactions */
+  buyCount: number;
+  /** Number of sell transactions */
+  sellCount: number;
+  /** Total volume traded */
+  volume: number;
+}
+
+/**
+ * Wallet Profile (Advanced)
+ */
+export interface WalletProfile {
+  /** Wallet address */
+  address: string;
+  /** Wallet age in days */
+  ageInDays: number;
+  /** Account creation date (first transaction) */
+  createdAt: Date;
+  /** Total transaction count (all time) */
+  totalTransactions: number;
+  /** Recent transaction count (last 7 days) */
+  recentTransactions: number;
+  /** Average transactions per day */
+  avgTxPerDay: number;
+  /** Is this likely a bot? */
+  isLikelyBot: boolean;
+  /** Is this a whale wallet? (based on pool-specific activity) */
+  isWhale: boolean;
+  /** Risk level: low, medium, high */
+  riskLevel: 'low' | 'medium' | 'high';
+  /** Human-readable summary */
+  summary: string;
+}
+
+/**
+ * Parsed Swap Transaction
+ */
+export interface ParsedSwap {
+  /** Transaction signature */
+  signature: string;
+  /** Block timestamp */
+  timestamp: number;
+  /** Wallet that initiated the swap */
+  wallet: string;
+  /** Swap direction (buy = SOL → Token, sell = Token → SOL) */
+  direction: 'buy' | 'sell';
+  /** Amount in (raw) */
+  amountIn: bigint;
+  /** Amount out (raw) */
+  amountOut: bigint;
+  /** Price impact percentage (optional) */
+  priceImpact?: number;
 }
 
 /**
@@ -127,8 +238,12 @@ export interface TransactionSummary {
   sellCount: number;
   /** Average transaction volume in USD */
   avgVolumeUSD: number;
+  /** Number of unique wallets */
+  uniqueWallets?: number;
   /** Top active wallets */
   topWallets: WalletActivity[];
+  /** Top traders with buy/sell breakdown */
+  topTraders?: TopTrader[];
   /** Detected suspicious patterns */
   suspiciousPatterns: string[];
   /** Text summary of transaction analysis */
@@ -138,11 +253,72 @@ export interface TransactionSummary {
     earliest: Date;
     latest: Date;
   };
+  /** Wallet profiles for top traders (Phase 3) */
+  walletProfiles?: WalletProfile[];
 }
 
 // =============================================================================
 // ANALYSIS RESULT
 // =============================================================================
+
+/**
+ * Risk Score Breakdown (Phase 3)
+ */
+export interface RiskScoreBreakdown {
+  totalScore: number;
+  riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'critical';
+  factors: {
+    liquidity: { score: number; weight: number; reason: string };
+    tokenAuthorities: { score: number; weight: number; reason: string };
+    tradingActivity: { score: number; weight: number; reason: string };
+    walletConcentration: { score: number; weight: number; reason: string };
+    botActivity: { score: number; weight: number; reason: string };
+    historicalTrend: { score: number; weight: number; reason: string };
+  };
+  summary: string;
+}
+
+/**
+ * Pool History Trend (Phase 3)
+ */
+export interface PoolHistoryTrend {
+  poolId: string;
+  dataPoints: number;
+  daysTracked: number;
+  tvl: {
+    current: number;
+    sevenDaysAgo?: number;
+    changePercent?: number;
+    trend: 'up' | 'down' | 'stable' | 'unknown';
+    summary: string;
+  };
+  volume: {
+    avgDailyTransactions: number;
+    recentVsHistorical?: number;
+    trend: 'increasing' | 'decreasing' | 'stable' | 'unknown';
+    summary: string;
+  };
+  stability: {
+    isStable: boolean;
+    volatility: number;
+    level: 'highly_stable' | 'stable' | 'moderate' | 'volatile' | 'unknown';
+    summary: string;
+  };
+  risk: {
+    current: number;
+    historicalAvg?: number;
+    trend: 'improving' | 'worsening' | 'stable' | 'unknown';
+    summary: string;
+  };
+  history: Array<{
+    timestamp: Date;
+    tvlUSD: number;
+    transactionCount: number;
+    buyCount: number;
+    sellCount: number;
+    riskScore: number;
+  }>;
+}
 
 /**
  * Complete Pool Analysis Result
@@ -168,6 +344,10 @@ export interface AnalysisResult {
   modelUsed?: string;
   /** Total tokens used (for cost tracking) */
   tokensUsed?: number;
+  /** Pool history trend (Phase 3) */
+  poolHistory?: PoolHistoryTrend;
+  /** Algorithmic risk score breakdown (Phase 3) */
+  riskScoreBreakdown?: RiskScoreBreakdown;
 }
 
 // =============================================================================

@@ -79,6 +79,36 @@ function getJobStatusCacheKey(jobId: string): string {
 // =============================================================================
 
 /**
+ * Helper function to serialize BigInt values in objects
+ * Recursively converts all BigInt values to strings
+ */
+function serializeBigInt(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => serializeBigInt(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+  
+  return obj;
+}
+
+/**
  * Get cached analysis for a pool
  * @param poolId Pool address
  * @returns Cached analysis or null
@@ -115,7 +145,10 @@ export async function setCachedAnalysis(
 ): Promise<void> {
   try {
     const key = getAnalysisCacheKey(poolId);
-    const value = JSON.stringify(analysis);
+    
+    // Serialize BigInt values before caching
+    const serializedAnalysis = serializeBigInt(analysis);
+    const value = JSON.stringify(serializedAnalysis);
 
     await redis.setex(key, ttlSeconds, value);
 

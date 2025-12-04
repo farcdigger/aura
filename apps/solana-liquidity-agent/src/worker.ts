@@ -57,51 +57,76 @@ async function processAnalysis(job: Job<QueueJobData>) {
   // Progress tracking
   await job.updateProgress(10);
   
+  // Increment daily analysis counter
+  try {
+    const { incrementDailyCount } = await import('./middleware/rate-limiter');
+    const dailyCount = await incrementDailyCount();
+    console.log(`📊 [Job ${job.id}] Daily analysis count: ${dailyCount}`);
+  } catch (error: any) {
+    console.warn(`[Job ${job.id}] Failed to increment daily count:`, error.message);
+  }
+  
   try {
     // 1. Pool bilgilerini çek
     console.log(`📡 [Job ${job.id}] Fetching pool account info...`);
     await heliusClient.getPoolAccountInfo(poolId); // Validate pool exists
     await job.updateProgress(20);
     
-    // 2. Rezervleri parse et
+    // 2. Pool reserves çek (artık TVL ve metadata dahil!)
     console.log(`🔍 [Job ${job.id}] Parsing pool reserves...`);
-    const rawReserves = await heliusClient.getPoolReserves(poolId);
+    const reserves = await heliusClient.getPoolReserves(poolId);
     await job.updateProgress(30);
     
-    // 3. Token metadata çek (paralel)
+    // 3. Token metadata (artık reserves'de var, ama validation için tekrar çekelim)
     console.log(`🪙 [Job ${job.id}] Fetching token metadata...`);
     const [tokenA, tokenB] = await Promise.all([
-      heliusClient.getTokenMetadata(rawReserves.tokenAMint),
-      heliusClient.getTokenMetadata(rawReserves.tokenBMint),
+      heliusClient.getTokenMetadata(reserves.tokenAMint),
+      heliusClient.getTokenMetadata(reserves.tokenBMint),
     ]);
     await job.updateProgress(40);
     
-    // Convert bigint to number for analysis (with proper scaling based on decimals)
-    const reserves = {
-      tokenAMint: rawReserves.tokenAMint,
-      tokenBMint: rawReserves.tokenBMint,
-      tokenAReserve: Number(rawReserves.tokenAReserve) / Math.pow(10, tokenA.decimals),
-      tokenBReserve: Number(rawReserves.tokenBReserve) / Math.pow(10, tokenB.decimals),
-      tokenAName: tokenA.name,
-      tokenBName: tokenB.name,
-      tokenASymbol: tokenA.symbol,
-      tokenBSymbol: tokenB.symbol,
-    };
-    
     // 4. Transaction history çek
     console.log(`📊 [Job ${job.id}] Fetching transaction history...`);
-    const txLimit = options?.transactionLimit || 1000;
+    const txLimit = options?.transactionLimit || 2000; // Phase 3: Balanced for quality vs rate limits
     const transactions = await heliusClient.getTransactionHistory(poolId, txLimit);
     await job.updateProgress(60);
+    
+    // 4.5. PHASE 3: Historical trend analysis (7 days)
+    console.log(`📈 [Job ${job.id}] PHASE 3: Analyzing historical trend...`);
+    let poolHistory: any = undefined;
+    try {
+      const { getPoolHistoryTrend } = await import('./lib/pool-history');
+      const { supabase } = await import('./lib/supabase');
+      poolHistory = await getPoolHistoryTrend(supabase, poolId, 7);
+      console.log(`📈 [Job ${job.id}] ✅ Historical trend: ${poolHistory.tvl.trend} TVL, ${poolHistory.volume.trend} volume`);
+    } catch (error: any) {
+      console.warn(`[Job ${job.id}] ⚠️ Historical trend analysis failed: ${error.message}`);
+      // Continue without historical data
+    }
+    await job.updateProgress(65);
+    
+    // 4.6. PHASE 3: Algorithmic risk scoring
+    console.log(`🎯 [Job ${job.id}] PHASE 3: Calculating algorithmic risk score...`);
+    let riskScoreBreakdown: any = undefined;
+    try {
+      const { calculateRiskScore } = await import('./lib/risk-scorer');
+      riskScoreBreakdown = calculateRiskScore(reserves, tokenA, tokenB, transactions, poolHistory);
+      console.log(`🎯 [Job ${job.id}] ✅ Algorithmic risk: ${riskScoreBreakdown.totalScore}/100 (${riskScoreBreakdown.riskLevel})`);
+    } catch (error: any) {
+      console.warn(`[Job ${job.id}] ⚠️ Risk scoring failed: ${error.message}`);
+      // Continue without risk breakdown
+    }
+    await job.updateProgress(70);
     
     // 5. Claude prompt oluştur
     console.log(`🤖 [Job ${job.id}] Building AI analysis prompt...`);
     const prompt = buildAnalysisPrompt({
       poolId,
-      reserves,
       tokenA,
       tokenB,
+      reserves, // Now includes TVL, pool health, etc.
       transactions,
+      poolHistory, // PHASE 3: Historical trend
     });
     
     // 6. Claude'a gönder (Daydreams Inference API - using fetch like yama-agent)
@@ -166,6 +191,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
       riskScore,
       generatedAt: new Date().toISOString(),
       modelUsed: model,
+      poolHistory, // PHASE 3: Historical trend
+      riskScoreBreakdown, // PHASE 3: Algorithmic risk score
     };
     
     // 8. Supabase'e kaydet
@@ -186,13 +213,30 @@ async function processAnalysis(job: Job<QueueJobData>) {
     console.log(`📄 Record ID: ${savedRecord.id}`);
     console.log(`⚠️  Risk Score: ${analysisResult.riskScore}/100`);
     
-    // Job sonucu
+    // Helper function to serialize BigInt values
+    const serializeBigInt = (obj: any): any => {
+      if (obj === null || obj === undefined) return obj;
+      if (typeof obj === 'bigint') return obj.toString();
+      if (Array.isArray(obj)) return obj.map(item => serializeBigInt(item));
+      if (typeof obj === 'object') {
+        const serialized: any = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            serialized[key] = serializeBigInt(obj[key]);
+          }
+        }
+        return serialized;
+      }
+      return obj;
+    };
+    
+    // Job sonucu - BigInt'leri serialize et
     return {
       success: true,
       recordId: savedRecord.id,
       poolId,
       riskScore: analysisResult.riskScore,
-      analysisResult,
+      analysisResult: serializeBigInt(analysisResult),
     };
     
   } catch (error: any) {
@@ -235,7 +279,7 @@ worker.on('ready', () => {
   console.log(`⚙️  Concurrency: ${WORKER_CONFIG.concurrency}`);
   console.log(`🔒 Lock Duration: ${WORKER_CONFIG.lockDuration / 1000}s`);
   console.log(`🤖 Model: ${process.env.REPORT_MODEL || 'claude-3-5-sonnet-20241022'}`);
-  console.log(`📊 Transaction Limit: ${process.env.TRANSACTION_LIMIT || 1000}`);
+  console.log(`📊 Transaction Limit: ${process.env.TRANSACTION_LIMIT || 2000}`);
 });
 
 worker.on('active', (job) => {

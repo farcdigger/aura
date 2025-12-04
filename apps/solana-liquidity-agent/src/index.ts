@@ -14,10 +14,12 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { z } from 'zod';
 import { PoolAnalysisInputSchema } from './lib/types';
-import { addAnalysisJob, getJobStatus, getQueueStats } from './lib/queue';
+import { addAnalysisJob, getJobStatus, getQueueStats, queue } from './lib/queue';
 import { getCachedAnalysis, healthCheck as cacheHealthCheck } from './lib/cache';
 import { getRecentAnalysis, healthCheck as supabaseHealthCheck } from './lib/supabase';
 import { heliusClient } from './lib/helius-client';
+import { findMostLiquidPoolForMint } from './lib/pool-discovery';
+import { analysisRateLimiter, getSystemStatus, getQueueStats as getRateLimiterQueueStats, calculateEstimatedWaitTime } from './middleware/rate-limiter';
 
 // Environment validation
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -29,45 +31,134 @@ app.use('*', cors());
 app.use('*', logger());
 
 /**
- * POST /analyze
- * Yeni bir havuz analizi başlat
+ * GET /system-status
+ * Sistem durumu ve kuyruk bilgilerini getir
  */
-app.post('/analyze', async (c) => {
+app.get('/system-status', async (c) => {
+  try {
+    const status = await getSystemStatus(queue);
+    return c.json(status);
+  } catch (error: any) {
+    console.error('[API] System status error:', error);
+    return c.json({
+      error: 'Failed to get system status',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * POST /analyze
+ * Yeni bir havuz analizi başlat (HYBRID - Pool ID veya Token Mint)
+ */
+app.post('/analyze', analysisRateLimiter(queue), async (c) => {
   try {
     const body = await c.req.json();
     
     // Input validation
     const input = PoolAnalysisInputSchema.parse(body);
     
-    // Önce cache kontrolü (gereksiz analiz yapmamak için)
+    let poolId: string;
+    let discoveryMethod: 'direct' | 'auto-discovery' = 'direct';
+    
+    // ====================================================================
+    // HYBRID INPUT HANDLING
+    // ====================================================================
+    
+    if (input.poolId) {
+      // Option 1: Direct pool ID provided
+      poolId = input.poolId;
+      console.log(`📍 Direct pool ID provided: ${poolId}`);
+      
+    } else if (input.tokenMint) {
+      // Option 2: Token mint provided - auto-discover best pool
+      console.log(`🔍 Token mint provided: ${input.tokenMint}`);
+      console.log(`🎯 Using 3-Tier Pool Discovery (Known → Jupiter → Fallback)...`);
+      
+      discoveryMethod = 'auto-discovery';
+      
+      // Find best pool using 3-tier approach (super fast!)
+      const bestPoolId = await findMostLiquidPoolForMint(input.tokenMint);
+      
+      if (!bestPoolId) {
+        return c.json({
+          error: 'Pool discovery failed',
+          message: `No pools found for token: ${input.tokenMint}`,
+          suggestion: 'Token might be too new or not have sufficient liquidity',
+        }, 404);
+      }
+      
+      poolId = bestPoolId;
+      console.log(`✅ Best pool discovered: ${poolId}`);
+      
+    } else {
+      // Should not happen due to schema validation
+      return c.json({
+        error: 'Invalid input',
+        message: 'Either poolId or tokenMint must be provided',
+      }, 400);
+    }
+    
+    // ====================================================================
+    // CACHE CHECK
+    // ====================================================================
+    
     if (!input.options?.skipCache) {
-      const cached = await getCachedAnalysis(input.poolId);
+      const cached = await getCachedAnalysis(poolId);
       if (cached) {
-        console.log(`⚡ Cache hit for pool: ${input.poolId}`);
+        console.log(`⚡ Cache hit for pool: ${poolId}`);
         return c.json({
           status: 'cached',
-          poolId: input.poolId,
+          poolId: poolId,
+          tokenMint: input.tokenMint,
+          discoveryMethod,
           result: cached,
           message: 'Analysis retrieved from cache (max 5 min old)',
         });
       }
     }
     
-    // İşi kuyruğa ekle
+    // ====================================================================
+    // QUEUE JOB
+    // ====================================================================
+    
     const job = await addAnalysisJob({
-      poolId: input.poolId,
+      poolId: poolId,
       userId: input.userId,
       options: input.options,
     });
     
-    console.log(`📥 New analysis job queued: ${job.id} for pool ${input.poolId}`);
+    console.log(`📥 New analysis job queued: ${job.id} for pool ${poolId}`);
+    
+    if (discoveryMethod === 'auto-discovery') {
+      console.log(`🎯 Pool auto-discovered from token mint: ${input.tokenMint}`);
+    }
+    
+    // Get queue position and estimated wait time
+    const queueStats = await getRateLimiterQueueStats(queue);
+    const queuePosition = queueStats.waiting + queueStats.active;
+    const waitTime = calculateEstimatedWaitTime(queuePosition);
+    
+    // Get daily stats for user info
+    const systemStatus = await getSystemStatus(queue);
     
     return c.json({
       status: 'queued',
       jobId: job.id,
-      poolId: input.poolId,
-      message: 'Analysis job queued successfully',
-      estimatedTime: '30-60 seconds',
+      poolId: poolId,
+      tokenMint: input.tokenMint,
+      discoveryMethod,
+      message: 'Analiz işlemi kuyruğa eklendi',
+      queue: {
+        position: queuePosition,
+        estimatedWaitTime: waitTime.text,
+        estimatedMinutes: waitTime.minutes,
+      },
+      dailyStats: {
+        used: systemStatus.dailyUsed,
+        remaining: systemStatus.dailyRemaining,
+        limit: systemStatus.dailyLimit,
+      },
     }, 202); // 202 Accepted
     
   } catch (error: any) {

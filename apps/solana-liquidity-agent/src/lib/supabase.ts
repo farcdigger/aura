@@ -47,6 +47,36 @@ export const supabase = getSupabaseClient();
 // =============================================================================
 
 /**
+ * Helper function to serialize BigInt values in objects
+ * Recursively converts all BigInt values to strings
+ */
+function serializeBigInt(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => serializeBigInt(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+  
+  return obj;
+}
+
+/**
  * Save analysis result to database
  * @param analysis Complete analysis result
  * @param userId Optional user ID for tracking
@@ -59,6 +89,10 @@ export async function saveAnalysis(
   try {
     console.log(`[Supabase] Saving analysis for pool: ${analysis.poolId}`);
 
+    // Serialize BigInt values before saving
+    const serializedReserves = serializeBigInt(analysis.reserves);
+    const serializedTransactions = serializeBigInt(analysis.transactions);
+
     const record = {
       pool_id: analysis.poolId,
       token_a_mint: analysis.tokenA.mint,
@@ -67,8 +101,8 @@ export async function saveAnalysis(
       token_b_symbol: analysis.tokenB.symbol,
       risk_score: analysis.riskScore,
       analysis_report: analysis.riskAnalysis,
-      reserves_snapshot: analysis.reserves as any,
-      transaction_summary: analysis.transactions as any,
+      reserves_snapshot: serializedReserves,
+      transaction_summary: serializedTransactions,
       model_used: analysis.modelUsed,
       tokens_used: analysis.tokensUsed,
       generated_at: analysis.generatedAt,

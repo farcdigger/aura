@@ -2,6 +2,7 @@ import type {
   TokenMetadata,
   AdjustedPoolReserves,
   TransactionSummary,
+  PoolHistoryTrend,
 } from './types';
 
 // =============================================================================
@@ -18,8 +19,9 @@ export function buildAnalysisPrompt(params: {
   tokenB: TokenMetadata;
   reserves: AdjustedPoolReserves;
   transactions: TransactionSummary;
+  poolHistory?: PoolHistoryTrend;
 }): string {
-  const { poolId, tokenA, tokenB, reserves, transactions } = params;
+  const { poolId, tokenA, tokenB, reserves, transactions, poolHistory } = params;
   // Calculate derived metrics
   const totalTransactions = transactions.totalCount;
   const buyRatio = totalTransactions > 0 ? (transactions.buyCount / totalTransactions) * 100 : 0;
@@ -37,6 +39,65 @@ export function buildAnalysisPrompt(params: {
     .map((w, i) => `${i + 1}. ${w.address.substring(0, 8)}... - ${w.txCount} transactions (${w.volumeShare.toFixed(1)}% of volume)`)
     .join('\n');
 
+  // PHASE 3: Wallet Profiles
+  const walletProfilesSection = transactions.walletProfiles && transactions.walletProfiles.length > 0
+    ? `\n\n**🔍 WALLET PROFILES (Advanced Analysis - Phase 3):**
+
+${transactions.walletProfiles.map((profile, i) => {
+  const riskEmoji = profile.riskLevel === 'high' ? '🔴' : profile.riskLevel === 'medium' ? '🟡' : '🟢';
+  const botEmoji = profile.isLikelyBot ? '🤖 BOT' : '👤 HUMAN';
+  const whaleEmoji = profile.isWhale ? '🐋 WHALE' : '';
+  
+  return `${i + 1}. **${profile.address.substring(0, 8)}...** ${riskEmoji} ${profile.riskLevel.toUpperCase()} RISK
+   - ${profile.summary}
+   - ${botEmoji} ${whaleEmoji}
+   - Age: ${profile.ageInDays} days | Total TX: ${profile.totalTransactions} | Avg: ${profile.avgTxPerDay.toFixed(1)} tx/day`;
+}).join('\n\n')}
+
+**Risk Indicators:**
+- 🔴 High Risk: Bot + Whale, new account with high activity
+- 🟡 Medium Risk: Whale or bot activity, or new account
+- 🟢 Low Risk: Established account, normal activity
+
+`
+    : '';
+
+  // PHASE 3: Historical Trend
+  const historicalTrendSection = poolHistory && poolHistory.dataPoints > 0
+    ? `\n\n## 📈 HISTORICAL TREND ANALYSIS (Phase 3 - Last ${poolHistory.daysTracked} days)
+
+**Data Points:** ${poolHistory.dataPoints} analyses over ${poolHistory.daysTracked} days
+
+### TVL Trend:
+- **Current TVL:** $${poolHistory.tvl.current.toLocaleString()}
+${poolHistory.tvl.sevenDaysAgo ? `- **7 Days Ago:** $${poolHistory.tvl.sevenDaysAgo.toLocaleString()}` : ''}
+${poolHistory.tvl.changePercent ? `- **Change:** ${poolHistory.tvl.changePercent.toFixed(1)}%` : ''}
+- **Trend:** ${poolHistory.tvl.trend === 'up' ? '📈 INCREASING' : poolHistory.tvl.trend === 'down' ? '📉 DECREASING' : '➡️ STABLE'}
+- **Summary:** ${poolHistory.tvl.summary}
+
+### Volume Trend:
+- **Avg Daily Transactions:** ${poolHistory.volume.avgDailyTransactions.toFixed(0)}
+${poolHistory.volume.recentVsHistorical ? `- **Recent vs Historical:** ${poolHistory.volume.recentVsHistorical.toFixed(1)}%` : ''}
+- **Trend:** ${poolHistory.volume.trend.toUpperCase()}
+- **Summary:** ${poolHistory.volume.summary}
+
+### Liquidity Stability:
+- **Stability Level:** ${poolHistory.stability.level.replace('_', ' ').toUpperCase()}
+- **Volatility:** ${poolHistory.stability.volatility.toFixed(1)}%
+- **Is Stable:** ${poolHistory.stability.isStable ? '✅ Yes' : '⚠️ No'}
+- **Summary:** ${poolHistory.stability.summary}
+
+### Risk Trend:
+- **Current Risk Score:** ${poolHistory.risk.current}/100
+${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk.historicalAvg.toFixed(1)}/100` : ''}
+- **Trend:** ${poolHistory.risk.trend === 'improving' ? '✅ IMPROVING' : poolHistory.risk.trend === 'worsening' ? '⚠️ WORSENING' : '➡️ STABLE'}
+- **Summary:** ${poolHistory.risk.summary}
+
+**⚠️ IMPORTANT:** Use this historical data to contextualize current risks. A stable history with good trends is a positive indicator.
+
+`
+    : '\n\n## 📈 HISTORICAL TREND ANALYSIS\n\n**No historical data available.** This may be the first analysis of this pool. Exercise extra caution with new pools.\n\n';
+
   // Suspicious patterns
   const suspiciousPatternsText = transactions.suspiciousPatterns.length > 0
     ? transactions.suspiciousPatterns.map(p => `⚠️ ${p}`).join('\n')
@@ -50,6 +111,31 @@ export function buildAnalysisPrompt(params: {
   const mintAuthorityWarning = tokenA.authorities?.mintAuthority || tokenB.authorities?.mintAuthority
     ? '⚠️ WARNING: One or both tokens have MINT AUTHORITY enabled - supply can be inflated!'
     : '✅ No mint authority detected';
+
+  // Pool health section (NEW)
+  const poolHealthSection = `
+## 🏊 POOL HEALTH METRICS
+
+**Pool Type:** ${reserves.poolType || 'Raydium AMM V4'}
+**Pool Status:** ${reserves.poolStatus || 'Active'}
+**LP Token Supply:** ${reserves.lpSupply || 'Unknown'}
+**Swap Fee:** ${reserves.feeInfo || '0.25% (standard)'}
+
+**Liquidity Depth:**
+- **${tokenA.symbol} Reserve:** ${reserves.tokenAReserve.toLocaleString()} tokens
+- **${tokenB.symbol} Reserve:** ${reserves.tokenBReserve.toLocaleString()} tokens
+${reserves.tvlUSD && reserves.tvlUSD > 0 ? `- **Estimated TVL:** $${reserves.tvlUSD.toLocaleString()} USD` : '- **Estimated TVL:** Not available (price data pending)'}
+
+**Liquidity Risk Interpretation:**
+- **Deep liquidity (>$1M TVL):** Low slippage, safer for large trades
+- **Medium liquidity ($100K-$1M):** Moderate slippage risk
+- **Shallow liquidity ($10K-$100K):** High slippage, caution advised
+- **Very low liquidity (<$10K):** CRITICAL: Very high slippage risk
+- **Zero LP supply:** CRITICAL: Pool may be drained or inactive
+
+${reserves.poolStatus === 'Disabled' ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
+${!reserves.lpSupply || reserves.lpSupply === '0' ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive or drained!' : ''}
+`;
 
   // Build the comprehensive prompt
   const prompt = `You are an expert Solana DeFi security analyst specializing in liquidity pool risk assessment. Your task is to analyze a Raydium liquidity pool and provide a comprehensive risk report.
@@ -85,18 +171,10 @@ Evaluate the provided pool data and generate a detailed risk assessment covering
 
 ---
 
-## 💧 LIQUIDITY DATA
+${poolHealthSection}
 
-**Current Reserves:**
-- **${tokenA.symbol} Reserve:** ${reserves.tokenAReserve.toLocaleString()} tokens
-- **${tokenB.symbol} Reserve:** ${reserves.tokenBReserve.toLocaleString()} tokens
-${reserves.tvlUSD ? `- **Total Value Locked (TVL):** $${reserves.tvlUSD.toLocaleString()}` : '- **TVL:** Not available'}
-
-**Liquidity Assessment Notes:**
-- Low liquidity (< $10,000) = High slippage risk
-- Medium liquidity ($10k - $100k) = Moderate risk
-- High liquidity (> $100k) = Lower slippage risk
-
+---
+${historicalTrendSection}
 ---
 
 ## 📈 TRANSACTION ANALYSIS (Last ${totalTransactions} Transactions)
@@ -110,7 +188,7 @@ ${reserves.tvlUSD ? `- **Total Value Locked (TVL):** $${reserves.tvlUSD.toLocale
 
 **Top 5 Active Wallets:**
 ${topWalletsText}
-
+${walletProfilesSection}
 **Wallet Concentration:**
 - Top wallet controls: **${topWalletShare.toFixed(1)}%** of transaction volume
 - Risk threshold: >30% concentration = High manipulation risk
@@ -170,6 +248,8 @@ Provide a high-level overview of the pool's risk profile.
 - Evaluate wallet concentration
 - Identify pump & dump patterns
 - Assess bot activity risks
+- **PHASE 3:** Analyze wallet profiles (age, activity, bot/human classification)
+- **PHASE 3:** Evaluate whale wallet risk based on account history
 
 ### 4. KEY FINDINGS (Bullet Points)
 List 3-5 most critical findings, both positive and negative.

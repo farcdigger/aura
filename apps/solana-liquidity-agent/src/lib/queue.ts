@@ -56,6 +56,9 @@ export function getAnalysisQueue(): Queue {
 // Export singleton
 export const analysisQueue = getAnalysisQueue();
 
+// Also export as 'queue' for convenience
+export const queue = analysisQueue;
+
 // =============================================================================
 // QUEUE OPERATIONS
 // =============================================================================
