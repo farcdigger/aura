@@ -57,7 +57,7 @@ export interface ParsedPumpfunBondingCurve {
  * 
  * Account Layout (estimated based on 301 bytes):
  * - 0-8: Discriminator
- * - 8-40: Token mint (32 bytes)
+ * - 8-40: Token mint (32 bytes) - UNVERIFIED, may be authority/creator
  * - 40-72: Bonding curve authority (32 bytes)
  * - 72-80: Virtual SOL reserves (8 bytes)
  * - 80-88: Virtual token reserves (8 bytes)
@@ -66,8 +66,11 @@ export interface ParsedPumpfunBondingCurve {
  * - 104-112: Token total supply (8 bytes)
  * - 112: Complete flag (1 byte)
  * - Rest: Metadata and padding
+ * 
+ * NOTE: Token mint address is NOT reliably stored in account data!
+ * It should be provided externally (from DexScreener, Jupiter, or user input).
  */
-export function parsePumpfunBondingCurve(accountData: Buffer): ParsedPumpfunBondingCurve {
+export function parsePumpfunBondingCurve(accountData: Buffer, tokenMintOverride?: string): ParsedPumpfunBondingCurve {
   try {
     console.log(`[PumpfunParser] 🔍 Parsing Pump.fun bonding curve...`);
     console.log(`[PumpfunParser] Account size: ${accountData.length} bytes`);
@@ -76,10 +79,39 @@ export function parsePumpfunBondingCurve(accountData: Buffer): ParsedPumpfunBond
     const discriminator = accountData.slice(0, 8).toString('hex');
     console.log(`[PumpfunParser] Discriminator: ${discriminator}`);
     
-    // Read token mint (offset 8, 32 bytes)
-    const tokenMintBytes = accountData.slice(8, 40);
-    const tokenMint = new PublicKey(tokenMintBytes).toString();
-    console.log(`[PumpfunParser] ✅ Token Mint: ${tokenMint}`);
+    // 🔍 DEBUG: Hex dump to find correct offsets
+    console.log(`[PumpfunParser] 🔍 HEX DUMP (first 150 bytes):`);
+    console.log(accountData.slice(0, 150).toString('hex'));
+    
+    // Try multiple potential offsets for token mint
+    const possibleMints: Array<{offset: number; address: string}> = [];
+    
+    // Check offsets: 8, 40, 72, 104, 136, 168, 200, 232, 264
+    for (let offset = 8; offset < accountData.length - 32; offset += 32) {
+      try {
+        const mintBytes = accountData.slice(offset, offset + 32);
+        const mint = new PublicKey(mintBytes).toString();
+        possibleMints.push({ offset, address: mint });
+      } catch (e) {
+        // Invalid pubkey, skip
+      }
+    }
+    
+    console.log(`[PumpfunParser] 🔍 Possible token mints found at different offsets:`);
+    possibleMints.forEach(({ offset, address }) => {
+      console.log(`[PumpfunParser]    Offset ${offset}: ${address}`);
+    });
+    
+    // Read token mint - use override if provided, otherwise try offset 8
+    let tokenMint: string;
+    if (tokenMintOverride) {
+      tokenMint = tokenMintOverride;
+      console.log(`[PumpfunParser] ✅ Using provided token mint (from DexScreener/Jupiter): ${tokenMint}`);
+    } else {
+      const tokenMintBytes = accountData.slice(8, 40);
+      tokenMint = new PublicKey(tokenMintBytes).toString();
+      console.log(`[PumpfunParser] ⚠️ Using offset 8 (UNVERIFIED, may be wrong!): ${tokenMint}`);
+    }
     
     // SOL mint (native wrapped SOL)
     const solMint = 'So11111111111111111111111111111111111111112';
@@ -146,9 +178,10 @@ export function parsePumpfunBondingCurve(accountData: Buffer): ParsedPumpfunBond
  */
 export async function parsePumpfunPoolWithReserves(
   connection: Connection,
-  accountData: Buffer
+  accountData: Buffer,
+  tokenMintOverride?: string
 ): Promise<ParsedPumpfunBondingCurve> {
-  const parsed = parsePumpfunBondingCurve(accountData);
+  const parsed = parsePumpfunBondingCurve(accountData, tokenMintOverride);
   
   console.log(`[PumpfunParser] 🔍 Fetching actual vault balances...`);
   

@@ -106,13 +106,14 @@ export async function findBestPoolViaDexScreener(
       return null;
     }
     
-    // Filter for Solana pairs that actually contain our token
+    // Filter for Solana pairs that actually contain our token AND have liquidity data
     const solanaPairs = data.pairs.filter(pair => {
       const isSolana = pair.chainId === 'solana';
       const hasToken = 
         pair.baseToken.address.toLowerCase() === tokenMint.toLowerCase() ||
         pair.quoteToken.address.toLowerCase() === tokenMint.toLowerCase();
-      return isSolana && hasToken;
+      const hasLiquidity = pair.liquidity && typeof pair.liquidity.usd === 'number';
+      return isSolana && hasToken && hasLiquidity;
     });
     
     if (solanaPairs.length === 0) {
@@ -122,14 +123,18 @@ export async function findBestPoolViaDexScreener(
     
     console.log(`[DexScreener] ✅ Found ${solanaPairs.length} Solana pairs for this token`);
     
-    // DEBUG: Log all found pairs
+    // DEBUG: Log all found pairs with FULL addresses
     console.log(`[DexScreener] 🔍 DEBUG: All pairs for this token:`);
     solanaPairs.forEach((pair, index) => {
       console.log(`[DexScreener]    Pair ${index + 1}:`);
       console.log(`[DexScreener]      Pool: ${pair.pairAddress}`);
-      console.log(`[DexScreener]      Base: ${pair.baseToken.symbol} (${pair.baseToken.address.slice(0, 8)}...)`);
-      console.log(`[DexScreener]      Quote: ${pair.quoteToken.symbol} (${pair.quoteToken.address.slice(0, 8)}...)`);
-      console.log(`[DexScreener]      Liquidity: $${pair.liquidity.usd.toLocaleString()}`);
+      console.log(`[DexScreener]      Base: ${pair.baseToken.symbol}`);
+      console.log(`[DexScreener]        Address: ${pair.baseToken.address}`);
+      console.log(`[DexScreener]      Quote: ${pair.quoteToken.symbol}`);
+      console.log(`[DexScreener]        Address: ${pair.quoteToken.address}`);
+      console.log(`[DexScreener]      Liquidity: $${pair.liquidity?.usd?.toLocaleString() || 'N/A'}`);
+      console.log(`[DexScreener]      Requested Token: ${tokenMint}`);
+      console.log(`[DexScreener]      Match: Base=${pair.baseToken.address === tokenMint}, Quote=${pair.quoteToken.address === tokenMint}`);
     });
     
     // Sort by liquidity (highest first)

@@ -220,6 +220,10 @@ export interface ParsedSwap {
   amountIn: bigint;
   /** Amount out (raw) */
   amountOut: bigint;
+  /** Amount in USD (for volume calculations) */
+  amountInUsd?: number;
+  /** Amount out USD (for volume calculations) */
+  amountOutUsd?: number;
   /** Price impact percentage (optional) */
   priceImpact?: number;
 }
@@ -362,6 +366,8 @@ export interface QueueJobData {
   poolId: string;
   /** User ID (optional, for tracking) */
   userId?: string;
+  /** Token mint (optional, for Pump.fun pool support) */
+  tokenMint?: string;
   /** Timestamp when request was made */
   requestedAt?: string;
   /** Priority (optional, higher = more important) */

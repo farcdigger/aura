@@ -644,28 +644,38 @@ export async function findMostLiquidPoolForMint(
     // ✅ TIER 2A: DexScreener API (Fast, FREE, NO KEY!)
     console.log(`[PoolDiscovery] 🔍 Not a known token, trying DexScreener API (FREE)...`);
     
-    const dexScreenerResult = await findBestPoolViaDexScreener(tokenMint);
-    
-    if (dexScreenerResult) {
-      console.log(`[PoolDiscovery] ✅ DexScreener found best pool!`);
-      console.log(`[PoolDiscovery]    Pool: ${dexScreenerResult.poolAddress}`);
-      console.log(`[PoolDiscovery]    DEX: ${dexScreenerResult.dexLabel}`);
-      console.log(`[PoolDiscovery]    Liquidity: $${dexScreenerResult.liquidityUsd.toLocaleString()}`);
-      console.log(`[PoolDiscovery] 🚀 Response time: ~200ms (1 API call, FREE!)`);
-      return dexScreenerResult.poolAddress;
+    try {
+      const dexScreenerResult = await findBestPoolViaDexScreener(tokenMint);
+      
+      if (dexScreenerResult) {
+        console.log(`[PoolDiscovery] ✅ DexScreener found best pool!`);
+        console.log(`[PoolDiscovery]    Pool: ${dexScreenerResult.poolAddress}`);
+        console.log(`[PoolDiscovery]    DEX: ${dexScreenerResult.dexLabel}`);
+        console.log(`[PoolDiscovery]    Liquidity: $${dexScreenerResult.liquidityUsd.toLocaleString()}`);
+        console.log(`[PoolDiscovery] 🚀 Response time: ~200ms (1 API call, FREE!)`);
+        return dexScreenerResult.poolAddress;
+      }
+    } catch (error: any) {
+      console.error(`[PoolDiscovery] ⚠️ DexScreener error: ${error.message}`);
+      console.log(`[PoolDiscovery] 🔄 Falling back to Jupiter API...`);
     }
     
     // ✅ TIER 2B: Jupiter API as backup (requires API key)
     console.log(`[PoolDiscovery] 🔍 DexScreener didn't find pool, trying Jupiter API...`);
     
-    const jupiterResult = await findBestPoolWithFallback(tokenMint);
-    
-    if (jupiterResult) {
-      console.log(`[PoolDiscovery] ✅ Jupiter found best pool!`);
-      console.log(`[PoolDiscovery]    Pool: ${jupiterResult.poolAddress}`);
-      console.log(`[PoolDiscovery]    DEX: ${jupiterResult.dexLabel}`);
-      console.log(`[PoolDiscovery] 🚀 Response time: ~200ms (1 API call)`);
-      return jupiterResult.poolAddress;
+    try {
+      const jupiterResult = await findBestPoolWithFallback(tokenMint);
+      
+      if (jupiterResult) {
+        console.log(`[PoolDiscovery] ✅ Jupiter found best pool!`);
+        console.log(`[PoolDiscovery]    Pool: ${jupiterResult.poolAddress}`);
+        console.log(`[PoolDiscovery]    DEX: ${jupiterResult.dexLabel}`);
+        console.log(`[PoolDiscovery] 🚀 Response time: ~200ms (1 API call)`);
+        return jupiterResult.poolAddress;
+      }
+    } catch (error: any) {
+      console.error(`[PoolDiscovery] ⚠️ Jupiter error: ${error.message}`);
+      console.log(`[PoolDiscovery] 🔄 All API methods failed, using fallback...`);
     }
     
     // ⚠️ TIER 3: Fallback (Slow - multiple RPC calls)

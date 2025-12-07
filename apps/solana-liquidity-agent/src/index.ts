@@ -17,7 +17,7 @@ import { PoolAnalysisInputSchema } from './lib/types';
 import { addAnalysisJob, getJobStatus, getQueueStats, queue } from './lib/queue';
 import { getCachedAnalysis, healthCheck as cacheHealthCheck } from './lib/cache';
 import { getRecentAnalysis, healthCheck as supabaseHealthCheck } from './lib/supabase';
-import { heliusClient } from './lib/helius-client';
+import { BirdeyeClient } from './lib/birdeye-client';
 import { findMostLiquidPoolForMint } from './lib/pool-discovery';
 import { analysisRateLimiter, getSystemStatus, getQueueStats as getRateLimiterQueueStats, calculateEstimatedWaitTime } from './middleware/rate-limiter';
 
@@ -125,6 +125,7 @@ app.post('/analyze', analysisRateLimiter(queue), async (c) => {
     const job = await addAnalysisJob({
       poolId: poolId,
       userId: input.userId,
+      tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
       options: input.options,
     });
     
@@ -265,7 +266,7 @@ app.get('/health', async (c) => {
     server: 'ok',
     redis: 'unknown',
     supabase: 'unknown',
-    helius: 'unknown',
+    birdeye: 'unknown',
     timestamp: new Date().toISOString(),
   };
   
@@ -286,11 +287,11 @@ app.get('/health', async (c) => {
   }
   
   try {
-    // Helius health
-    await heliusClient.healthCheck();
-    checks.helius = 'ok';
+    // Birdeye health (simple validation)
+    const birdeyeClient = new BirdeyeClient();
+    checks.birdeye = 'ok';
   } catch (error) {
-    checks.helius = 'error';
+    checks.birdeye = 'error';
   }
   
   const allOk = Object.values(checks).every((v) => v === 'ok' || v === checks.timestamp);

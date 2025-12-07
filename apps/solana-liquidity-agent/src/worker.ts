@@ -11,7 +11,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import type { QueueJobData } from './lib/types';
-import { heliusClient } from './lib/helius-client';
+import { BirdeyeClient } from './lib/birdeye-client';
 import { buildAnalysisPrompt, validateAnalysisResponse, parseRiskScore } from './lib/claude-prompt';
 import { saveAnalysis } from './lib/supabase';
 import { setCachedAnalysis } from './lib/cache';
@@ -19,7 +19,7 @@ import { redis } from './lib/cache'; // Redis connection'ı paylaşıyoruz
 
 // Environment validation
 const REQUIRED_ENV = [
-  'HELIUS_API_KEY',
+  'BIRDEYE_API_KEY',
   'INFERENCE_API_KEY',
   'REDIS_URL',
   'SUPABASE_URL',
@@ -45,6 +45,9 @@ const WORKER_CONFIG = {
 const INFERENCE_API_KEY = process.env.INFERENCE_API_KEY;
 const DAYDREAMS_BASE_URL = process.env.DAYDREAMS_BASE_URL || 'https://api-beta.daydreams.systems/v1';
 
+// Birdeye Client (replaces Helius completely)
+const birdeyeClient = new BirdeyeClient();
+
 /**
  * Ana analiz fonksiyonu
  */
@@ -67,28 +70,152 @@ async function processAnalysis(job: Job<QueueJobData>) {
   }
   
   try {
-    // 1. Pool bilgilerini çek
-    console.log(`📡 [Job ${job.id}] Fetching pool account info...`);
-    await heliusClient.getPoolAccountInfo(poolId); // Validate pool exists
+    // 1. Pool bilgilerini çek (Birdeye) - Lenient validation
+    console.log(`📡 [Job ${job.id}] Validating pool exists...`);
+    const poolExists = await birdeyeClient.validatePoolExists(poolId);
+    if (!poolExists) {
+      console.warn(`⚠️ [Job ${job.id}] Pool validation failed, but continuing (may be Pump.fun pool)...`);
+    }
     await job.updateProgress(20);
     
-    // 2. Pool reserves çek (artık TVL ve metadata dahil!)
-    console.log(`🔍 [Job ${job.id}] Parsing pool reserves...`);
-    const reserves = await heliusClient.getPoolReserves(poolId);
+    // 2. Pool reserves çek (Birdeye) - Try to get, but fallback to DexScreener if fails
+    console.log(`🔍 [Job ${job.id}] Fetching pool reserves from Birdeye...`);
+    let reserves: AdjustedPoolReserves;
+    try {
+      reserves = await birdeyeClient.getPoolData(poolId);
+    } catch (error: any) {
+      console.warn(`⚠️ [Job ${job.id}] Failed to fetch pool data from Birdeye: ${error.message}`);
+      console.warn(`⚠️ [Job ${job.id}] Trying DexScreener as fallback for liquidity data...`);
+      
+      // Fallback: Get liquidity from DexScreener (FREE API, no rate limit issues!)
+      let liquidityUsd = 0;
+      let dexId = 'Unknown';
+      
+      try {
+        if (job.data.tokenMint) {
+          const { findBestPoolViaDexScreener } = await import('./lib/dexscreener-client');
+          const dexScreenerData = await findBestPoolViaDexScreener(job.data.tokenMint);
+          
+          if (dexScreenerData && dexScreenerData.poolAddress === poolId) {
+            liquidityUsd = dexScreenerData.liquidityUsd || 0;
+            dexId = dexScreenerData.dexLabel || 'Unknown';
+            console.log(`✅ [Job ${job.id}] DexScreener provided liquidity data: $${liquidityUsd.toLocaleString()}`);
+          } else {
+            console.warn(`⚠️ [Job ${job.id}] DexScreener pool mismatch or no data`);
+          }
+        }
+      } catch (dexError: any) {
+        console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
+      }
+      
+      // Create reserves object with DexScreener liquidity
+      reserves = {
+        tokenAMint: 'So11111111111111111111111111111111111111112', // SOL
+        tokenBMint: job.data.tokenMint || 'UNKNOWN',
+        tokenAReserve: 0, // We don't have reserve amounts, but we have TVL
+        tokenBReserve: 0,
+        tvlUSD: liquidityUsd, // ✅ Use DexScreener liquidity as TVL
+        poolStatus: 'Active',
+        poolType: dexId,
+      };
+      
+      console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}`);
+    }
     await job.updateProgress(30);
     
-    // 3. Token metadata (artık reserves'de var, ama validation için tekrar çekelim)
-    console.log(`🪙 [Job ${job.id}] Fetching token metadata...`);
+    // 3. Token metadata (Birdeye)
+    console.log(`🪙 [Job ${job.id}] Fetching token metadata from Birdeye...`);
     const [tokenA, tokenB] = await Promise.all([
-      heliusClient.getTokenMetadata(reserves.tokenAMint),
-      heliusClient.getTokenMetadata(reserves.tokenBMint),
+      birdeyeClient.getTokenMetadata(reserves.tokenAMint),
+      birdeyeClient.getTokenMetadata(reserves.tokenBMint),
     ]);
     await job.updateProgress(40);
     
-    // 4. Transaction history çek
-    console.log(`📊 [Job ${job.id}] Fetching transaction history...`);
-    const txLimit = options?.transactionLimit || 2000; // Phase 3: Balanced for quality vs rate limits
-    const transactions = await heliusClient.getTransactionHistory(poolId, txLimit);
+    // 4. Transaction history çek (Birdeye)
+    console.log(`📊 [Job ${job.id}] Fetching transaction history from Birdeye...`);
+    console.log(`📊 [Job ${job.id}] Target: ${options?.transactionLimit || 500} swaps`);
+    const txLimit = options?.transactionLimit || 500; // Test phase: 500 swaps (suitable for Standard plan)
+    
+    const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
+    
+    // Detailed swap statistics
+    console.log(`\n📊 [Job ${job.id}] ========== SWAP DATA SUMMARY ==========`);
+    console.log(`📊 [Job ${job.id}] Total Swaps Fetched: ${swaps.length}`);
+    
+    // ⚠️ CRITICAL: NO SWAP DATA = NO AI ANALYSIS (prevents wasting API credits)
+    if (swaps.length === 0) {
+      console.error(`❌ [Job ${job.id}] ========================================`);
+      console.error(`❌ [Job ${job.id}] NO SWAP DATA - ABORTING ANALYSIS`);
+      console.error(`❌ [Job ${job.id}] ========================================`);
+      console.error(`❌ [Job ${job.id}] Reasons this might happen:`);
+      console.error(`❌ [Job ${job.id}]   1. Pool has no trading activity`);
+      console.error(`❌ [Job ${job.id}]   2. Birdeye API endpoint doesn't support this pool type`);
+      console.error(`❌ [Job ${job.id}]   3. Birdeye Standard plan doesn't support swap endpoints`);
+      console.error(`❌ [Job ${job.id}]   4. Wrong pool address or token mint`);
+      console.error(`❌ [Job ${job.id}] ========================================`);
+      throw new Error('No swap data available for analysis. Cannot proceed without transaction history.');
+    }
+    
+    if (swaps.length > 0) {
+      const swapsWithUsd = swaps.filter(s => s.amountInUsd !== undefined || s.amountOutUsd !== undefined);
+      const totalUsdVolume = swaps.reduce((sum, s) => sum + (s.amountInUsd || s.amountOutUsd || 0), 0);
+      const buyCount = swaps.filter(s => s.direction === 'buy').length;
+      const sellCount = swaps.filter(s => s.direction === 'sell').length;
+      const uniqueWallets = new Set(swaps.map(s => s.wallet)).size;
+      
+      console.log(`📊 [Job ${job.id}] Swaps with USD data: ${swapsWithUsd.length}/${swaps.length} (${((swapsWithUsd.length / swaps.length) * 100).toFixed(1)}%)`);
+      console.log(`📊 [Job ${job.id}] Total USD Volume: $${totalUsdVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      console.log(`📊 [Job ${job.id}] Buy/Sell Distribution: ${buyCount} buys (${((buyCount / swaps.length) * 100).toFixed(1)}%) / ${sellCount} sells (${((sellCount / swaps.length) * 100).toFixed(1)}%)`);
+      console.log(`📊 [Job ${job.id}] Unique Wallets: ${uniqueWallets}`);
+      
+      // Top 5 wallets by USD volume
+      const walletVolumes = new Map<string, number>();
+      swaps.forEach(s => {
+        const volume = s.amountInUsd || s.amountOutUsd || 0;
+        walletVolumes.set(s.wallet, (walletVolumes.get(s.wallet) || 0) + volume);
+      });
+      
+      const topWallets = Array.from(walletVolumes.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      if (topWallets.length > 0) {
+        console.log(`📊 [Job ${job.id}] Top 5 Wallets by USD Volume:`);
+        topWallets.forEach(([wallet, volume], i) => {
+          const walletSwaps = swaps.filter(s => s.wallet === wallet);
+          const walletBuys = walletSwaps.filter(s => s.direction === 'buy').length;
+          const walletSells = walletSwaps.filter(s => s.direction === 'sell').length;
+          console.log(`📊 [Job ${job.id}]   ${i + 1}. ${wallet.substring(0, 8)}...${wallet.substring(wallet.length - 4)}: $${volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${walletSwaps.length} swaps: ${walletBuys}B/${walletSells}S)`);
+        });
+      }
+      
+      // Sample swaps (first 3)
+      console.log(`📊 [Job ${job.id}] Sample Swaps (first 3):`);
+      swaps.slice(0, 3).forEach((swap, i) => {
+        const date = new Date(swap.timestamp);
+        const usdAmount = swap.amountInUsd || swap.amountOutUsd || 0;
+        console.log(`📊 [Job ${job.id}]   ${i + 1}. ${swap.direction.toUpperCase()} | Wallet: ${swap.wallet.substring(0, 8)}... | USD: $${usdAmount.toFixed(2)} | Time: ${date.toISOString()}`);
+      });
+    } else {
+      console.warn(`⚠️ [Job ${job.id}] ⚠️ NO SWAPS FETCHED! This may indicate:`);
+      console.warn(`⚠️ [Job ${job.id}]    - Pool has no swap history`);
+      console.warn(`⚠️ [Job ${job.id}]    - Birdeye API endpoint issue`);
+      console.warn(`⚠️ [Job ${job.id}]    - Standard plan may not support this endpoint`);
+    }
+    console.log(`📊 [Job ${job.id}] ===========================================\n`);
+    
+    // Convert swaps to TransactionSummary format
+    const { analyzeTransactions } = await import('./lib/transaction-parser');
+    const transactions = analyzeTransactions(swaps);
+    
+    console.log(`📊 [Job ${job.id}] Transaction Analysis Results:`);
+    console.log(`📊 [Job ${job.id}]    - Total: ${transactions.totalCount}`);
+    console.log(`📊 [Job ${job.id}]    - Buys: ${transactions.buyCount} (${((transactions.buyCount / transactions.totalCount) * 100).toFixed(1)}%)`);
+    console.log(`📊 [Job ${job.id}]    - Sells: ${transactions.sellCount} (${((transactions.sellCount / transactions.totalCount) * 100).toFixed(1)}%)`);
+    console.log(`📊 [Job ${job.id}]    - Avg Volume USD: $${transactions.avgVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    console.log(`📊 [Job ${job.id}]    - Unique Wallets: ${transactions.uniqueWallets || 0}`);
+    console.log(`📊 [Job ${job.id}]    - Top Wallet Share: ${transactions.topWallets[0]?.volumeShare.toFixed(1) || 0}%`);
+    
     await job.updateProgress(60);
     
     // 4.5. PHASE 3: Historical trend analysis (7 days)
@@ -279,7 +406,7 @@ worker.on('ready', () => {
   console.log(`⚙️  Concurrency: ${WORKER_CONFIG.concurrency}`);
   console.log(`🔒 Lock Duration: ${WORKER_CONFIG.lockDuration / 1000}s`);
   console.log(`🤖 Model: ${process.env.REPORT_MODEL || 'claude-3-5-sonnet-20241022'}`);
-  console.log(`📊 Transaction Limit: ${process.env.TRANSACTION_LIMIT || 2000}`);
+  console.log(`📊 Transaction Limit: ${process.env.TRANSACTION_LIMIT || 500}`);
 });
 
 worker.on('active', (job) => {

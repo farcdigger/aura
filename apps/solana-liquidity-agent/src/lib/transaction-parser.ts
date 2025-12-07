@@ -276,6 +276,7 @@ export function analyzeTransactions(
       buyCount: 0,
       sellCount: 0,
       totalVolume: BigInt(0),
+      volumeUSD: 0,
       firstSeen: tx.timestamp,
       lastSeen: tx.timestamp,
     };
@@ -288,6 +289,11 @@ export function analyzeTransactions(
     }
     existing.totalVolume += tx.amountIn;
     existing.lastSeen = Math.max(existing.lastSeen, tx.timestamp);
+    
+    // Track USD volume if available
+    if (tx.amountInUsd !== undefined) {
+      existing.volumeUSD = (existing.volumeUSD || 0) + tx.amountInUsd;
+    }
 
     walletMap.set(tx.wallet, existing);
   });
@@ -334,20 +340,39 @@ export function analyzeTransactions(
     }
   }
 
+  // Calculate total USD volume for avgVolumeUSD
+  const totalUsdVolume = transactions
+    .filter(tx => tx.amountInUsd !== undefined)
+    .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
+  const avgVolumeUSD = totalUsdVolume > 0 && transactions.length > 0 
+    ? totalUsdVolume / transactions.length 
+    : 0;
+
   // Build top wallets list
   const topWallets: WalletActivity[] = Array.from(walletMap.values())
-    .sort((a, b) => Number(b.totalVolume - a.totalVolume))
+    .sort((a, b) => {
+      // Sort by USD volume if available, otherwise by raw volume
+      if (a.volumeUSD !== undefined && b.volumeUSD !== undefined) {
+        return b.volumeUSD - a.volumeUSD;
+      }
+      return Number(b.totalVolume - a.totalVolume);
+    })
     .slice(0, 10)
-    .map((w) => ({
-      address: w.address,
-      txCount: w.transactionCount,
-      totalVolume: w.totalVolume,
-      volumeShare: totalVolume > BigInt(0) 
+    .map((w) => {
+      const volumeShare = totalVolume > BigInt(0) 
         ? Number((w.totalVolume * BigInt(10000)) / totalVolume) / 100
-        : 0,
-      firstSeen: w.firstSeen,
-      lastSeen: w.lastSeen,
-    }));
+        : 0;
+      
+      return {
+        address: w.address,
+        txCount: w.transactionCount,
+        totalVolume: w.totalVolume,
+        volumeShare,
+        volumeUSD: w.volumeUSD,
+        firstSeen: w.firstSeen,
+        lastSeen: w.lastSeen,
+      };
+    });
 
   // Build top traders list (with buy/sell breakdown)
   const topTraders: TopTrader[] = Array.from(walletMap.values())
@@ -375,7 +400,7 @@ export function analyzeTransactions(
     totalTransactions: totalCount,
     buyCount,
     sellCount,
-    avgVolumeUSD: 0, // TODO: Calculate with price API (Phase 2)
+    avgVolumeUSD,
     uniqueWallets: walletMap.size,
     topWallets,
     topTraders,

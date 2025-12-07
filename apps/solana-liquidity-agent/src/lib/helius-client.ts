@@ -44,17 +44,57 @@ import {
 } from './transaction-parser';
 import { calculatePoolTVL } from './price-fetcher';
 import type { ParsedSwap } from './types';
+import { BirdeyeClient } from './birdeye-client';
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
+const HELIUS_ENHANCED_API_BASE = 'https://api.helius.xyz/v0';
+
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY!;
 const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 
 // Transaction limits
-const DEFAULT_TX_LIMIT = 2000; // Phase 3: Balanced for quality vs rate limits
+const DEFAULT_TX_LIMIT = 500; // Test phase: 500 swaps (suitable for Standard plan)
 const MAX_TX_LIMIT = 1000; // Helius limit per request (pagination used for higher limits)
+
+// Enhanced Transaction API response types
+interface HeliusEnhancedTransaction {
+  signature: string;
+  timestamp: number;
+  slot: number;
+  type: string; // 'SWAP', 'TRANSFER', etc.
+  source?: string; // 'RAYDIUM', 'ORCA', 'PUMP_FUN', etc.
+  fee: number;
+  feePayer: string;
+  tokenTransfers?: Array<{
+    fromUserAccount: string;
+    toUserAccount: string;
+    fromTokenAccount: string;
+    toTokenAccount: string;
+    tokenAmount: number;
+    mint: string;
+    tokenStandard: string;
+  }>;
+  nativeTransfers?: Array<{
+    fromUserAccount: string;
+    toUserAccount: string;
+    amount: number;
+  }>;
+  accountData?: Array<{
+    account: string;
+    nativeBalanceChange: number;
+    tokenBalanceChanges: Array<{
+      mint: string;
+      rawTokenAmount: {
+        tokenAmount: string;
+        decimals: number;
+      };
+      userAccount: string;
+    }>;
+  }>;
+}
 
 // =============================================================================
 // HELIUS CLIENT CLASS
@@ -62,6 +102,7 @@ const MAX_TX_LIMIT = 1000; // Helius limit per request (pagination used for high
 
 export class HeliusClient {
   private helius: Helius;
+  private birdeyeClient?: BirdeyeClient;
   private connection: Connection;
 
   constructor() {
@@ -74,6 +115,15 @@ export class HeliusClient {
       commitment: 'confirmed',
       confirmTransactionInitialTimeout: 60000,
     });
+
+    // Initialize Birdeye client for swap transaction history (REQUIRED - no Helius fallback)
+    try {
+      this.birdeyeClient = new BirdeyeClient();
+      console.log('[HeliusClient] ✅ Birdeye client initialized (REQUIRED - no Helius fallback)');
+    } catch (error: any) {
+      console.error(`[HeliusClient] ❌ Birdeye client initialization failed: ${error.message}`);
+      throw new Error(`Birdeye client is required. Please set BIRDEYE_API_KEY in .env file. Error: ${error.message}`);
+    }
 
     console.log('[HeliusClient] ✅ Initialized with RPC:', HELIUS_RPC_URL.substring(0, 50) + '...');
   }
@@ -191,7 +241,7 @@ export class HeliusClient {
    * Parse Raydium pool reserves from account data
    * ✅ HYBRID SUPPORT: Automatically detects and parses both AMM V4 and CLMM pools
    */
-  async getPoolReserves(poolAddress: string): Promise<AdjustedPoolReserves> {
+  async getPoolReserves(poolAddress: string, tokenMint?: string): Promise<AdjustedPoolReserves> {
     try {
       console.log(`[HeliusClient] 🔍 Fetching pool reserves for ${poolAddress}`);
 
@@ -299,7 +349,7 @@ export class HeliusClient {
         // ========== PUMP.FUN BONDING CURVE ==========
         console.log(`[HeliusClient] 📦 Parsing as Pump.fun Bonding Curve...`);
         
-        parsedPool = await parsePumpfunPoolWithReserves(this.connection, accountInfo.data);
+        parsedPool = await parsePumpfunPoolWithReserves(this.connection, accountInfo.data, tokenMint);
         health = assessPumpfunPoolHealth(parsedPool);
         
         // Pump.fun always pairs with SOL
@@ -390,208 +440,271 @@ export class HeliusClient {
   }
 
   // ===========================================================================
-  // TRANSACTION HISTORY (RPC)
+  // TRANSACTION HISTORY (ENHANCED API)
   // ===========================================================================
 
   /**
-   * Fetch transaction signatures for an address (with pagination support)
-   * @param address Pool or wallet address
-   * @param limit Number of transactions to fetch (default: 1000, can be higher with pagination)
-   * @returns Array of transaction signatures with metadata
+   * Fetch SWAP transactions using Helius Enhanced Transaction API
+   * 
+   * This is MUCH faster and more reliable than parsing raw transactions!
+   * - Pre-parsed swap data
+   * - Only returns SWAP transactions (no noise)
+   * - Supports pagination for large datasets
+   * 
+   * @param poolAddress Pool address to fetch swaps for
+   * @param limit Maximum number of swap transactions to fetch (default: 2000)
+   * @returns Array of enhanced transactions (SWAP only)
    */
-  async getTransactionSignatures(address: string, limit: number = DEFAULT_TX_LIMIT) {
+  private async getEnhancedTransactions(
+    poolAddress: string,
+    limit: number = 2000
+  ): Promise<HeliusEnhancedTransaction[]> {
     try {
-      const pubkey = new PublicKey(address);
-      const signatures: any[] = [];
-      let lastSignature: string | undefined;
-      const batchSize = MAX_TX_LIMIT; // 1000 per batch
+      console.log(`[HeliusClient] 🔍 Fetching Enhanced Transactions (SWAP only) for pool: ${poolAddress}`);
+      console.log(`[HeliusClient] 🎯 Target: ${limit} swap transactions`);
       
-      console.log(`[HeliusClient] Fetching up to ${limit} transaction signatures for: ${address}`);
-
-      // Fetch in batches if limit > 1000
-      while (signatures.length < limit) {
-        const remaining = limit - signatures.length;
-        const currentLimit = Math.min(remaining, batchSize);
+      const allTransactions: HeliusEnhancedTransaction[] = [];
+      let before: string | undefined;
+      const perPage = 100; // Helius Enhanced API max per request
+      
+      while (allTransactions.length < limit) {
+        const remaining = limit - allTransactions.length;
+        const currentLimit = Math.min(remaining, perPage);
         
-        const batch = await this.connection.getSignaturesForAddress(pubkey, {
+        const url = `${HELIUS_ENHANCED_API_BASE}/addresses/${poolAddress}/transactions?api-key=${HELIUS_API_KEY}`;
+        
+        const body: any = {
+          type: ['SWAP'], // Only fetch SWAP transactions!
           limit: currentLimit,
-          before: lastSignature,
-        });
-
-        if (batch.length === 0) {
-          break; // No more transactions available
-        }
-
-        signatures.push(...batch);
-        lastSignature = batch[batch.length - 1].signature;
+        };
         
-        // If we got fewer than requested, we've reached the end
-        if (batch.length < currentLimit) {
+        if (before) {
+          body.before = before;
+        }
+        
+        console.log(`[HeliusClient] 📡 Fetching batch: ${allTransactions.length}/${limit} swaps...`);
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[HeliusClient] ❌ Enhanced API Response:`, errorText);
+          throw new Error(`Helius Enhanced API error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        
+        const data = await response.json() as HeliusEnhancedTransaction[];
+        
+        if (data.length === 0) {
+          console.log(`[HeliusClient] ℹ️ No more transactions available (reached end)`);
           break;
         }
+        
+        allTransactions.push(...data);
+        console.log(`[HeliusClient] ✅ Fetched ${data.length} swaps (Total: ${allTransactions.length}/${limit})`);
+        
+        // Set pagination cursor for next batch
+        before = data[data.length - 1]?.signature;
+        
+        // If we got less than requested, we've reached the end
+        if (data.length < currentLimit) {
+          console.log(`[HeliusClient] ℹ️ Received less than requested (${data.length} < ${currentLimit}), reached end`);
+          break;
+        }
+        
+        // Small delay to respect rate limits (25 req/sec on Free tier)
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
-
-      console.log(`[HeliusClient] ✅ Found ${signatures.length} transactions`);
-      return signatures;
-
+      
+      console.log(`[HeliusClient] ✅ Enhanced Transactions fetch complete: ${allTransactions.length} SWAP transactions`);
+      return allTransactions;
+      
     } catch (error: any) {
-      console.error(`[HeliusClient] ❌ Failed to fetch transaction signatures:`, error.message);
+      console.error(`[HeliusClient] ❌ Enhanced Transaction API error:`, error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Parse Enhanced Transaction to ParsedSwap format
+   * 
+   * Converts Helius pre-parsed transaction data to our internal format
+   */
+  private parseEnhancedTransaction(
+    tx: HeliusEnhancedTransaction,
+    poolTokenMints?: { tokenA: string; tokenB: string }
+  ): ParsedSwap | null {
+    try {
+      // Only process SWAP transactions
+      if (tx.type !== 'SWAP') {
+        return null;
+      }
+      
+      // Find token balance changes from accountData
+      let tokenAChange: number | null = null;
+      let tokenBChange: number | null = null;
+      let wallet: string | null = null;
+      
+      if (tx.accountData && poolTokenMints) {
+        for (const account of tx.accountData) {
+          for (const balanceChange of account.tokenBalanceChanges || []) {
+            const mint = balanceChange.mint;
+            const rawAmount = balanceChange.rawTokenAmount.tokenAmount;
+            const decimals = balanceChange.rawTokenAmount.decimals;
+            const amount = parseInt(rawAmount) / Math.pow(10, decimals);
+            
+            // Identify which token changed
+            if (mint === poolTokenMints.tokenA) {
+              tokenAChange = amount;
+              wallet = account.account;
+            } else if (mint === poolTokenMints.tokenB) {
+              tokenBChange = amount;
+              wallet = account.account;
+            }
+          }
+        }
+      }
+      
+      // Determine direction: BUY or SELL
+      // If tokenB (usually the memecoin) increased, it's a BUY
+      // If tokenB decreased, it's a SELL
+      let direction: 'buy' | 'sell' = 'buy';
+      let amountIn: bigint = BigInt(0);
+      let amountOut: bigint = BigInt(0);
+      
+      if (tokenAChange !== null && tokenBChange !== null) {
+        if (tokenBChange > 0) {
+          // User gained tokenB (memecoin) → BUY
+          direction = 'buy';
+          amountIn = BigInt(Math.floor(Math.abs(tokenAChange) * 1e9));
+          amountOut = BigInt(Math.floor(tokenBChange * 1e9));
+        } else {
+          // User lost tokenB (memecoin) → SELL
+          direction = 'sell';
+          amountIn = BigInt(Math.floor(Math.abs(tokenBChange) * 1e9));
+          amountOut = BigInt(Math.floor(Math.abs(tokenAChange) * 1e9));
+        }
+      }
+      
+      return {
+        signature: tx.signature,
+        timestamp: tx.timestamp,
+        wallet: wallet || tx.feePayer,
+        direction,
+        amountIn,
+        amountOut,
+      };
+      
+    } catch (error: any) {
+      console.warn(`[HeliusClient] ⚠️ Failed to parse enhanced transaction: ${error.message}`);
+      return null;
     }
   }
 
   /**
    * Analyze transaction history for a pool
    * 
-   * NEW APPROACH: Instead of fetching transactions from pool address,
-   * we fetch from DEX program IDs and filter by pool
+   * NEW APPROACH: Uses Enhanced Transaction API to fetch pre-parsed SWAP transactions
    * 
-   * @param poolAddress Pool address (used for filtering)
-   * @param limit Number of transactions to analyze (default: 100)
-   * @param programId Optional: specific DEX program ID to query
+   * @param poolAddress Pool address
+   * @param limit Number of transactions to analyze (default: 2000)
+   * @param programId Optional: DEX program ID (not used with Enhanced API)
+   * @param tokenMint Optional: Token mint for Pump.fun pools
    * @returns Transaction summary with buy/sell analysis
    */
   async getTransactionHistory(
     poolAddress: string,
-    limit: number = 100,
-    programId?: string
+    limit: number = DEFAULT_TX_LIMIT,
+    programId?: string,
+    tokenMint?: string
   ): Promise<TransactionSummary> {
     try {
       console.log(`[HeliusClient] 🔍 Analyzing transaction history for pool: ${poolAddress}`);
-      console.log(`[HeliusClient] Fetching up to ${limit} transactions...`);
+      console.log(`[HeliusClient] 🎯 Target: ${limit} swap transactions`);
 
-      // Step 1: Try to get pool info (optional - helps with direction detection)
+      // Step 1: Get pool info for token identification
       let poolTokenMints: { tokenA: string; tokenB: string } | undefined;
       try {
-        const reserves = await this.getPoolReserves(poolAddress);
+        const reserves = await this.getPoolReserves(poolAddress, tokenMint);
         poolTokenMints = {
           tokenA: reserves.tokenAMint,
           tokenB: reserves.tokenBMint,
         };
         console.log(`[HeliusClient] ✅ Pool tokens: ${poolTokenMints.tokenA} / ${poolTokenMints.tokenB}`);
       } catch (error: any) {
-        console.warn(`[HeliusClient] ⚠️ Pool reserves not available, using instruction-based detection only`);
-        // Continue without pool context - instruction-based parsing will still work
-      }
-
-      // Step 2: Try fetching transactions directly from pool address first
-      console.log(`[HeliusClient] Attempting to fetch transactions from pool address...`);
-      let signatures = await this.getTransactionSignatures(poolAddress, limit);
-      
-      // Step 2.5: If no transactions found on pool address, try program-based approach
-      if (signatures.length === 0 && programId) {
-        console.log(`[HeliusClient] No transactions on pool address, trying program ID: ${programId}...`);
-        try {
-          signatures = await this.getTransactionSignatures(programId, Math.min(limit * 2, 200));
-          console.log(`[HeliusClient] ✅ Found ${signatures.length} transactions on program`);
-          console.log(`[HeliusClient] Will filter for pool: ${poolAddress}`);
-        } catch (err: any) {
-          console.error(`[HeliusClient] Failed to fetch from program ID: ${err.message}`);
-        }
+        console.warn(`[HeliusClient] ⚠️ Pool reserves not available, continuing without token context`);
       }
       
-      if (signatures.length === 0) {
-        console.log('[HeliusClient] No transactions found for this pool');
-        return {
-          totalCount: 0,
-          totalTransactions: 0,
-          buyCount: 0,
-          sellCount: 0,
-          avgVolumeUSD: 0,
-          uniqueWallets: 0,
-          topWallets: [],
-          topTraders: [],
-          suspiciousPatterns: [],
-          summary: 'No transactions found',
-        };
+      // Step 2: Fetch SWAP transactions using Birdeye API ONLY
+      let parsedSwaps: ParsedSwap[] = [];
+      
+      if (!this.birdeyeClient) {
+        throw new Error('Birdeye client not initialized. BIRDEYE_API_KEY is required.');
       }
-
-      console.log(`[HeliusClient] Parsing ${signatures.length} transactions...`);
-
-      // Step 3: Parse each transaction (with rate limiting to avoid overwhelming Helius)
-      const parsedSwaps: ParsedSwap[] = [];
-      const batchSize = 5; // Small batches to avoid rate limits
-      const maxTransactionsToParse = Math.min(limit, signatures.length); // Use full limit for quality analysis
-
-      console.log(`[HeliusClient] ⏳ Parsing in batches of ${batchSize} (this may take a while)...`);
-
-      for (let i = 0; i < maxTransactionsToParse; i += batchSize) {
-        const batch = signatures.slice(i, i + batchSize);
-        
-        const batchResults = await Promise.all(
-          batch.map(async (sig) => {
-            try {
-              const tx = await this.getParsedTransaction(sig.signature);
-              if (!tx) return null;
-              
-              return parseSwapTransaction(tx, poolTokenMints);
-            } catch (error: any) {
-              // Silently skip failed transactions to avoid log spam
-              return null;
-            }
-          })
-        );
-
-        // Collect successfully parsed swaps
-        batchResults.forEach(swap => {
-          if (swap) parsedSwaps.push(swap);
-        });
-
-        // Progress indicator every 100 transactions
-        if ((i + batchSize) % 100 === 0 || i + batchSize >= maxTransactionsToParse) {
-          console.log(`[HeliusClient] 📊 Progress: ${Math.min(i + batchSize, maxTransactionsToParse)}/${maxTransactionsToParse} transactions processed`);
-        }
-
-        // Longer delay between batches to respect rate limits
-        if (i + batchSize < maxTransactionsToParse) {
-          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
-        }
-      }
-
-      console.log(`[HeliusClient] ✅ Successfully parsed ${parsedSwaps.length}/${maxTransactionsToParse} transactions`);
-
-      // Step 4: Analyze parsed transactions
-      const summary = analyzeTransactions(parsedSwaps);
-
+      
+      console.log(`[HeliusClient] 🚀 Using Birdeye API for swap transactions (ONLY - no Helius fallback)`);
+      parsedSwaps = await this.birdeyeClient.getSwapTransactions(poolAddress, limit, tokenMint);
+      console.log(`[HeliusClient] ✅ Fetched ${parsedSwaps.length} swaps from Birdeye`);
+      
+      // Step 4: Analyze parsed swaps
+      const analysis = analyzeTransactions(parsedSwaps);
+      
       console.log(`[HeliusClient] ✅ Transaction analysis complete:`);
-      console.log(`   - Total analyzed: ${summary.totalCount}`);
-      console.log(`   - Buys: ${summary.buyCount} (${((summary.buyCount / summary.totalCount) * 100).toFixed(1)}%)`);
-      console.log(`   - Sells: ${summary.sellCount} (${((summary.sellCount / summary.totalCount) * 100).toFixed(1)}%)`);
-      console.log(`   - Unique wallets: ${summary.uniqueWallets}`);
-      console.log(`   - Suspicious patterns: ${summary.suspiciousPatterns.length}`);
-
+      console.log(`[HeliusClient]    - Total swaps: ${parsedSwaps.length}`);
+      console.log(`[HeliusClient]    - Buys: ${analysis.buyCount} (${((analysis.buyCount / parsedSwaps.length) * 100).toFixed(1)}%)`);
+      console.log(`[HeliusClient]    - Sells: ${analysis.sellCount} (${((analysis.sellCount / parsedSwaps.length) * 100).toFixed(1)}%)`);
+      console.log(`[HeliusClient]    - Unique wallets: ${analysis.uniqueWallets || 0}`);
+      
       // Step 5: PHASE 3 - Wallet Profiling (Top 5 traders only)
-      if (summary.topTraders && summary.topTraders.length > 0) {
-        console.log(`[HeliusClient] 🔍 PHASE 3: Profiling top ${Math.min(5, summary.topTraders.length)} wallets...`);
+      if (analysis.topTraders && analysis.topTraders.length > 0) {
+        console.log(`[HeliusClient] 🔍 PHASE 3: Profiling top ${Math.min(5, analysis.topTraders.length)} wallets...`);
         try {
           const { batchProfileWallets } = await import('./wallet-profiler');
           
           // Profile top 5 traders
-          const topWalletsToProfile = summary.topTraders.slice(0, 5).map(t => t.wallet);
+          const topWalletsToProfile = analysis.topTraders.slice(0, 5).map(t => t.wallet);
           const poolTransactionCounts = new Map(
-            summary.topTraders.map(t => [t.wallet, t.buyCount + t.sellCount])
+            analysis.topTraders.map(t => [t.wallet, t.buyCount + t.sellCount])
           );
           
           const walletProfiles = await batchProfileWallets(
             this.connection,
             topWalletsToProfile,
             poolTransactionCounts,
-            summary.totalCount
+            analysis.totalCount
           );
           
-          summary.walletProfiles = walletProfiles;
+          analysis.walletProfiles = walletProfiles;
           console.log(`[HeliusClient] ✅ Profiled ${walletProfiles.length} wallets`);
         } catch (error: any) {
           console.warn(`[HeliusClient] ⚠️ Wallet profiling failed: ${error.message}`);
           // Continue without wallet profiles
         }
       }
-
-      return summary;
+      
+      return analysis;
 
     } catch (error: any) {
       console.error(`[HeliusClient] ❌ Failed to analyze transaction history:`, error.message);
-      throw error;
+      
+      // Fallback: Return empty result on error
+      return {
+        totalCount: 0,
+        totalTransactions: 0,
+        buyCount: 0,
+        sellCount: 0,
+        avgVolumeUSD: 0,
+        uniqueWallets: 0,
+        topWallets: [],
+        topTraders: [],
+        suspiciousPatterns: [],
+        summary: `Error: ${error.message}`,
+      };
     }
   }
 
@@ -669,4 +782,3 @@ export function getHeliusClient(): HeliusClient {
 
 // Export singleton instance
 export const heliusClient = getHeliusClient();
-
