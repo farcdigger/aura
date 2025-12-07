@@ -366,6 +366,8 @@ export interface QueueJobData {
   poolId: string;
   /** User ID (optional, for tracking) */
   userId?: string;
+  /** User wallet address (for user-specific reports) */
+  userWallet?: string;
   /** Token mint (optional, for Pump.fun pool support) */
   tokenMint?: string;
   /** Timestamp when request was made */

@@ -19,19 +19,16 @@ const BIRDEYE_API_KEY = process.env.BIRDEYE_API_KEY!;
 
 // Rate limits
 // Standard (Free) plan: 1 RPS (very limited)
-// Lite plan: 15 RPS
+// Lite plan: 15 RPS ← CURRENT PLAN
 // Premium Plus: 50 RPS
 // Business: 100 RPS
-// Defaulting to 1 RPS for Standard plan compatibility
-const RPS_LIMIT = parseInt(process.env.BIRDEYE_RPS_LIMIT || '1', 10);
+const RPS_LIMIT = parseInt(process.env.BIRDEYE_RPS_LIMIT || '15', 10); // Default: Lite plan (15 RPS)
 const REQUEST_DELAY_MS = 1000 / RPS_LIMIT; // Delay between requests
 
 // Pagination limits
 const MAX_PER_PAGE = 50; // Birdeye API max per request
-// Standard plan: Very limited (may not support /defi/txs/pair endpoint)
-// Lite plan: 10,000 swaps supported
-// Test phase: 500 swaps (suitable for Standard plan)
-const MAX_TOTAL_SWAPS = parseInt(process.env.BIRDEYE_MAX_SWAPS || '500', 10); // Test phase: 500 swaps
+// Lite plan: 10,000 swaps supported (our production setting)
+const MAX_TOTAL_SWAPS = parseInt(process.env.BIRDEYE_MAX_SWAPS || '10000', 10); // Production: 10K swaps
 
 // =============================================================================
 // BIRDEYE API TYPES
@@ -142,7 +139,7 @@ export class BirdeyeClient {
    */
   async getSwapTransactions(
     pairAddress: string,
-    limit: number = 500, // Test phase: default 500 swaps
+    limit: number = 10000, // Production: default 10,000 swaps
     tokenMint?: string
   ): Promise<ParsedSwap[]> {
     try {
@@ -150,7 +147,7 @@ export class BirdeyeClient {
       console.log(`[BirdeyeClient]    Pair Address: ${pairAddress}`);
       console.log(`[BirdeyeClient]    Token Mint: ${tokenMint || 'Not provided'}`);
       console.log(`[BirdeyeClient] 🎯 Target: ${limit} swaps`);
-      console.log(`[BirdeyeClient] 📊 Plan: Standard (${RPS_LIMIT} RPS, max ${MAX_TOTAL_SWAPS} swaps)`);
+      console.log(`[BirdeyeClient] 📊 Plan: LITE (${RPS_LIMIT} RPS, max ${MAX_TOTAL_SWAPS} swaps) ⚡`);
 
       const allSwaps: ParsedSwap[] = [];
       let offset = 0;
@@ -202,8 +199,8 @@ export class BirdeyeClient {
           const errorText = await response.text();
           console.error(`[BirdeyeClient] ❌ API Error (${response.status}):`, errorText.substring(0, 200));
           
-          if (response.status === 429) {
-            console.warn(`[BirdeyeClient] ⚠️ Rate limit hit (Standard plan: 1 RPS), waiting 2 seconds...`);
+            if (response.status === 429) {
+            console.warn(`[BirdeyeClient] ⚠️ Rate limit hit (Lite plan: ${RPS_LIMIT} RPS), waiting 2 seconds...`);
             await new Promise(resolve => setTimeout(resolve, 2000));
             continue; // Retry
           }

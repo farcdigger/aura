@@ -16,10 +16,11 @@ import { z } from 'zod';
 import { PoolAnalysisInputSchema } from './lib/types';
 import { addAnalysisJob, getJobStatus, getQueueStats, queue } from './lib/queue';
 import { getCachedAnalysis, healthCheck as cacheHealthCheck } from './lib/cache';
-import { getRecentAnalysis, healthCheck as supabaseHealthCheck } from './lib/supabase';
+import { getRecentAnalysis, getUserAnalyses, getDailyAnalysisCountForUser, getWeeklyAnalysisCountForUser, healthCheck as supabaseHealthCheck } from './lib/supabase';
 import { BirdeyeClient } from './lib/birdeye-client';
 import { findMostLiquidPoolForMint } from './lib/pool-discovery';
 import { analysisRateLimiter, getSystemStatus, getQueueStats as getRateLimiterQueueStats, calculateEstimatedWaitTime } from './middleware/rate-limiter';
+import { getWeeklyLimitStatus } from './lib/weekly-limit';
 
 // Environment validation
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -103,8 +104,12 @@ app.post('/analyze', analysisRateLimiter(queue), async (c) => {
     // CACHE CHECK
     // ====================================================================
     
-    if (!input.options?.skipCache) {
-      const cached = await getCachedAnalysis(poolId);
+    // ❌ CACHE REMOVED: Always fresh data for memecoin volatility
+    // Kullanıcı ücret ödüyor, her zaman canlı veri almalı
+    console.log(`🔄 No cache - generating fresh analysis for pool: ${poolId}`);
+    
+    if (false) {  // Cache disabled
+      const cached = null;
       if (cached) {
         console.log(`⚡ Cache hit for pool: ${poolId}`);
         return c.json({
@@ -125,6 +130,7 @@ app.post('/analyze', analysisRateLimiter(queue), async (c) => {
     const job = await addAnalysisJob({
       poolId: poolId,
       userId: input.userId,
+      userWallet: input.userWallet, // For user-specific tracking
       tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
       options: input.options,
     });
@@ -215,13 +221,16 @@ app.get('/analysis/:poolId', async (c) => {
   try {
     const poolId = c.req.param('poolId');
     
-    // 1. Cache'e bak
-    const cached = await getCachedAnalysis(poolId);
-    if (cached) {
-      return c.json({
-        source: 'cache',
-        poolId,
-        result: cached,
+    // ❌ CACHE REMOVED: Always fresh data
+    console.log(`🔄 No cache - checking database for pool: ${poolId}`);
+    
+    if (false) {  // Cache disabled
+      const cached = null;
+      if (cached) {
+        return c.json({
+          source: 'cache',
+          poolId,
+          result: cached,
       });
     }
     
@@ -250,6 +259,90 @@ app.get('/analysis/:poolId', async (c) => {
     
   } catch (error: any) {
     console.error('❌ /analysis error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /api/analyses
+ * Kullanıcıya özel analiz geçmişi
+ */
+app.get('/api/analyses', async (c) => {
+  try {
+    const userWallet = c.req.query('userWallet');
+    const limit = parseInt(c.req.query('limit') || '20');
+    const offset = parseInt(c.req.query('offset') || '0');
+    
+    if (!userWallet) {
+      return c.json({
+        error: 'userWallet query parameter is required',
+      }, 400);
+    }
+    
+    console.log(`📊 Fetching analyses for wallet: ${userWallet.substring(0, 10)}...`);
+    
+    const analyses = await getUserAnalyses(userWallet, limit, offset);
+    
+    // Get total count for pagination
+    // TODO: Implement count query in supabase.ts
+    const total = analyses.length; // Simplified for now
+    
+    return c.json({
+      analyses: analyses.map(a => ({
+        id: a.id,
+        poolId: a.pool_id,
+        tokenMint: a.token_mint,
+        analysisReport: a.analysis_report,
+        generatedAt: a.generated_at,
+        userId: a.user_id,
+      })),
+      total,
+      limit,
+      offset,
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/analyses error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/weekly-limit
+ * Kullanıcının haftalık limit durumunu kontrol et
+ */
+app.post('/api/weekly-limit', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userWallet } = body;
+    
+    if (!userWallet) {
+      return c.json({
+        error: 'userWallet is required',
+      }, 400);
+    }
+    
+    console.log(`📊 Checking weekly limit for wallet: ${userWallet.substring(0, 10)}...`);
+    
+    const status = await getWeeklyLimitStatus();
+    
+    return c.json({
+      current: status.current,
+      limit: status.limit,
+      remaining: status.remaining,
+      resetsIn: status.resetsIn,
+      resetsAt: status.resetsAt,
+      allowed: status.remaining > 0,
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/weekly-limit error:', error.message);
     return c.json({
       error: 'Internal server error',
       message: error.message,

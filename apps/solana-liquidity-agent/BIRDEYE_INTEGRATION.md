@@ -112,3 +112,4 @@ curl -X POST http://localhost:3000/api/analyze \
 - ✅ Fallback mekanizması çalışıyor
 - ⚠️ Standart plan sınırlı - Lite plan önerilir
 
+

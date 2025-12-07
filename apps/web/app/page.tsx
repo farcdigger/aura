@@ -1226,6 +1226,20 @@ function HomePageContent() {
             {/* Right: User Info & Buttons */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 w-full sm:w-auto justify-end">
               <ThemeToggle />
+              {/* Deep Research - WHITELIST ONLY */}
+              {address && address.toLowerCase() === "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d" && (
+                <Link
+                  href="/deep-research"
+                  className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-purple-600/30 bg-purple-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-purple-900 shadow-sm backdrop-blur transition-all hover:bg-purple-100 dark:border-purple-400/30 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30 sm:text-sm whitespace-nowrap"
+                >
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Deep Research</span>
+                  <span className="sm:hidden">Research</span>
+                </Link>
+              )}
+              
               <Link
                 href="/yama-agent"
                 onClick={() => setYamaAgentLoading(true)}
@@ -1371,6 +1385,20 @@ function HomePageContent() {
                 </svg>
                 <span>Create Avatar</span>
               </button>
+              {/* Deep Research - WHITELIST ONLY */}
+              {address && address.toLowerCase() === "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d" && (
+                <Link
+                  href="/deep-research"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-purple-900 dark:text-purple-300 font-semibold"
+                  onClick={closeMenu}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span>Deep Research on Solana</span>
+                </Link>
+              )}
+              
               <Link
                 href="/yama-agent"
                 onClick={() => {

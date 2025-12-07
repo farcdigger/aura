@@ -60,6 +60,20 @@ async function processAnalysis(job: Job<QueueJobData>) {
   // Progress tracking
   await job.updateProgress(10);
   
+  // ✅ WEEKLY LIMIT CHECK
+  const { checkAndIncrementWeeklyLimit } = await import('./lib/weekly-limit');
+  const limitStatus = await checkAndIncrementWeeklyLimit();
+  
+  console.log(`📊 [Job ${job.id}] Weekly reports: ${limitStatus.current}/${limitStatus.limit}`);
+  
+  if (!limitStatus.allowed) {
+    const resetDate = new Date(limitStatus.resetsAt);
+    throw new Error(
+      `Weekly limit reached (${limitStatus.current}/${limitStatus.limit}). ` +
+      `Resets on ${resetDate.toLocaleDateString()} at ${resetDate.toLocaleTimeString()}.`
+    );
+  }
+  
   // Increment daily analysis counter
   try {
     const { incrementDailyCount } = await import('./middleware/rate-limiter');
@@ -133,8 +147,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 4. Transaction history çek (Birdeye)
     console.log(`📊 [Job ${job.id}] Fetching transaction history from Birdeye...`);
-    console.log(`📊 [Job ${job.id}] Target: ${options?.transactionLimit || 500} swaps`);
-    const txLimit = options?.transactionLimit || 500; // Test phase: 500 swaps (suitable for Standard plan)
+    console.log(`📊 [Job ${job.id}] Target: ${options?.transactionLimit || 10000} swaps`);
+    const txLimit = options?.transactionLimit || 10000; // Production: 10,000 swaps (Lite plan)
     
     const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
     
@@ -324,15 +338,16 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 8. Supabase'e kaydet
     console.log(`💾 [Job ${job.id}] Saving to Supabase...`);
-    const savedRecord = await saveAnalysis(analysisResult, userId);
+    // userWallet'ı job data'dan al (frontend'den gelecek)
+    const userWallet = job.data.userWallet;
+    const savedRecord = await saveAnalysis(analysisResult, userId, userWallet);
     
     if (!savedRecord) {
       throw new Error('Failed to save analysis to database');
     }
     
-    // 9. Redis cache'e yaz
-    console.log(`⚡ [Job ${job.id}] Caching result...`);
-    await setCachedAnalysis(poolId, analysisResult);
+    // ❌ CACHE REMOVED: No caching, always fresh data
+    console.log(`✅ [Job ${job.id}] Analysis completed (no cache, always fresh)`);
     
     await job.updateProgress(100);
     
@@ -405,8 +420,10 @@ worker.on('ready', () => {
   console.log('🚀 Worker is ready and waiting for jobs...');
   console.log(`⚙️  Concurrency: ${WORKER_CONFIG.concurrency}`);
   console.log(`🔒 Lock Duration: ${WORKER_CONFIG.lockDuration / 1000}s`);
-  console.log(`🤖 Model: ${process.env.REPORT_MODEL || 'claude-3-5-sonnet-20241022'}`);
-  console.log(`📊 Transaction Limit: ${process.env.TRANSACTION_LIMIT || 500}`);
+  console.log(`🤖 Model: ${process.env.REPORT_MODEL || 'openai/gpt-4o'}`);
+  console.log(`📊 Transaction Limit: 10,000 swaps (Lite plan)`);
+  console.log(`⚡ Rate Limit: 15 RPS (Lite plan)`);
+  console.log(`📅 Weekly Limit: 140 reports/week`);
 });
 
 worker.on('active', (job) => {

@@ -1,0 +1,335 @@
+/**
+ * Deep Research - Create Analysis
+ * 
+ * Workflow:
+ * 1. Validate token mint
+ * 2. Check weekly limit (140 reports/week)
+ * 3. Check NFT ownership (for pricing)
+ * 4. Calculate price ($0.20 with NFT, $0.50 without)
+ * 5. Check free trial (3 days from launch: Dec 7-9, 2025)
+ * 6. Process payment (if not free)
+ * 7. Queue analysis job
+ * 8. Return job ID for status tracking
+ */
+
+import { NextResponse } from "next/server";
+import { env } from "@/env.mjs";
+
+// Types
+interface CreateAnalysisRequest {
+  tokenMint: string;
+  userWallet: string;
+}
+
+interface PricingInfo {
+  isFree: boolean;
+  freeReason?: string; // "trial" | "nft_holder"
+  priceUSDC: number;
+  hasNFT: boolean;
+}
+
+// Constants
+const FREE_TRIAL_START = new Date("2025-12-07T00:00:00Z");
+const FREE_TRIAL_END = new Date("2025-12-10T00:00:00Z"); // 3 days: Dec 7, 8, 9
+const PRICE_WITH_NFT = 0.20; // $0.20 for NFT holders
+const PRICE_WITHOUT_NFT = 0.50; // $0.50 for non-holders
+const WEEKLY_LIMIT = 140;
+
+/**
+ * Check if we're in free trial period
+ */
+function isFreeTrial(): boolean {
+  const now = new Date();
+  return now >= FREE_TRIAL_START && now < FREE_TRIAL_END;
+}
+
+/**
+ * Check NFT ownership (Base network)
+ * NOTE: This checks xFrora NFT ownership on Base blockchain
+ */
+async function checkNFTOwnership(walletAddress: string): Promise<boolean> {
+  try {
+    // Use the existing NFT check API
+    const response = await fetch(`${env.NEXT_PUBLIC_APP_URL}/api/chat/check-nft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ walletAddress }),
+    });
+
+    if (!response.ok) {
+      console.error("❌ NFT check failed:", response.status);
+      return false;
+    }
+
+    const data = await response.json();
+    return data.hasNFT || false;
+  } catch (error: any) {
+    console.error("❌ Error checking NFT:", error.message);
+    return false;
+  }
+}
+
+/**
+ * Get pricing info based on NFT ownership and trial status
+ */
+async function getPricing(userWallet: string): Promise<PricingInfo> {
+  // Check free trial first
+  if (isFreeTrial()) {
+    return {
+      isFree: true,
+      freeReason: "trial",
+      priceUSDC: 0,
+      hasNFT: false, // Don't need to check during trial
+    };
+  }
+
+  // Check NFT ownership
+  const hasNFT = await checkNFTOwnership(userWallet);
+
+  return {
+    isFree: false,
+    priceUSDC: hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT,
+    hasNFT,
+  };
+}
+
+/**
+ * Check weekly limit from Solana agent
+ */
+async function checkWeeklyLimit(userWallet: string): Promise<{
+  allowed: boolean;
+  current: number;
+  limit: number;
+  remaining: number;
+}> {
+  try {
+    const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    const response = await fetch(`${agentUrl}/api/weekly-limit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userWallet }),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Weekly limit check failed:", response.status);
+      // Default to not allowed if check fails
+      return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
+    }
+
+    const data = await response.json();
+    return {
+      allowed: data.current < WEEKLY_LIMIT,
+      current: data.current,
+      limit: WEEKLY_LIMIT,
+      remaining: Math.max(0, WEEKLY_LIMIT - data.current),
+    };
+  } catch (error: any) {
+    console.error("❌ Error checking weekly limit:", error.message);
+    return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
+  }
+}
+
+/**
+ * Queue analysis job
+ */
+async function queueAnalysisJob(
+  tokenMint: string,
+  userWallet: string
+): Promise<{ jobId: string }> {
+  try {
+    const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    const response = await fetch(`${agentUrl}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokenMint,
+        userWallet,
+        transactionLimit: 10000, // Lite plan: 10K swaps
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to queue analysis");
+    }
+
+    const data = await response.json();
+    return { jobId: data.jobId };
+  } catch (error: any) {
+    console.error("❌ Error queuing analysis:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * POST /api/deep-research/create
+ */
+export async function POST(request: Request) {
+  try {
+    const body: CreateAnalysisRequest = await request.json();
+    const { tokenMint, userWallet } = body;
+
+    console.log("🔍 [Deep Research] Create analysis request:", {
+      tokenMint,
+      userWallet: userWallet.substring(0, 10) + "...",
+    });
+
+    // 1. Validate input
+    if (!tokenMint || !userWallet) {
+      return NextResponse.json(
+        { error: "tokenMint and userWallet are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate Solana address format (base58, 32-44 chars)
+    if (tokenMint.length < 32 || tokenMint.length > 44) {
+      return NextResponse.json(
+        { error: "Invalid Solana token mint address" },
+        { status: 400 }
+      );
+    }
+
+    if (userWallet.length < 32 || userWallet.length > 44) {
+      return NextResponse.json(
+        { error: "Invalid Solana wallet address" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Check weekly limit
+    console.log("📊 [Deep Research] Checking weekly limit...");
+    const limitStatus = await checkWeeklyLimit(userWallet);
+
+    if (!limitStatus.allowed) {
+      return NextResponse.json(
+        {
+          error: "Weekly limit reached",
+          limitInfo: {
+            current: limitStatus.current,
+            limit: limitStatus.limit,
+            remaining: 0,
+          },
+        },
+        { status: 429 }
+      );
+    }
+
+    console.log(`✅ Weekly limit OK: ${limitStatus.current}/${limitStatus.limit}`);
+
+    // 3. Get pricing info
+    console.log("💰 [Deep Research] Calculating pricing...");
+    const pricing = await getPricing(userWallet);
+
+    console.log("💰 Pricing:", {
+      isFree: pricing.isFree,
+      freeReason: pricing.freeReason,
+      priceUSDC: pricing.priceUSDC,
+      hasNFT: pricing.hasNFT,
+    });
+
+    // 4. Process payment (if not free)
+    if (!pricing.isFree) {
+      // Payment required - user should use /api/deep-research/payment endpoint instead
+      return NextResponse.json(
+        {
+          error: "Payment required",
+          pricing: {
+            priceUSDC: pricing.priceUSDC,
+            hasNFT: pricing.hasNFT,
+            network: "base",
+            asset: "USDC",
+          },
+          message: "Please use payment endpoint for paid analyses",
+          paymentEndpoint: "/api/deep-research/payment",
+        },
+        { status: 402 } // Payment Required
+      );
+    }
+
+    // 5. Queue analysis job
+    console.log("🚀 [Deep Research] Queuing analysis job...");
+    const { jobId } = await queueAnalysisJob(tokenMint, userWallet);
+
+    console.log(`✅ Analysis queued: ${jobId}`);
+
+    // 6. Return success
+    return NextResponse.json({
+      success: true,
+      jobId,
+      pricing: {
+        isFree: pricing.isFree,
+        freeReason: pricing.freeReason,
+        priceUSDC: pricing.priceUSDC,
+        hasNFT: pricing.hasNFT,
+      },
+      limitInfo: {
+        current: limitStatus.current + 1, // Will be incremented by worker
+        limit: limitStatus.limit,
+        remaining: limitStatus.remaining - 1,
+      },
+      estimatedTime: 40, // seconds (Lite plan estimate)
+    });
+  } catch (error: any) {
+    console.error("❌ [Deep Research] Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET /api/deep-research/create
+ * Returns pricing info and limits (without creating analysis)
+ */
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userWallet = searchParams.get("userWallet");
+
+    if (!userWallet) {
+      return NextResponse.json(
+        { error: "userWallet query parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    console.log("🔍 [Deep Research] Get pricing info:", {
+      userWallet: userWallet.substring(0, 10) + "...",
+    });
+
+    // Check weekly limit
+    const limitStatus = await checkWeeklyLimit(userWallet);
+
+    // Get pricing
+    const pricing = await getPricing(userWallet);
+
+    return NextResponse.json({
+      pricing: {
+        isFree: pricing.isFree,
+        freeReason: pricing.freeReason,
+        priceUSDC: pricing.priceUSDC,
+        hasNFT: pricing.hasNFT,
+      },
+      limitInfo: {
+        current: limitStatus.current,
+        limit: limitStatus.limit,
+        remaining: limitStatus.remaining,
+        allowed: limitStatus.allowed,
+      },
+      freeTrial: {
+        active: isFreeTrial(),
+        startDate: FREE_TRIAL_START.toISOString(),
+        endDate: FREE_TRIAL_END.toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error("❌ [Deep Research] Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+

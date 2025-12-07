@@ -84,7 +84,8 @@ function serializeBigInt(obj: any): any {
  */
 export async function saveAnalysis(
   analysis: AnalysisResult,
-  userId?: string
+  userId?: string,
+  userWallet?: string  // ✅ YENİ: Kullanıcı cüzdan adresi
 ): Promise<PoolAnalysisRecord | null> {
   try {
     console.log(`[Supabase] Saving analysis for pool: ${analysis.poolId}`);
@@ -107,6 +108,7 @@ export async function saveAnalysis(
       tokens_used: analysis.tokensUsed,
       generated_at: analysis.generatedAt,
       user_id: userId || null,
+      user_wallet: userWallet || null,  // ✅ YENİ: Kullanıcı cüzdanı
     };
 
     const { data, error } = await supabase
