@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate Solana address format (base58, 32-44 chars)
+    // Validate token mint (Solana address: base58, 32-44 chars)
     if (tokenMint.length < 32 || tokenMint.length > 44) {
       return NextResponse.json(
         { error: "Invalid Solana token mint address" },
@@ -191,9 +191,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (userWallet.length < 32 || userWallet.length > 44) {
+    // Validate user wallet (accepts both Ethereum 0x... and Solana base58)
+    // Ethereum: 42 chars (0x + 40 hex)
+    // Solana: 32-44 chars (base58)
+    if (!userWallet || userWallet.length < 32) {
       return NextResponse.json(
-        { error: "Invalid Solana wallet address" },
+        { error: "Invalid wallet address" },
         { status: 400 }
       );
     }

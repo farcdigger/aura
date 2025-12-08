@@ -42,18 +42,25 @@ export default function DeepResearchPage() {
   const fetchPricingInfo = async () => {
     if (!address) return;
 
+    console.log("💰 Fetching pricing info for address:", address);
     setLoadingPricing(true);
     try {
       const response = await fetch(
         `/api/deep-research/create?userWallet=${address}`
       );
 
+      console.log("📊 Pricing API response:", { status: response.status, ok: response.ok });
+
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ Pricing data received:", data);
         setPricingInfo(data);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Pricing API error:", errorData);
       }
     } catch (error) {
-      console.error("Error fetching pricing info:", error);
+      console.error("❌ Error fetching pricing info:", error);
     } finally {
       setLoadingPricing(false);
     }
@@ -65,6 +72,16 @@ export default function DeepResearchPage() {
         (whitelisted) => whitelisted.toLowerCase() === address.toLowerCase()
       )
     : false;
+
+  // Debug: Log whitelist check
+  if (address) {
+    console.log("🔍 Whitelist check:", {
+      address,
+      addressLower: address.toLowerCase(),
+      isWhitelisted,
+      whitelist: WHITELIST_ADDRESSES,
+    });
+  }
 
   // Don't render anything if not whitelisted
   if (isConnected && !isWhitelisted) {
@@ -138,6 +155,16 @@ export default function DeepResearchPage() {
           </div>
         ) : (
           <>
+            {/* Debug Info */}
+            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs font-mono">
+              <p>Debug Info:</p>
+              <p>isConnected: {String(isConnected)}</p>
+              <p>isWhitelisted: {String(isWhitelisted)}</p>
+              <p>loadingPricing: {String(loadingPricing)}</p>
+              <p>hasPricingInfo: {String(!!pricingInfo)}</p>
+              <p>address: {address}</p>
+            </div>
+
             {/* Pricing Info */}
             {!loadingPricing && pricingInfo && (
               <div className="grid md:grid-cols-2 gap-6 mb-8">
