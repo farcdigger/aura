@@ -43,6 +43,10 @@ const envSchema = z.object({
   YAMA_AGENT_TRIGGER_URL: z.string().url().optional(),
   YAMA_AGENT_TRIGGER_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(), // Secret for manual cron trigger protection
+  
+  // 🆕 Deep Research Integration
+  NEXT_PUBLIC_APP_URL: z.string().url().optional().or(z.literal("http://localhost:3000")), // Frontend URL (e.g., https://xfrora.com)
+  SOLANA_AGENT_URL: z.string().url().optional().or(z.literal("http://localhost:3002")), // Solana Liquidity Agent backend URL
 }).transform((data) => ({
   ...data,
   // Boş string'leri undefined yap
@@ -59,6 +63,9 @@ const envSchema = z.object({
   YAMA_AGENT_TRIGGER_URL: data.YAMA_AGENT_TRIGGER_URL === "" ? undefined : data.YAMA_AGENT_TRIGGER_URL,
   YAMA_AGENT_TRIGGER_TOKEN: data.YAMA_AGENT_TRIGGER_TOKEN === "" ? undefined : data.YAMA_AGENT_TRIGGER_TOKEN,
   CRON_SECRET: data.CRON_SECRET === "" ? undefined : data.CRON_SECRET,
+  // Deep Research URLs - boş string'leri undefined yap
+  NEXT_PUBLIC_APP_URL: data.NEXT_PUBLIC_APP_URL === "" ? undefined : data.NEXT_PUBLIC_APP_URL,
+  SOLANA_AGENT_URL: data.SOLANA_AGENT_URL === "" ? undefined : data.SOLANA_AGENT_URL,
   // Ensure RPC_URL and CONTRACT_ADDRESS have defaults for Base Mainnet
   RPC_URL: data.RPC_URL || "https://mainnet.base.org",
   CONTRACT_ADDRESS: data.CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396",
@@ -82,6 +89,8 @@ const envDefaults = isDevelopment ? {
   DATABASE_URL: "mock://localhost",
   KV_REST_API_URL: "http://localhost:6379",
   KV_REST_API_TOKEN: "mock_token",
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  SOLANA_AGENT_URL: "http://localhost:3002",
 } : {};
 
 // Environment variables'ı parse et
