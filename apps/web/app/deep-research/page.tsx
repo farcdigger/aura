@@ -73,16 +73,6 @@ export default function DeepResearchPage() {
       )
     : false;
 
-  // Debug: Log whitelist check
-  if (address) {
-    console.log("🔍 Whitelist check:", {
-      address,
-      addressLower: address.toLowerCase(),
-      isWhitelisted,
-      whitelist: WHITELIST_ADDRESSES,
-    });
-  }
-
   // Don't render anything if not whitelisted
   if (isConnected && !isWhitelisted) {
     return (
@@ -155,16 +145,6 @@ export default function DeepResearchPage() {
           </div>
         ) : (
           <>
-            {/* Debug Info */}
-            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs font-mono">
-              <p>Debug Info:</p>
-              <p>isConnected: {String(isConnected)}</p>
-              <p>isWhitelisted: {String(isWhitelisted)}</p>
-              <p>loadingPricing: {String(loadingPricing)}</p>
-              <p>hasPricingInfo: {String(!!pricingInfo)}</p>
-              <p>address: {address}</p>
-            </div>
-
             {/* Pricing Info */}
             {!loadingPricing && pricingInfo && (
               <div className="grid md:grid-cols-2 gap-6 mb-8">

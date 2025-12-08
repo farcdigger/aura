@@ -231,7 +231,8 @@ app.get('/analysis/:poolId', async (c) => {
           source: 'cache',
           poolId,
           result: cached,
-      });
+        });
+      }
     }
     
     // 2. DB'ye bak

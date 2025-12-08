@@ -105,15 +105,19 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
 }> {
   try {
     const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    console.log(`🔗 Checking weekly limit at: ${agentUrl}/api/weekly-limit`);
+    
     const response = await fetch(`${agentUrl}/api/weekly-limit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userWallet }),
     });
 
+    console.log(`📊 Weekly limit API response: ${response.status} ${response.ok ? 'OK' : 'FAILED'}`);
+
     if (!response.ok) {
       console.error("❌ Weekly limit check failed:", response.status);
-      // Default to not allowed if check fails
+      // PRODUCTION: Deny usage if limit check fails (strict mode)
       return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
     }
 
@@ -126,6 +130,7 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
     };
   } catch (error: any) {
     console.error("❌ Error checking weekly limit:", error.message);
+    // PRODUCTION: Deny usage if limit check fails (strict mode)
     return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
   }
 }
