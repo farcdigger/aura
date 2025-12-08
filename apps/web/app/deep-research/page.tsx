@@ -16,6 +16,7 @@ export default function DeepResearchPage() {
   const [showModal, setShowModal] = useState(false);
   const [pricingInfo, setPricingInfo] = useState<any>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [tokenMint, setTokenMint] = useState("");
 
   // Check whitelist access
   useEffect(() => {
@@ -79,6 +80,14 @@ export default function DeepResearchPage() {
     );
   }
 
+  const handleStartAnalysis = () => {
+    if (!tokenMint.trim()) {
+      alert("Please enter a token mint address");
+      return;
+    }
+    setShowModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       {/* Header */}
@@ -95,9 +104,7 @@ export default function DeepResearchPage() {
             </div>
             {isConnected && address && (
               <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Connected
-                </p>
+                <p className="text-xs text-gray-500">Connected</p>
                 <p className="text-sm font-mono">
                   {address.substring(0, 6)}...{address.substring(address.length - 4)}
                 </p>
@@ -108,197 +115,167 @@ export default function DeepResearchPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+        <div className="mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Uncover Hidden Insights
           </h2>
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Get comprehensive AI analysis of any Solana token with 10,000+ swap
-            transactions, whale tracking, and market sentiment.
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Get comprehensive AI analysis of any Solana token with 10,000+ swap transactions, 
+            whale tracking, and market sentiment.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        {!loadingPricing && pricingInfo && (
-          <div className="grid md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto">
-            {/* Free Trial Card */}
-            {pricingInfo.freeTrial?.active && (
-              <div className="border-2 border-green-500 rounded-lg p-6 bg-green-50 dark:bg-green-950">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold">🎉 Free Trial</h3>
-                  <span className="px-3 py-1 bg-green-500 text-white text-sm font-semibold rounded-full">
-                    ACTIVE
-                  </span>
+        {/* Token Input Section */}
+        {!isConnected ? (
+          <div className="p-8 border border-gray-300 dark:border-gray-700 rounded-lg text-center">
+            <p className="text-lg mb-2">Connect your wallet to get started</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Phantom, Solflare, and other Solana wallets supported
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Pricing Info */}
+            {!loadingPricing && pricingInfo && (
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {/* NFT Holder Pricing */}
+                <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-2">NFT Holder</h3>
+                  <p className="text-3xl font-bold mb-1">$0.20</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    per analysis
+                  </p>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li>60% discount</li>
+                    <li>Priority support</li>
+                    <li>All features included</li>
+                  </ul>
                 </div>
-                <p className="text-3xl font-bold mb-2">FREE</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Until {new Date(pricingInfo.freeTrial.endDate).toLocaleDateString()}
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span>
-                    10,000 swap analysis
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span>
-                    AI-powered insights
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span>
-                    Whale tracking
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span>
-                    No payment required
-                  </li>
-                </ul>
+
+                {/* Standard Pricing */}
+                <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-2">Standard</h3>
+                  <p className="text-3xl font-bold mb-1">$0.50</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    per analysis
+                  </p>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li>10,000 swap analysis</li>
+                    <li>AI-powered insights</li>
+                    <li>Whale tracking</li>
+                    <li>Full report access</li>
+                  </ul>
+                </div>
               </div>
             )}
 
-            {/* NFT Holder Card */}
-            <div className={`border-2 rounded-lg p-6 ${
-              pricingInfo.pricing?.hasNFT
-                ? "border-purple-500 bg-purple-50 dark:bg-purple-950"
-                : "border-gray-300 dark:border-gray-700"
-            }`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">🎨 NFT Holder</h3>
-                {pricingInfo.pricing?.hasNFT && (
-                  <span className="px-3 py-1 bg-purple-500 text-white text-sm font-semibold rounded-full">
-                    YOU
+            {/* Trial Pricing Banner */}
+            {pricingInfo?.trialPricing?.active && (
+              <div className="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="font-semibold mb-1">Testing Period Active</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  $0.001 USDC per analysis until {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
+                  <br />
+                  <span className="text-xs">
+                    This tests the payment system - normal prices apply after trial period
                   </span>
-                )}
+                </p>
               </div>
-              <p className="text-3xl font-bold mb-2">$0.20</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                per analysis
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  60% discount
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  Priority support
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  All features included
-                </li>
-              </ul>
-            </div>
+            )}
 
-            {/* Standard Card */}
-            <div className="border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">⚡ Standard</h3>
+            {/* Global Weekly Limit */}
+            {pricingInfo?.limitInfo && (
+              <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold">Platform Capacity</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {pricingInfo.limitInfo.current} / {pricingInfo.limitInfo.limit} reports generated this week
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">
+                      {pricingInfo.limitInfo.remaining}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      remaining
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-black dark:bg-white h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(pricingInfo.limitInfo.current / pricingInfo.limitInfo.limit) * 100}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                  This is a shared platform limit across all users. Limit resets every Sunday.
+                </p>
               </div>
-              <p className="text-3xl font-bold mb-2">$0.50</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                per analysis
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  10,000 swap analysis
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  AI-powered insights
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  Whale tracking
-                </li>
-                <li className="flex items-center">
-                  <span className="mr-2">✓</span>
-                  Full report access
-                </li>
-              </ul>
-            </div>
-          </div>
+            )}
+
+            {/* Token Input */}
+            {pricingInfo?.limitInfo?.remaining === 0 ? (
+              <div className="p-8 border-2 border-red-300 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20 text-center">
+                <p className="text-lg font-semibold mb-2">Platform Capacity Reached</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  The platform has reached its weekly limit of {pricingInfo.limitInfo.limit} reports.
+                  <br />
+                  Capacity resets every Sunday at midnight UTC.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Token Mint Address
+                  </label>
+                  <input
+                    type="text"
+                    value={tokenMint}
+                    onChange={(e) => setTokenMint(e.target.value)}
+                    placeholder="e.g. C2omVhcvt3DDY77S2KZzawFJQeETZofgZ4eNWWkXpump"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                    Enter the Solana token mint address you want to analyze
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleStartAnalysis}
+                  disabled={!tokenMint.trim()}
+                  className="w-full px-6 py-4 bg-black dark:bg-white text-white dark:text-black text-lg font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Start Analysis
+                </button>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Limits Info */}
-        {pricingInfo?.limitInfo && (
-          <div className="max-w-4xl mx-auto mb-12 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">Weekly Limit</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {pricingInfo.limitInfo.current} / {pricingInfo.limitInfo.limit} reports used
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {pricingInfo.limitInfo.remaining}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  remaining
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{
-                  width: `${(pricingInfo.limitInfo.current / pricingInfo.limitInfo.limit) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* CTA Button */}
-        <div className="text-center">
-          {!isConnected ? (
-            <div className="max-w-md mx-auto p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-              <p className="text-lg mb-4">Connect your wallet to get started</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                We support Phantom, Solflare, and other Solana wallets
-              </p>
-            </div>
-          ) : pricingInfo?.limitInfo?.remaining === 0 ? (
-            <div className="max-w-md mx-auto p-6 border-2 border-red-300 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-950">
-              <p className="text-lg font-semibold mb-2">Weekly Limit Reached</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                You've used all {pricingInfo.limitInfo.limit} reports this week.
-                Limit resets in a few days.
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-lg font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-            >
-              Start Analysis
-            </button>
-          )}
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mt-16">
-          <div className="text-center">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-xl font-bold mb-2">10,000+ Swaps</h3>
-            <p className="text-gray-600 dark:text-gray-400">
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-gray-200 dark:border-gray-800">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">10,000+ Swaps</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Deep dive into transaction history with comprehensive swap data
             </p>
           </div>
-          <div className="text-center">
-            <div className="text-4xl mb-4">🤖</div>
-            <h3 className="text-xl font-bold mb-2">AI Analysis</h3>
-            <p className="text-gray-600 dark:text-gray-400">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">AI Analysis</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Powered by Claude AI for intelligent market insights
             </p>
           </div>
-          <div className="text-center">
-            <div className="text-4xl mb-4">🐋</div>
-            <h3 className="text-xl font-bold mb-2">Whale Tracking</h3>
-            <p className="text-gray-600 dark:text-gray-400">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Whale Tracking</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Identify and track large holders and their trading patterns
             </p>
           </div>
@@ -311,6 +288,7 @@ export default function DeepResearchPage() {
           onClose={() => setShowModal(false)}
           userWallet={address || ""}
           pricingInfo={pricingInfo}
+          tokenMint={tokenMint}
           onAnalysisComplete={() => {
             setShowModal(false);
             fetchPricingInfo(); // Refresh limits
@@ -320,4 +298,3 @@ export default function DeepResearchPage() {
     </div>
   );
 }
-

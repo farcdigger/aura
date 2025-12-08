@@ -8,19 +8,21 @@ interface DeepResearchModalProps {
   onClose: () => void;
   userWallet: string;
   pricingInfo: any;
+  tokenMint: string;
   onAnalysisComplete: () => void;
 }
 
-type AnalysisStatus = "input" | "payment" | "processing" | "completed" | "error";
+type AnalysisStatus = "payment" | "processing" | "completed" | "error";
 
 export default function DeepResearchModal({
   onClose,
   userWallet,
   pricingInfo,
+  tokenMint: initialTokenMint,
   onAnalysisComplete,
 }: DeepResearchModalProps) {
-  const [tokenMint, setTokenMint] = useState("");
-  const [status, setStatus] = useState<AnalysisStatus>("input");
+  const [tokenMint] = useState(initialTokenMint);
+  const [status, setStatus] = useState<AnalysisStatus>("payment"); // Start at payment (skip input)
   const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +177,6 @@ export default function DeepResearchModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-black dark:text-white">
-            {status === "input" && "Start Deep Research"}
             {status === "payment" && "Complete Payment"}
             {status === "processing" && "Analyzing..."}
             {status === "completed" && "Analysis Complete"}
@@ -191,73 +192,22 @@ export default function DeepResearchModal({
           </button>
         </div>
 
-        {/* Input Stage */}
-        {status === "input" && (
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Solana Token Mint Address
-            </label>
-            <input
-              type="text"
-              value={tokenMint}
-              onChange={(e) => setTokenMint(e.target.value)}
-              placeholder="e.g., C2omVhcvt3DDY77S2KZzawFJQeETZofgZ4eNWWkXpump"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-            
-            {error && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-            )}
-
-            {/* Pricing Display */}
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold">Cost:</span>
-                <span className="text-2xl font-bold">
-                  ${pricingInfo?.pricing?.priceUSDC?.toFixed(3) || "0.50"}
-                </span>
-              </div>
-              {pricingInfo?.trialPricing?.active && (
-                <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                  🧪 Testing period - $0.001 USDC until{" "}
-                  {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
-                  <br />
-                  <span className="text-xs opacity-75">
-                    (This tests the payment system - normal prices start after trial)
-                  </span>
-                </p>
-              )}
-              {pricingInfo?.pricing?.hasNFT && !pricingInfo?.trialPricing?.active && (
-                <p className="text-sm text-purple-600 dark:text-purple-400">
-                  🎨 NFT holder discount applied (60% off)
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={handleStartAnalysis}
-              disabled={!tokenMint.trim()}
-              className="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {pricingInfo?.trialPricing?.active
-                ? "Pay $0.001 & Start Analysis"
-                : "Continue to Payment"}
-            </button>
-          </div>
-        )}
-
         {/* Payment Stage */}
         {status === "payment" && (
           <div>
-            <div className="mb-6 p-6 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
+            <div className="mb-6 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Token</p>
+                <p className="font-mono text-sm break-all">{tokenMint}</p>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
                 <span className="text-lg font-semibold">Total:</span>
                 <span className="text-3xl font-bold">
-                  ${pricingInfo?.pricing?.priceUSDC || "0.50"} USDC
+                  ${pricingInfo?.pricing?.priceUSDC?.toFixed(3) || "0.50"}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Payment will be processed on Base network via x402 protocol
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                USDC on Base network
               </p>
             </div>
 
@@ -269,10 +219,10 @@ export default function DeepResearchModal({
             </button>
 
             <button
-              onClick={() => setStatus("input")}
+              onClick={onClose}
               className="w-full mt-3 px-6 py-3 border border-gray-300 dark:border-gray-700 text-black dark:text-white font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
             >
-              Back
+              Cancel
             </button>
           </div>
         )}
@@ -291,9 +241,9 @@ export default function DeepResearchModal({
 
             {/* Progress Bar */}
             <div className="max-w-md mx-auto">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                 <div
-                  className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                  className="bg-black dark:bg-white h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -303,14 +253,14 @@ export default function DeepResearchModal({
             </div>
 
             <div className="mt-8 text-left max-w-md mx-auto space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <p>✓ Discovering best liquidity pool</p>
-              <p>✓ Fetching 10,000+ swap transactions</p>
-              <p>✓ Analyzing wallet patterns</p>
+              <p>Discovering best liquidity pool</p>
+              <p>Fetching 10,000+ swap transactions</p>
+              <p>Analyzing wallet patterns</p>
               <p className={progress > 50 ? "" : "opacity-50"}>
-                {progress > 50 ? "✓" : "○"} Running AI analysis
+                Running AI analysis
               </p>
               <p className={progress > 80 ? "" : "opacity-50"}>
-                {progress > 80 ? "✓" : "○"} Generating report
+                Generating report
               </p>
             </div>
           </div>
@@ -319,16 +269,17 @@ export default function DeepResearchModal({
         {/* Completed Stage */}
         {status === "completed" && analysisResult && (
           <div>
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-green-800 dark:text-green-200 font-semibold">
-                ✓ Analysis completed successfully!
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <p className="font-semibold mb-1">Analysis Complete</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Report generated successfully
               </p>
             </div>
 
             {/* Analysis Report */}
             <div className="prose dark:prose-invert max-w-none">
-              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm">
+              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-800">
+                <pre className="whitespace-pre-wrap text-sm font-mono">
                   {JSON.stringify(analysisResult, null, 2)}
                 </pre>
               </div>
@@ -349,24 +300,18 @@ export default function DeepResearchModal({
         {/* Error Stage */}
         {status === "error" && (
           <div>
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-red-800 dark:text-red-200 font-semibold mb-2">
-                Analysis Failed
-              </p>
-              <p className="text-sm text-red-700 dark:text-red-300">
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <p className="font-semibold mb-2">Analysis Failed</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {error}
               </p>
             </div>
 
             <button
-              onClick={() => {
-                setStatus("input");
-                setError(null);
-                setProgress(0);
-              }}
+              onClick={onClose}
               className="w-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
-              Try Again
+              Close
             </button>
           </div>
         )}
