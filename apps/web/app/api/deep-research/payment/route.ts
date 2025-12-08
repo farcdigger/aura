@@ -21,9 +21,22 @@ const RECIPIENT_ADDRESS = "0xDA9097c5672928a16C42889cD4b07d9a766827ee"; // Same 
 const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const NETWORK = "base";
 
-// Pricing (USDC with 6 decimals)
+// Trial pricing period (3 days: Dec 7-9, 2025)
+const TRIAL_PRICING_START = new Date("2025-12-07T00:00:00Z");
+const TRIAL_PRICING_END = new Date("2025-12-10T00:00:00Z");
+const TRIAL_PRICE = "1000"; // $0.001 USDC (tests payment system)
+
+// Regular pricing (USDC with 6 decimals)
 const PRICE_WITH_NFT = "200000";    // $0.20 USDC
 const PRICE_WITHOUT_NFT = "500000"; // $0.50 USDC
+
+/**
+ * Check if we're in trial pricing period
+ */
+function isTrialPricing(): boolean {
+  const now = new Date();
+  return now >= TRIAL_PRICING_START && now < TRIAL_PRICING_END;
+}
 
 // x402 payment requirements
 function createPaymentRequirements(amount: string, hasNFT: boolean) {
@@ -88,9 +101,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Check NFT ownership for pricing
-  const hasNFT = await checkNFTOwnership(walletAddress);
-  const paymentAmount = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+  // Determine pricing based on trial period and NFT ownership
+  let paymentAmount: string;
+  let hasNFT = false;
+  
+  if (isTrialPricing()) {
+    // Trial pricing: $0.001 USDC (no NFT discount)
+    paymentAmount = TRIAL_PRICE;
+  } else {
+    // Normal pricing: Check NFT ownership
+    hasNFT = await checkNFTOwnership(walletAddress);
+    paymentAmount = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+  }
+  
   const paymentRequirements = createPaymentRequirements(paymentAmount, hasNFT);
 
   return NextResponse.json(
@@ -145,11 +168,21 @@ export async function POST(request: NextRequest) {
 
     // If no payment header, return 402 with payment requirements
     if (!paymentHeader) {
-      const hasNFT = await checkNFTOwnership(walletAddress);
-      const paymentAmount = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+      let paymentAmount: string;
+      let hasNFT = false;
+      
+      if (isTrialPricing()) {
+        // Trial pricing: $0.001 USDC
+        paymentAmount = TRIAL_PRICE;
+      } else {
+        // Normal pricing: Check NFT ownership
+        hasNFT = await checkNFTOwnership(walletAddress);
+        paymentAmount = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+      }
+      
       const paymentRequirements = createPaymentRequirements(paymentAmount, hasNFT);
 
-      console.log(`💳 Returning 402 for Deep Research: ${parseFloat(paymentAmount) / 1_000_000} USDC (NFT: ${hasNFT})`);
+      console.log(`💳 Returning 402 for Deep Research: ${parseFloat(paymentAmount) / 1_000_000} USDC (Trial: ${isTrialPricing()}, NFT: ${hasNFT})`);
 
       return NextResponse.json(
         {
@@ -181,9 +214,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payment header" }, { status: 400 });
     }
 
-    // Determine payment amount based on NFT ownership
-    const hasNFT = await checkNFTOwnership(walletAddress);
-    const paymentAmountUSDC = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+    // Determine payment amount based on trial period and NFT ownership
+    let paymentAmountUSDC: string;
+    let hasNFT = false;
+    
+    if (isTrialPricing()) {
+      // Trial pricing: $0.001 USDC
+      paymentAmountUSDC = TRIAL_PRICE;
+    } else {
+      // Normal pricing: Check NFT ownership
+      hasNFT = await checkNFTOwnership(walletAddress);
+      paymentAmountUSDC = hasNFT ? PRICE_WITH_NFT : PRICE_WITHOUT_NFT;
+    }
+    
     const paymentRequirements = createPaymentRequirements(paymentAmountUSDC, hasNFT);
 
     // Settle payment with CDP Facilitator (USDC transfer)

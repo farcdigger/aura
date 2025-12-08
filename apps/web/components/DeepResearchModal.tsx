@@ -73,8 +73,8 @@ export default function DeepResearchModal({
 
     setError(null);
 
-    // Check if payment is required
-    const isFree = pricingInfo?.pricing?.isFree || pricingInfo?.freeTrial?.active;
+    // Check if payment is required (now always required, but might be trial pricing)
+    const isFree = false; // Always require payment (even if $0.001 during trial)
 
     if (!isFree) {
       setStatus("payment");
@@ -214,20 +214,22 @@ export default function DeepResearchModal({
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold">Cost:</span>
                 <span className="text-2xl font-bold">
-                  {pricingInfo?.pricing?.isFree || pricingInfo?.freeTrial?.active
-                    ? "FREE"
-                    : `$${pricingInfo?.pricing?.priceUSDC || "0.50"}`}
+                  ${pricingInfo?.pricing?.priceUSDC?.toFixed(3) || "0.50"}
                 </span>
               </div>
-              {pricingInfo?.pricing?.hasNFT && !pricingInfo?.freeTrial?.active && (
-                <p className="text-sm text-purple-600 dark:text-purple-400">
-                  🎨 NFT holder discount applied (60% off)
+              {pricingInfo?.trialPricing?.active && (
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                  🧪 Testing period - $0.001 USDC until{" "}
+                  {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
+                  <br />
+                  <span className="text-xs opacity-75">
+                    (This tests the payment system - normal prices start after trial)
+                  </span>
                 </p>
               )}
-              {pricingInfo?.freeTrial?.active && (
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  🎉 Free trial active until{" "}
-                  {new Date(pricingInfo.freeTrial.endDate).toLocaleDateString()}
+              {pricingInfo?.pricing?.hasNFT && !pricingInfo?.trialPricing?.active && (
+                <p className="text-sm text-purple-600 dark:text-purple-400">
+                  🎨 NFT holder discount applied (60% off)
                 </p>
               )}
             </div>
@@ -237,8 +239,8 @@ export default function DeepResearchModal({
               disabled={!tokenMint.trim()}
               className="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {pricingInfo?.pricing?.isFree || pricingInfo?.freeTrial?.active
-                ? "Start Free Analysis"
+              {pricingInfo?.trialPricing?.active
+                ? "Pay $0.001 & Start Analysis"
                 : "Continue to Payment"}
             </button>
           </div>

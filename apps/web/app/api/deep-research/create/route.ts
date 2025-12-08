@@ -29,18 +29,19 @@ interface PricingInfo {
 }
 
 // Constants
-const FREE_TRIAL_START = new Date("2025-12-07T00:00:00Z");
-const FREE_TRIAL_END = new Date("2025-12-10T00:00:00Z"); // 3 days: Dec 7, 8, 9
-const PRICE_WITH_NFT = 0.20; // $0.20 for NFT holders
-const PRICE_WITHOUT_NFT = 0.50; // $0.50 for non-holders
+const TRIAL_PRICING_START = new Date("2025-12-07T00:00:00Z");
+const TRIAL_PRICING_END = new Date("2025-12-10T00:00:00Z"); // 3 days: Dec 7, 8, 9
+const TRIAL_PRICE = 0.001; // $0.001 USDC during trial (almost free, but tests payment system)
+const PRICE_WITH_NFT = 0.20; // $0.20 for NFT holders (after trial)
+const PRICE_WITHOUT_NFT = 0.50; // $0.50 for non-holders (after trial)
 const WEEKLY_LIMIT = 140;
 
 /**
- * Check if we're in free trial period
+ * Check if we're in trial pricing period ($0.001 USDC)
  */
-function isFreeTrial(): boolean {
+function isTrialPricing(): boolean {
   const now = new Date();
-  return now >= FREE_TRIAL_START && now < FREE_TRIAL_END;
+  return now >= TRIAL_PRICING_START && now < TRIAL_PRICING_END;
 }
 
 /**
@@ -70,20 +71,20 @@ async function checkNFTOwnership(walletAddress: string): Promise<boolean> {
 }
 
 /**
- * Get pricing info based on NFT ownership and trial status
+ * Get pricing info based on trial period and NFT ownership
  */
 async function getPricing(userWallet: string): Promise<PricingInfo> {
-  // Check free trial first
-  if (isFreeTrial()) {
+  // Check if we're in trial pricing period
+  if (isTrialPricing()) {
     return {
-      isFree: true,
-      freeReason: "trial",
-      priceUSDC: 0,
-      hasNFT: false, // Don't need to check during trial
+      isFree: false, // Not free, but very cheap ($0.001)
+      freeReason: "trial", // Still show as trial for UI
+      priceUSDC: TRIAL_PRICE, // $0.001 USDC
+      hasNFT: false, // No NFT discount during trial
     };
   }
 
-  // Check NFT ownership
+  // Normal pricing - check NFT ownership
   const hasNFT = await checkNFTOwnership(userWallet);
 
   return {
@@ -318,10 +319,11 @@ export async function GET(request: Request) {
         remaining: limitStatus.remaining,
         allowed: limitStatus.allowed,
       },
-      freeTrial: {
-        active: isFreeTrial(),
-        startDate: FREE_TRIAL_START.toISOString(),
-        endDate: FREE_TRIAL_END.toISOString(),
+      trialPricing: {
+        active: isTrialPricing(),
+        priceUSDC: TRIAL_PRICE,
+        startDate: TRIAL_PRICING_START.toISOString(),
+        endDate: TRIAL_PRICING_END.toISOString(),
       },
     });
   } catch (error: any) {
