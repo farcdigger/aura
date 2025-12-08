@@ -113,3 +113,4 @@ curl -X POST http://localhost:3000/api/analyze \
 - ⚠️ Standart plan sınırlı - Lite plan önerilir
 
 
+

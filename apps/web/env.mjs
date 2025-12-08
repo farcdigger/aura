@@ -5,31 +5,31 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 const envSchema = z.object({
   NEXT_PUBLIC_CHAIN_ID: z.string().default("8453"), // Base Mainnet
-  RPC_URL: z.string().url().optional().or(z.literal("http://localhost:8545")).default("https://mainnet.base.org"),
+  RPC_URL: z.string().optional().default("https://mainnet.base.org"),
   CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")).default("0x7De68EB999A314A0f986D417adcbcE515E476396"),
   NEXT_PUBLIC_CONTRACT_ADDRESS: z.string().startsWith("0x").optional().or(z.literal("0x0000000000000000000000000000000000000000")).default("0x7De68EB999A314A0f986D417adcbcE515E476396"),
   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string().optional(),
   SERVER_SIGNER_PRIVATE_KEY: z.string().startsWith("0x").optional(),
   X_CLIENT_ID: z.string().optional(),
   X_CLIENT_SECRET: z.string().optional(),
-  X_CALLBACK_URL: z.string().url().optional().or(z.literal("http://localhost:3000/api/auth/x/callback")),
+  X_CALLBACK_URL: z.string().optional(),
   PINATA_JWT: z.string().optional(),
   WEB3_STORAGE_TOKEN: z.string().optional(),
   INFERENCE_API_KEY: z.string().optional(),
   // Supabase REST API (no PostgreSQL connection string needed)
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   UPDATE_TOKEN_SECRET: z.string().optional(),
   ADMIN_API_KEY: z.string().optional(), // Admin endpoint'leri için API key
   // Legacy: DATABASE_URL is optional now (Supabase REST API is preferred)
-  DATABASE_URL: z.string().url().optional().or(z.literal("mock://localhost")),
+  DATABASE_URL: z.string().optional(),
   // Vercel KV (Redis) - Preferred for rate limiting (faster, more reliable)
   // If Vercel KV is not configured, falls back to Supabase KV (PostgreSQL)
-  KV_REST_API_URL: z.string().url().optional().or(z.literal("http://localhost:6379")),
+  KV_REST_API_URL: z.string().optional(),
   KV_REST_API_TOKEN: z.string().optional(),
   X402_FACILITATOR_URL: z.string().optional(), // x402 facilitator URL (e.g., https://x402.org/facilitator for testnet, or CDP facilitator for mainnet)
-  NEXT_PUBLIC_X402_FACILITATOR_URL: z.string().url().optional(), // Client-side facilitator URL (Coinbase CDP x402)
+  NEXT_PUBLIC_X402_FACILITATOR_URL: z.string().optional(), // Client-side facilitator URL (Coinbase CDP x402)
   CDP_API_KEY_ID: z.string().optional(), // Coinbase CDP API Key ID (for mainnet facilitator)
   CDP_API_KEY_SECRET: z.string().optional(), // Coinbase CDP API Key Secret (for mainnet facilitator)
   X402_PRICE_USDC: z.string().default("5000000"), // Amount in USDC (6 decimals, e.g., 5 USDC = 5_000_000)
@@ -40,13 +40,13 @@ const envSchema = z.object({
   // 🆕 Mesajlaşma geliştirme için
   NEXT_PUBLIC_DEVELOPER_WALLET_ADDRESS: z.string().optional(), // Geliştirici cüzdan adresi
   NEXT_PUBLIC_ENABLE_MESSAGING_FEATURE: z.string().optional().default("false"), // Feature flag
-  YAMA_AGENT_TRIGGER_URL: z.string().url().optional(),
+  YAMA_AGENT_TRIGGER_URL: z.string().optional(),
   YAMA_AGENT_TRIGGER_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(), // Secret for manual cron trigger protection
   
   // 🆕 Deep Research Integration
-  NEXT_PUBLIC_APP_URL: z.string().url().optional().or(z.literal("http://localhost:3000")), // Frontend URL (e.g., https://xfrora.com)
-  SOLANA_AGENT_URL: z.string().url().optional().or(z.literal("http://localhost:3002")), // Solana Liquidity Agent backend URL
+  NEXT_PUBLIC_APP_URL: z.string().optional(), // Frontend URL (e.g., https://xfroranft.xyz)
+  SOLANA_AGENT_URL: z.string().optional(), // Solana Liquidity Agent backend URL
 }).transform((data) => ({
   ...data,
   // Boş string'leri undefined yap
