@@ -209,6 +209,39 @@ export async function getAnalysisById(
  * @param limit Maximum number of records (default: 10)
  * @returns Array of analysis records
  */
+/**
+ * Get user analyses by wallet address (for API)
+ * @param userWallet User's wallet address (Ethereum or Solana)
+ * @param limit Maximum number of records (default: 20)
+ * @param offset Pagination offset (default: 0)
+ * @returns Array of analysis records
+ */
+export async function getUserAnalyses(
+  userWallet: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<PoolAnalysisRecord[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pool_analyses')
+      .select('*')
+      .eq('user_wallet', userWallet)
+      .order('generated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('[Supabase] ❌ Error fetching user analyses:', error.message);
+      return [];
+    }
+
+    return (data as PoolAnalysisRecord[]) || [];
+
+  } catch (error: any) {
+    console.error('[Supabase] ❌ Failed to fetch user analyses:', error.message);
+    return [];
+  }
+}
+
 export async function getUserAnalysisHistory(
   userId: string,
   limit: number = 10

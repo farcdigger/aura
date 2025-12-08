@@ -16,7 +16,7 @@ import { z } from 'zod';
 import { PoolAnalysisInputSchema } from './lib/types';
 import { addAnalysisJob, getJobStatus, getQueueStats, queue } from './lib/queue';
 import { getCachedAnalysis, healthCheck as cacheHealthCheck } from './lib/cache';
-import { getRecentAnalysis, getUserAnalyses, getDailyAnalysisCountForUser, getWeeklyAnalysisCountForUser, healthCheck as supabaseHealthCheck } from './lib/supabase';
+import { getRecentAnalysis, getUserAnalyses, healthCheck as supabaseHealthCheck } from './lib/supabase';
 import { BirdeyeClient } from './lib/birdeye-client';
 import { findMostLiquidPoolForMint } from './lib/pool-discovery';
 import { analysisRateLimiter, getSystemStatus, getQueueStats as getRateLimiterQueueStats, calculateEstimatedWaitTime } from './middleware/rate-limiter';
