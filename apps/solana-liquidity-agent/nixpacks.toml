@@ -4,6 +4,9 @@ nixPkgs = ["bun", "python3", "gcc", "gnumake", "pkg-config"]
 [phases.install]
 cmds = ["bun install"]
 
+[phases.build]
+cmds = []
+
 [phases.start]
 cmd = "bun run src/index.ts"
 
