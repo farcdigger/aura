@@ -43,6 +43,7 @@ const envSchema = z.object({
   YAMA_AGENT_TRIGGER_URL: z.string().optional(),
   YAMA_AGENT_TRIGGER_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(), // Secret for manual cron trigger protection
+  YAMA_AGENT_ENABLED: z.string().optional().default("false"), // Feature flag to enable/disable Yama Agent
   
   // 🆕 Deep Research Integration
   NEXT_PUBLIC_APP_URL: z.string().optional(), // Frontend URL (e.g., https://xfroranft.xyz)

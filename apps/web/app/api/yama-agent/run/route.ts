@@ -64,6 +64,19 @@ async function triggerAgent(limit?: number) {
 }
 
 export async function GET(request: Request) {
+  // Check if Yama Agent is enabled
+  const isEnabled = env.YAMA_AGENT_ENABLED === "true";
+  if (!isEnabled) {
+    console.log("[api/yama-agent/run] ⏸️ Yama Agent is disabled (YAMA_AGENT_ENABLED=false)");
+    return NextResponse.json(
+      { 
+        message: "Yama Agent is currently disabled for maintenance.",
+        enabled: false 
+      },
+      { status: 200 },
+    );
+  }
+
   // Security: Vercel cron jobs send Authorization: Bearer ${CRON_SECRET}
   // According to Vercel docs: https://vercel.com/docs/cron-jobs
   const authHeader = request.headers.get("authorization");
@@ -93,6 +106,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Check if Yama Agent is enabled
+  const isEnabled = env.YAMA_AGENT_ENABLED === "true";
+  if (!isEnabled) {
+    console.log("[api/yama-agent/run] ⏸️ Yama Agent is disabled (YAMA_AGENT_ENABLED=false)");
+    return NextResponse.json(
+      { 
+        message: "Yama Agent is currently disabled for maintenance.",
+        enabled: false 
+      },
+      { status: 200 },
+    );
+  }
+
   // Security: Vercel cron jobs send Authorization: Bearer ${CRON_SECRET}
   const authHeader = request.headers.get("authorization");
   

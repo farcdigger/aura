@@ -1240,7 +1240,8 @@ function HomePageContent() {
                 </Link>
               )}
               
-              <Link
+              {/* Yama Agent button temporarily hidden for maintenance */}
+              {/* <Link
                 href="/yama-agent"
                 onClick={() => setYamaAgentLoading(true)}
                 className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-gray-900/15 bg-white/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:text-sm whitespace-nowrap"
@@ -1259,7 +1260,7 @@ function HomePageContent() {
                     <span className="sm:hidden">Yama</span>
                   </>
                 )}
-              </Link>
+              </Link> */}
               
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {xUser && (
@@ -1399,7 +1400,8 @@ function HomePageContent() {
                 </Link>
               )}
               
-              <Link
+              {/* Yama Agent button temporarily hidden for maintenance */}
+              {/* <Link
                 href="/yama-agent"
                 onClick={() => {
                   setYamaAgentLoading(true);
@@ -1411,7 +1413,7 @@ function HomePageContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
                 <span>Yama Agent</span>
-              </Link>
+              </Link> */}
               <a
                 href="https://opensea.io/collection/xfrora"
                 target="_blank"
