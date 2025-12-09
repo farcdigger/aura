@@ -253,15 +253,26 @@ Write this section in simple language. Explain each point like you're talking to
 - Are there fake trades to make it look popular?
 - Is one person controlling too much?
 - Are bots trading instead of real people?
+- Are there rapid buy-sell cycles (someone buying and selling quickly)?
+- Are there large single transactions (whale dumps or pumps)?
+- Is trading activity concentrated in specific times (coordinated pumps)?
+- Are there many new wallets with only 1-2 trades (bot farms)?
+- Are there sudden volume spikes (pump events)?
+- Is the price changing very rapidly (manipulation)?
 - Make it clear: "We found X suspicious patterns, which means..."
 
 ### 4. 🎯 KEY INSIGHTS (The Most Important Things)
 
-List 3-5 eye-catching findings. Make them stand out! Examples:
+List 5-8 eye-catching findings. Make them stand out! Examples:
 - "⚠️ WARNING: We found 6 wallets doing fake trades to pump the price"
 - "✅ GOOD NEWS: No one can freeze your tokens or print more"
 - "🚨 DANGER: One wallet controls 45% of all trades - this is risky!"
 - "💡 INTERESTING: 80% of trades are buys, suggesting people are optimistic"
+- "🐋 WHALE ALERT: Large transactions detected - someone moved $50K+ in a single trade"
+- "⏰ TIMING PATTERN: 30% of trades happened in one hour - possible coordinated pump"
+- "🤖 BOT DETECTION: Many trades have identical sizes - likely automated trading"
+- "📈 VOLATILITY: Price swings >10% on 25% of trades - high manipulation risk"
+- "🆕 NEW WALLETS: 60% of wallets have only 1-2 trades - possible fake accounts"
 
 ### 5. ⚠️ WARNINGS (If There Are Any)
 

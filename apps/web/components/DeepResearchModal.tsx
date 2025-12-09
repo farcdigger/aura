@@ -48,6 +48,10 @@ export default function DeepResearchModal({
               setStatus("completed");
               setProgress(100);
               clearInterval(interval);
+              // Trigger history refresh after a short delay to ensure DB is updated
+              setTimeout(() => {
+                onAnalysisComplete();
+              }, 1000);
             } else if (data.status === "failed") {
               setError(data.error || "Analysis failed");
               setStatus("error");

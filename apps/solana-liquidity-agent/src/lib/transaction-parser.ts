@@ -340,6 +340,126 @@ export function analyzeTransactions(
     }
   }
 
+  // 4. Rapid buy/sell cycles (wallet buys and sells within short time)
+  walletMap.forEach((activity) => {
+    if (activity.buyCount > 0 && activity.sellCount > 0) {
+      // Check if buys and sells are interleaved (rapid cycles)
+      const buySellPairs = Math.min(activity.buyCount, activity.sellCount);
+      if (buySellPairs >= 5 && activity.transactionCount < 20) {
+        // High ratio of round-trips to total trades
+        suspiciousPatterns.push(
+          `Rapid trading cycles: ${activity.address.slice(0, 8)}... made ${buySellPairs} quick buy-sell cycles`
+        );
+      }
+    }
+  });
+
+  // 5. Large single transactions (whale dumps/pumps)
+  const largeTransactionThreshold = avgVolumeUSD * 10; // 10x average
+  const largeTransactions = transactions.filter(tx => {
+    const txVolume = tx.amountInUsd || tx.amountOutUsd || 0;
+    return txVolume > largeTransactionThreshold;
+  });
+  if (largeTransactions.length > 0) {
+    suspiciousPatterns.push(
+      `Large transactions detected: ${largeTransactions.length} trades exceed ${(largeTransactionThreshold / 1000).toFixed(0)}K USD (${((largeTransactions.length / totalCount) * 100).toFixed(1)}% of all trades)`
+    );
+  }
+
+  // 6. Time-based patterns (clustered trading activity)
+  const timestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0);
+  if (timestamps.length > 10) {
+    // Group transactions by hour
+    const hourlyGroups = new Map<number, number>();
+    timestamps.forEach(ts => {
+      const hour = new Date(ts * 1000).getHours();
+      hourlyGroups.set(hour, (hourlyGroups.get(hour) || 0) + 1);
+    });
+    
+    // Find hours with unusually high activity (>20% of trades in single hour)
+    const maxHourTrades = Math.max(...Array.from(hourlyGroups.values()));
+    const maxHourPercent = (maxHourTrades / totalCount) * 100;
+    if (maxHourPercent > 20) {
+      const peakHour = Array.from(hourlyGroups.entries()).find(([_, count]) => count === maxHourTrades)?.[0];
+      suspiciousPatterns.push(
+        `Concentrated trading activity: ${maxHourPercent.toFixed(1)}% of trades happened in a single hour (${peakHour}:00) - possible coordinated pump`
+      );
+    }
+  }
+
+  // 7. New wallet activity (many wallets with only 1-2 transactions)
+  const newWalletCount = Array.from(walletMap.values()).filter(w => w.transactionCount <= 2).length;
+  const newWalletPercent = (newWalletCount / walletMap.size) * 100;
+  if (newWalletPercent > 50 && walletMap.size > 10) {
+    suspiciousPatterns.push(
+      `High new wallet activity: ${newWalletPercent.toFixed(1)}% of wallets have only 1-2 trades - possible bot farm or fake accounts`
+    );
+  }
+
+  // 8. Volume spikes (sudden increases in trading volume)
+  if (transactions.length > 100) {
+    // Split into 10 time windows
+    const windowSize = Math.floor(transactions.length / 10);
+    const windowVolumes: number[] = [];
+    for (let i = 0; i < 10; i++) {
+      const window = transactions.slice(i * windowSize, (i + 1) * windowSize);
+      const windowVolume = window.reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+      windowVolumes.push(windowVolume);
+    }
+    
+    const avgWindowVolume = windowVolumes.reduce((a, b) => a + b, 0) / windowVolumes.length;
+    const maxWindowVolume = Math.max(...windowVolumes);
+    if (maxWindowVolume > avgWindowVolume * 3 && avgWindowVolume > 0) {
+      suspiciousPatterns.push(
+        `Volume spike detected: Trading volume spiked ${(maxWindowVolume / avgWindowVolume).toFixed(1)}x above average - possible pump or dump event`
+      );
+    }
+  }
+
+  // 9. Bot-like behavior (very consistent trade sizes or timing)
+  const tradeSizes = transactions
+    .map(tx => tx.amountInUsd || tx.amountOutUsd || 0)
+    .filter(size => size > 0);
+  if (tradeSizes.length > 20) {
+    // Check for many identical trade sizes (bot signature)
+    const sizeCounts = new Map<number, number>();
+    tradeSizes.forEach(size => {
+      const rounded = Math.round(size / 10) * 10; // Round to nearest $10
+      sizeCounts.set(rounded, (sizeCounts.get(rounded) || 0) + 1);
+    });
+    const maxSizeCount = Math.max(...Array.from(sizeCounts.values()));
+    if (maxSizeCount > tradeSizes.length * 0.3) {
+      suspiciousPatterns.push(
+        `Bot-like trading patterns: ${((maxSizeCount / tradeSizes.length) * 100).toFixed(1)}% of trades have similar sizes - possible automated trading`
+      );
+    }
+  }
+
+  // 10. Price manipulation (rapid price changes)
+  // Note: This requires price data which may not always be available
+  const priceChanges: number[] = [];
+  for (let i = 1; i < transactions.length; i++) {
+    const prev = transactions[i - 1];
+    const curr = transactions[i];
+    if (prev.amountOutUsd && curr.amountInUsd && prev.amountInUsd && curr.amountOutUsd) {
+      const prevPrice = prev.amountOutUsd / prev.amountInUsd;
+      const currPrice = curr.amountOutUsd / curr.amountInUsd;
+      if (prevPrice > 0) {
+        const change = Math.abs((currPrice - prevPrice) / prevPrice) * 100;
+        priceChanges.push(change);
+      }
+    }
+  }
+  if (priceChanges.length > 10) {
+    const avgChange = priceChanges.reduce((a, b) => a + b, 0) / priceChanges.length;
+    const highVolatilityCount = priceChanges.filter(change => change > 10).length;
+    if (highVolatilityCount > priceChanges.length * 0.2) {
+      suspiciousPatterns.push(
+        `High price volatility: ${((highVolatilityCount / priceChanges.length) * 100).toFixed(1)}% of trades show >10% price swings - possible manipulation`
+      );
+    }
+  }
+
   // Calculate total USD volume for avgVolumeUSD
   const totalUsdVolume = transactions
     .filter(tx => tx.amountInUsd !== undefined)
