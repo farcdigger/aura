@@ -49,10 +49,10 @@ app.get('/system-status', async (c) => {
 });
 
 /**
- * POST /analyze
+ * POST /analyze (and /api/analyze alias)
  * Yeni bir havuz analizi başlat (HYBRID - Pool ID veya Token Mint)
  */
-app.post('/analyze', analysisRateLimiter(queue), async (c) => {
+const analyzeHandlerFn = async (c: any) => {
   try {
     const body = await c.req.json();
     
@@ -183,7 +183,11 @@ app.post('/analyze', analysisRateLimiter(queue), async (c) => {
       message: error.message,
     }, 500);
   }
-});
+};
+
+// Register handler for both /analyze and /api/analyze
+app.post('/analyze', analysisRateLimiter(queue), analyzeHandlerFn);
+app.post('/api/analyze', analysisRateLimiter(queue), analyzeHandlerFn);
 
 /**
  * GET /status/:jobId
@@ -421,8 +425,11 @@ app.get('/', (c) => {
     status: 'running',
     endpoints: {
       'POST /analyze': 'Submit a new pool analysis',
+      'POST /api/analyze': 'Submit analysis (alias)',
       'GET /status/:jobId': 'Check job status',
       'GET /analysis/:poolId': 'Get analysis result',
+      'POST /api/weekly-limit': 'Check weekly limit status',
+      'GET /api/analyses': 'Get user analysis history',
       'GET /health': 'System health check',
       'GET /stats': 'Queue statistics',
     },
