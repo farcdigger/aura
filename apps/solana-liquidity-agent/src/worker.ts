@@ -104,36 +104,78 @@ async function processAnalysis(job: Job<QueueJobData>) {
       // Fallback: Get liquidity from DexScreener (FREE API, no rate limit issues!)
       let liquidityUsd = 0;
       let dexId = 'Unknown';
+      let tokenAReserve = 0;
+      let tokenBReserve = 0;
+      let tokenAMint = 'So11111111111111111111111111111111111111112'; // SOL default
+      let tokenBMint = job.data.tokenMint || 'UNKNOWN';
       
       try {
         if (job.data.tokenMint) {
           const { findBestPoolViaDexScreener } = await import('./lib/dexscreener-client');
           const dexScreenerData = await findBestPoolViaDexScreener(job.data.tokenMint);
           
-          if (dexScreenerData && dexScreenerData.poolAddress === poolId) {
+          // ✅ IMPORTANT: Use DexScreener data if pool ID matches OR if it's the best pool for this token
+          // Pool discovery already found the best pool, so we should use DexScreener data for that pool
+          if (dexScreenerData) {
+            // Check if DexScreener found the same pool (most likely) or use it anyway if it's the best pool
+            const poolMatches = dexScreenerData.poolAddress.toLowerCase() === poolId.toLowerCase();
+            
+            if (poolMatches) {
+              console.log(`✅ [Job ${job.id}] DexScreener pool matches job pool ID`);
+            } else {
+              console.warn(`⚠️ [Job ${job.id}] DexScreener pool differs from job pool ID`);
+              console.warn(`⚠️ [Job ${job.id}] Job pool: ${poolId}`);
+              console.warn(`⚠️ [Job ${job.id}] DexScreener pool: ${dexScreenerData.poolAddress}`);
+              console.warn(`⚠️ [Job ${job.id}] Using DexScreener pool data anyway (it's the best pool for this token)`);
+            }
+            
             liquidityUsd = dexScreenerData.liquidityUsd || 0;
             dexId = dexScreenerData.dexLabel || 'Unknown';
+            
+            // ✅ Use DexScreener reserve amounts if available
+            if (dexScreenerData.baseToken && dexScreenerData.quoteToken) {
+              // Determine which token is which based on addresses
+              const requestedToken = job.data.tokenMint.toLowerCase();
+              const baseTokenAddress = dexScreenerData.baseToken.address.toLowerCase();
+              const quoteTokenAddress = dexScreenerData.quoteToken.address.toLowerCase();
+              
+              if (baseTokenAddress === requestedToken) {
+                // Requested token is base token
+                tokenBMint = dexScreenerData.baseToken.address;
+                tokenAMint = dexScreenerData.quoteToken.address;
+                tokenBReserve = dexScreenerData.liquidityBase || 0;
+                tokenAReserve = dexScreenerData.liquidityQuote || 0;
+              } else {
+                // Requested token is quote token
+                tokenBMint = dexScreenerData.quoteToken.address;
+                tokenAMint = dexScreenerData.baseToken.address;
+                tokenBReserve = dexScreenerData.liquidityQuote || 0;
+                tokenAReserve = dexScreenerData.liquidityBase || 0;
+              }
+            }
+            
             console.log(`✅ [Job ${job.id}] DexScreener provided liquidity data: $${liquidityUsd.toLocaleString()}`);
+            console.log(`✅ [Job ${job.id}] Reserve amounts: Token A=${tokenAReserve.toLocaleString()}, Token B=${tokenBReserve.toLocaleString()}`);
           } else {
-            console.warn(`⚠️ [Job ${job.id}] DexScreener pool mismatch or no data`);
+            console.warn(`⚠️ [Job ${job.id}] DexScreener returned no data for token`);
           }
         }
       } catch (dexError: any) {
         console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
       }
       
-      // Create reserves object with DexScreener liquidity
+      // Create reserves object with DexScreener liquidity and reserves
       reserves = {
-        tokenAMint: 'So11111111111111111111111111111111111111112', // SOL
-        tokenBMint: job.data.tokenMint || 'UNKNOWN',
-        tokenAReserve: 0, // We don't have reserve amounts, but we have TVL
-        tokenBReserve: 0,
+        tokenAMint: tokenAMint,
+        tokenBMint: tokenBMint,
+        tokenAReserve: tokenAReserve, // ✅ Use DexScreener reserve amounts
+        tokenBReserve: tokenBReserve, // ✅ Use DexScreener reserve amounts
         tvlUSD: liquidityUsd, // ✅ Use DexScreener liquidity as TVL
         poolStatus: 'Active',
         poolType: dexId,
       };
       
-      console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}`);
+      console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}, Reserves: A=${tokenAReserve.toLocaleString()}, B=${tokenBReserve.toLocaleString()}`);
     }
     await job.updateProgress(30);
     

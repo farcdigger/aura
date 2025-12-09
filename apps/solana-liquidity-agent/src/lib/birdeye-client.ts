@@ -154,10 +154,11 @@ export class BirdeyeClient {
       const targetLimit = Math.min(limit, MAX_TOTAL_SWAPS);
 
       // Strategy: Try multiple endpoints in order
-      // 1. Pair v2 endpoint: /defi/txs/pair
-      // 2. Token v2 endpoint: /defi/txs/token
-      // 3. History endpoint: /defi/v2/historical/txs (if available)
-      let endpointStrategy: 'pair_v2' | 'token_v2' | 'history' = 'pair_v2';
+      // ✅ PRIORITY: Use token mint first (more reliable, especially for Pump.fun)
+      // 1. Token v2 endpoint: /defi/txs/token (if tokenMint provided)
+      // 2. Pair v2 endpoint: /defi/txs/pair (fallback if no tokenMint)
+      // 3. History endpoint: /defi/v2/historical/txs (deep history)
+      let endpointStrategy: 'pair_v2' | 'token_v2' | 'history' = tokenMint ? 'token_v2' : 'pair_v2';
       let lastError: any = null;
 
       while (allSwaps.length < targetLimit) {
@@ -324,28 +325,62 @@ export class BirdeyeClient {
         }
         
         // Parse Birdeye swaps to our format
-        // CRITICAL: Filter by poolId if using TOKEN endpoint (to avoid mixing pools)
+        // ✅ IMPORTANT: When using TOKEN endpoint, we get swaps from ALL pools for this token
+        // Strategy: Filter by target pool ID if it matches, otherwise use all swaps
+        // This handles cases where DexScreener pool ID differs from Birdeye pool ID format
         let filteredCount = 0;
+        let poolIdMatches = 0;
+        
+        // First pass: Check if any swaps match our target pool ID
+        if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+          for (const tx of swaps) {
+            const txPoolId = tx.address || tx.poolId || tx.pairAddress;
+            if (txPoolId && txPoolId.toLowerCase() === pairAddress.toLowerCase()) {
+              poolIdMatches++;
+            }
+          }
+          console.log(`[BirdeyeClient] 🔍 Found ${poolIdMatches} swaps matching target pool ID: ${pairAddress}`);
+        }
+        
         const parsedSwaps = swaps
           .filter(tx => {
-            // If using TOKEN endpoint fallback, filter by pool address
-            if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
-              // Check if tx has pool info and matches our target pool
+            if (endpointStrategy === 'pair_v2') {
+              // Pair endpoint: Only use swaps from this specific pool
               const txPoolId = tx.address || tx.poolId || tx.pairAddress;
               if (txPoolId && txPoolId.toLowerCase() !== pairAddress.toLowerCase()) {
-                // This swap is from a DIFFERENT pool - skip it!
                 filteredCount++;
                 return false;
               }
+            } else if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+              // Token endpoint: Prefer swaps from target pool, but include all if pool ID doesn't match
+              // This handles cases where DexScreener pool ID format differs from Birdeye
+              if (poolIdMatches > 0) {
+                // If we found matching swaps, filter to only use those
+                const txPoolId = tx.address || tx.poolId || tx.pairAddress;
+                if (txPoolId && txPoolId.toLowerCase() !== pairAddress.toLowerCase()) {
+                  filteredCount++;
+                  return false;
+                }
+              }
+              // If no matches, use all swaps (comprehensive token analysis)
             }
             return true;
           })
           .map(tx => this.parseBirdeyeSwap(tx, tokenMint))
           .filter((swap): swap is ParsedSwap => swap !== null);
         
-        // Log filtering if TOKEN endpoint was used
-        if (filteredCount > 0) {
-          console.log(`[BirdeyeClient] 🔍 Filtered out ${filteredCount} swaps from other pools (TOKEN endpoint fallback)`);
+        // Log filtering results
+        if (endpointStrategy === 'pair_v2' && filteredCount > 0) {
+          console.log(`[BirdeyeClient] 🔍 Filtered out ${filteredCount} swaps from other pools (PAIR endpoint)`);
+        } else if ((endpointStrategy === 'token_v2' || endpointStrategy === 'history') && poolIdMatches > 0) {
+          console.log(`[BirdeyeClient] ✅ Using ${poolIdMatches} swaps from target pool (pool ID matched)`);
+          if (filteredCount > 0) {
+            console.log(`[BirdeyeClient] 🔍 Filtered out ${filteredCount} swaps from other pools`);
+          }
+        } else if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+          console.log(`[BirdeyeClient] ⚠️ Pool ID mismatch - using ALL swaps (comprehensive token analysis)`);
+          console.log(`[BirdeyeClient] ⚠️ Target pool: ${pairAddress}`);
+          console.log(`[BirdeyeClient] ⚠️ This may indicate DexScreener pool ID format differs from Birdeye`);
         }
 
         allSwaps.push(...parsedSwaps);
@@ -628,4 +663,5 @@ export class BirdeyeClient {
     }
   }
 }
+
 

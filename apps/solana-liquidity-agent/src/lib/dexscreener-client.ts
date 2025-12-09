@@ -161,6 +161,10 @@ export async function findBestPoolViaDexScreener(
       poolAddress: bestPair.pairAddress,
       dexLabel: bestPair.dexId,
       liquidityUsd: bestPair.liquidity.usd,
+      liquidityBase: bestPair.liquidity.base || 0, // Reserve amount for base token
+      liquidityQuote: bestPair.liquidity.quote || 0, // Reserve amount for quote token
+      baseToken: bestPair.baseToken,
+      quoteToken: bestPair.quoteToken,
     };
     
   } catch (error: any) {
