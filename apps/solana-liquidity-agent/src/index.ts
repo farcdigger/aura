@@ -190,10 +190,10 @@ app.post('/analyze', analysisRateLimiter(queue), analyzeHandlerFn);
 app.post('/api/analyze', analysisRateLimiter(queue), analyzeHandlerFn);
 
 /**
- * GET /status/:jobId
+ * GET /status/:jobId (and /api/status/:jobId alias)
  * İş durumunu kontrol et
  */
-app.get('/status/:jobId', async (c) => {
+const statusHandlerFn = async (c: any) => {
   try {
     const jobId = c.req.param('jobId');
     
@@ -215,7 +215,11 @@ app.get('/status/:jobId', async (c) => {
       message: error.message,
     }, 500);
   }
-});
+};
+
+// Register handler for both /status/:jobId and /api/status/:jobId
+app.get('/status/:jobId', statusHandlerFn);
+app.get('/api/status/:jobId', statusHandlerFn);
 
 /**
  * GET /analysis/:poolId
@@ -427,6 +431,7 @@ app.get('/', (c) => {
       'POST /analyze': 'Submit a new pool analysis',
       'POST /api/analyze': 'Submit analysis (alias)',
       'GET /status/:jobId': 'Check job status',
+      'GET /api/status/:jobId': 'Check job status (alias)',
       'GET /analysis/:poolId': 'Get analysis result',
       'POST /api/weekly-limit': 'Check weekly limit status',
       'GET /api/analyses': 'Get user analysis history',
