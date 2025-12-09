@@ -1,0 +1,3 @@
+web: bun run src/index.ts
+worker: bun run src/worker.ts
+

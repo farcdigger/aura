@@ -157,11 +157,22 @@ export class BirdeyeClient {
       // ✅ PRIORITY: Use token mint first (more reliable, especially for Pump.fun)
       // 1. Token v2 endpoint: /defi/txs/token (if tokenMint provided)
       // 2. Pair v2 endpoint: /defi/txs/pair (fallback if no tokenMint)
-      // 3. History endpoint: /defi/v2/historical/txs (deep history)
-      let endpointStrategy: 'pair_v2' | 'token_v2' | 'history' = tokenMint ? 'token_v2' : 'pair_v2';
+      // ❌ REMOVED: SEEK_BY_TIME endpoint (requires before_time/after_time params)
+      let endpointStrategy: 'pair_v2' | 'token_v2' = tokenMint ? 'token_v2' : 'pair_v2';
       let lastError: any = null;
+      
+      // ✅ Offset limit: Birdeye API may have limits on max offset
+      // Token endpoint typically supports up to 10,000 offset, but we'll be conservative
+      const MAX_OFFSET = 5000; // Safety limit (100 pages * 50 per page)
 
       while (allSwaps.length < targetLimit) {
+        // ✅ Check offset limit before making request
+        if (offset >= MAX_OFFSET) {
+          console.log(`[BirdeyeClient] ⚠️ Offset limit reached (${MAX_OFFSET}), stopping pagination`);
+          console.log(`[BirdeyeClient] ✅ Collected ${allSwaps.length} swaps (target was ${targetLimit})`);
+          break;
+        }
+        
         await this.rateLimit();
 
         const remaining = targetLimit - allSwaps.length;
@@ -177,10 +188,6 @@ export class BirdeyeClient {
           // Strategy 2: Token endpoint - all pools for this token
           url = `${BIRDEYE_API_BASE}/defi/txs/token?address=${tokenMint}&tx_type=swap&limit=${currentLimit}&offset=${offset}&sort_type=desc&ui_amount_mode=raw`;
           console.log(`[BirdeyeClient] 📡 Strategy: TOKEN endpoint (/defi/txs/token): ${allSwaps.length}/${targetLimit} swaps (offset: ${offset})...`);
-        } else if (endpointStrategy === 'history' && tokenMint) {
-          // Strategy 3: Deep historical data with time-based seeking
-          url = `${BIRDEYE_API_BASE}/defi/txs/token/seek_by_time?address=${tokenMint}&tx_type=swap&limit=${currentLimit}&sort_type=desc&ui_amount_mode=raw`;
-          console.log(`[BirdeyeClient] 📡 Strategy: SEEK_BY_TIME endpoint (deep history): ${allSwaps.length}/${targetLimit} swaps...`);
         } else {
           // Fallback: use token endpoint if no tokenMint
           console.error(`[BirdeyeClient] ❌ No valid endpoint strategy and no token mint provided`);
@@ -215,35 +222,48 @@ export class BirdeyeClient {
             continue; // Retry with token endpoint
           }
           
-          // If token endpoint also fails, try history endpoint
-          if (endpointStrategy === 'token_v2' && tokenMint && (response.status === 404 || response.status === 400)) {
-            console.warn(`[BirdeyeClient] ⚠️ TOKEN v2 endpoint failed (${response.status}), trying HISTORY endpoint...`);
-            endpointStrategy = 'history';
-            lastError = new Error(`Token endpoint failed: ${response.status}`);
-            offset = 0; // Reset offset for new endpoint
-            continue; // Retry with history endpoint
-          }
-          
           // Standard plan may not have access to /defi/txs/pair endpoint
           if (response.status === 403 || response.status === 401) {
             throw new Error(`Birdeye API access denied. Standard plan may not support swap endpoints. Please upgrade to Lite plan.`);
           }
           
-          // If we already tried all endpoints or don't have tokenMint, throw error
-          if (endpointStrategy === 'history' || !tokenMint) {
+          // 422 Unprocessable Entity: Usually means invalid parameters (e.g., offset too large)
+          if (response.status === 422) {
+            console.warn(`[BirdeyeClient] ⚠️ API returned 422 (Unprocessable Entity) - likely offset too large or invalid params`);
+            // If we have some swaps already, use them
+            if (allSwaps.length > 0) {
+              console.log(`[BirdeyeClient] ✅ Using ${allSwaps.length} swaps collected so far (stopped due to 422 error)`);
+              break;
+            }
             throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
           }
           
-          // Try next endpoint as fallback
-          if (endpointStrategy === 'pair_v2') {
+          // If token endpoint fails with 400/404, and we have tokenMint, we've exhausted options
+          if (endpointStrategy === 'token_v2' && (response.status === 400 || response.status === 404)) {
+            console.warn(`[BirdeyeClient] ⚠️ TOKEN v2 endpoint failed (${response.status}), no more fallback options`);
+            // If we have some swaps already, use them
+            if (allSwaps.length > 0) {
+              console.log(`[BirdeyeClient] ✅ Using ${allSwaps.length} swaps collected so far`);
+              break;
+            }
+            throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
+          }
+          
+          // If we've tried both endpoints or don't have tokenMint, throw error
+          if ((endpointStrategy === 'token_v2' && !tokenMint) || (endpointStrategy === 'pair_v2' && !tokenMint)) {
+            throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
+          }
+          
+          // Try next endpoint as fallback (only pair -> token)
+          if (endpointStrategy === 'pair_v2' && tokenMint) {
             console.warn(`[BirdeyeClient] ⚠️ PAIR v2 failed, trying TOKEN v2...`);
             endpointStrategy = 'token_v2';
-          } else if (endpointStrategy === 'token_v2') {
-            console.warn(`[BirdeyeClient] ⚠️ TOKEN v2 failed, trying HISTORY...`);
-            endpointStrategy = 'history';
+            offset = 0; // Reset offset for new endpoint
+            continue;
           }
-          offset = 0;
-          continue;
+          
+          // If we get here, we've exhausted all options
+          throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
         }
 
         const data = await response.json();
@@ -332,7 +352,7 @@ export class BirdeyeClient {
         let poolIdMatches = 0;
         
         // First pass: Check if any swaps match our target pool ID
-        if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+        if (endpointStrategy === 'token_v2') {
           for (const tx of swaps) {
             const txPoolId = tx.address || tx.poolId || tx.pairAddress;
             if (txPoolId && txPoolId.toLowerCase() === pairAddress.toLowerCase()) {
@@ -351,7 +371,7 @@ export class BirdeyeClient {
                 filteredCount++;
                 return false;
               }
-            } else if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+            } else if (endpointStrategy === 'token_v2') {
               // Token endpoint: Prefer swaps from target pool, but include all if pool ID doesn't match
               // This handles cases where DexScreener pool ID format differs from Birdeye
               if (poolIdMatches > 0) {
@@ -372,12 +392,12 @@ export class BirdeyeClient {
         // Log filtering results
         if (endpointStrategy === 'pair_v2' && filteredCount > 0) {
           console.log(`[BirdeyeClient] 🔍 Filtered out ${filteredCount} swaps from other pools (PAIR endpoint)`);
-        } else if ((endpointStrategy === 'token_v2' || endpointStrategy === 'history') && poolIdMatches > 0) {
+        } else if (endpointStrategy === 'token_v2' && poolIdMatches > 0) {
           console.log(`[BirdeyeClient] ✅ Using ${poolIdMatches} swaps from target pool (pool ID matched)`);
           if (filteredCount > 0) {
             console.log(`[BirdeyeClient] 🔍 Filtered out ${filteredCount} swaps from other pools`);
           }
-        } else if (endpointStrategy === 'token_v2' || endpointStrategy === 'history') {
+        } else if (endpointStrategy === 'token_v2') {
           console.log(`[BirdeyeClient] ⚠️ Pool ID mismatch - using ALL swaps (comprehensive token analysis)`);
           console.log(`[BirdeyeClient] ⚠️ Target pool: ${pairAddress}`);
           console.log(`[BirdeyeClient] ⚠️ This may indicate DexScreener pool ID format differs from Birdeye`);
