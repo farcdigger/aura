@@ -300,14 +300,28 @@ app.get('/api/analyses', async (c) => {
     const total = analyses.length; // Simplified for now
     
     return c.json({
-      analyses: analyses.map(a => ({
-        id: a.id,
-        poolId: a.pool_id,
-        tokenMint: a.token_mint,
-        analysisReport: a.analysis_report,
-        generatedAt: a.generated_at,
-        userId: a.user_id,
-      })),
+      analyses: analyses.map(a => {
+        // Parse analysis_report if it's a string
+        let parsedReport: any = null;
+        try {
+          parsedReport = typeof a.analysis_report === 'string' 
+            ? JSON.parse(a.analysis_report) 
+            : a.analysis_report;
+        } catch (e) {
+          // If parsing fails, treat as plain text
+          parsedReport = { riskAnalysis: a.analysis_report };
+        }
+        
+        return {
+          id: a.id,
+          poolId: a.pool_id,
+          tokenMint: a.token_mint,
+          analysisReport: parsedReport,
+          riskScore: a.risk_score || parsedReport?.riskScore || null,
+          generatedAt: a.generated_at,
+          userId: a.user_id,
+        };
+      }),
       total,
       limit,
       offset,

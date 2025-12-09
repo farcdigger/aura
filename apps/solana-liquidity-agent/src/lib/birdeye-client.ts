@@ -561,14 +561,32 @@ export class BirdeyeClient {
       // Note: Birdeye API response format may vary, adjust as needed
       const pairData = data.data || data;
       
+      const tokenAReserve = parseFloat(pairData.liquidity?.base || pairData.reserve0 || '0');
+      const tokenBReserve = parseFloat(pairData.liquidity?.quote || pairData.reserve1 || '0');
+      
+      // Try to get LP supply from API, otherwise calculate from reserves
+      let lpSupply: string | undefined = undefined;
+      if (pairData.lpSupply !== undefined && pairData.lpSupply !== null) {
+        lpSupply = String(pairData.lpSupply);
+      } else if (pairData.liquidity?.lpSupply !== undefined && pairData.liquidity?.lpSupply !== null) {
+        lpSupply = String(pairData.liquidity.lpSupply);
+      } else if (tokenAReserve > 0 && tokenBReserve > 0) {
+        // Calculate approximate LP supply from reserves (simplified AMM formula)
+        // LP supply ≈ sqrt(tokenA * tokenB) for constant product AMMs
+        const calculatedLP = Math.sqrt(tokenAReserve * tokenBReserve);
+        lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      }
+      
       return {
         tokenAMint: pairData.baseToken?.address || pairData.token0?.address || '',
         tokenBMint: pairData.quoteToken?.address || pairData.token1?.address || '',
-        tokenAReserve: parseFloat(pairData.liquidity?.base || pairData.reserve0 || '0'),
-        tokenBReserve: parseFloat(pairData.liquidity?.quote || pairData.reserve1 || '0'),
+        tokenAReserve,
+        tokenBReserve,
         tokenASymbol: pairData.baseToken?.symbol || pairData.token0?.symbol,
         tokenBSymbol: pairData.quoteToken?.symbol || pairData.token1?.symbol,
         tvlUSD: parseFloat(pairData.liquidity?.usd || pairData.liquidityUSD || '0'),
+        lpSupply,
+        lpMint: pairData.lpMint || pairData.liquidity?.lpMint,
         poolStatus: pairData.pairCreatedAt ? 'Active' : 'Unknown',
         feeInfo: pairData.fee || '0.3%',
         poolType: pairData.dexId || 'Unknown',

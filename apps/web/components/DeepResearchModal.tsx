@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useWalletClient } from "wagmi";
 import { wrapFetchWithPayment } from "x402-fetch";
+import ReactMarkdown from "react-markdown";
 
 interface DeepResearchModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface DeepResearchModalProps {
   pricingInfo: any;
   tokenMint: string;
   onAnalysisComplete: () => void;
+  selectedAnalysis?: any; // Pre-loaded analysis from history
 }
 
 type AnalysisStatus = "payment" | "processing" | "completed" | "error";
@@ -20,13 +22,16 @@ export default function DeepResearchModal({
   pricingInfo,
   tokenMint: initialTokenMint,
   onAnalysisComplete,
+  selectedAnalysis,
 }: DeepResearchModalProps) {
   const [tokenMint] = useState(initialTokenMint);
-  const [status, setStatus] = useState<AnalysisStatus>("payment"); // Start at payment (skip input)
+  const [status, setStatus] = useState<AnalysisStatus>(
+    selectedAnalysis ? "completed" : "payment"
+  ); // If pre-loaded, show completed
   const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(selectedAnalysis ? 100 : 0);
   const [error, setError] = useState<string | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(selectedAnalysis || null);
   const { data: walletClient } = useWalletClient();
 
   // Poll for job status
@@ -271,18 +276,38 @@ export default function DeepResearchModal({
         {status === "completed" && analysisResult && (
           <div>
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-              <p className="font-semibold mb-1">Analysis Complete</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-semibold">Analysis Complete</p>
+                {analysisResult?.riskScore !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Risk Score:</span>
+                    <span className={`font-bold text-lg ${
+                      analysisResult.riskScore <= 20 ? 'text-green-600' :
+                      analysisResult.riskScore <= 40 ? 'text-yellow-600' :
+                      analysisResult.riskScore <= 60 ? 'text-orange-600' :
+                      analysisResult.riskScore <= 80 ? 'text-red-600' :
+                      'text-red-800'
+                    }`}>
+                      {analysisResult.riskScore}/100
+                    </span>
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Report generated successfully
               </p>
             </div>
 
-            {/* Analysis Report */}
+            {/* Analysis Report - Only show the AI-generated risk analysis */}
             <div className="prose dark:prose-invert max-w-none">
-              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-800">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {JSON.stringify(analysisResult, null, 2)}
-                </pre>
+              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-[600px] overflow-y-auto border border-gray-200 dark:border-gray-800">
+                {analysisResult?.analysisResult?.riskAnalysis ? (
+                  <ReactMarkdown className="text-sm">
+                    {analysisResult.analysisResult.riskAnalysis}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-400">Analysis report not available</p>
+                )}
               </div>
             </div>
 

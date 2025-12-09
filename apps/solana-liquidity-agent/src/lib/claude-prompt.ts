@@ -113,12 +113,17 @@ ${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk
     : '✅ No mint authority detected';
 
   // Pool health section (NEW)
+  // Check if LP supply is actually zero (not just missing)
+  const lpSupplyValue = reserves.lpSupply;
+  const hasZeroLP = lpSupplyValue === '0' || lpSupplyValue === '0.00' || (lpSupplyValue && parseFloat(lpSupplyValue) === 0);
+  const hasValidLP = lpSupplyValue && !hasZeroLP;
+  
   const poolHealthSection = `
 ## 🏊 POOL HEALTH METRICS
 
 **Pool Type:** ${reserves.poolType || 'Raydium AMM V4'}
 **Pool Status:** ${reserves.poolStatus || 'Active'}
-**LP Token Supply:** ${reserves.lpSupply || 'Unknown'}
+**LP Token Supply:** ${hasValidLP ? lpSupplyValue : 'Not available (calculated from reserves)'}
 **Swap Fee:** ${reserves.feeInfo || '0.25% (standard)'}
 
 **Liquidity Depth:**
@@ -134,22 +139,22 @@ ${reserves.tvlUSD && reserves.tvlUSD > 0 ? `- **Estimated TVL:** $${reserves.tvl
 - **Zero LP supply:** CRITICAL: Pool may be drained or inactive
 
 ${reserves.poolStatus === 'Disabled' ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
-${!reserves.lpSupply || reserves.lpSupply === '0' ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive or drained!' : ''}
+${hasZeroLP ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive or drained!' : ''}
+${hasValidLP && reserves.tokenAReserve > 0 && reserves.tokenBReserve > 0 ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
 `;
 
   // Build the comprehensive prompt
-  const prompt = `You are an expert Solana DeFi security analyst specializing in liquidity pool risk assessment. Your task is to analyze a Raydium liquidity pool and provide a comprehensive risk report.
+  const prompt = `You are an expert cryptocurrency analyst who explains complex DeFi risks in simple, easy-to-understand language. Your job is to analyze a Solana token's liquidity pool and write a clear, engaging risk report that anyone can understand.
 
-## 🎯 ANALYSIS OBJECTIVE
+## 🎯 YOUR MISSION
 
-Evaluate the provided pool data and generate a detailed risk assessment covering:
-1. Liquidity health and stability
-2. Token security (rug pull indicators)
-3. Trading activity patterns
-4. Manipulation risks (wash trading, pump & dump)
-5. Wallet concentration risks
+Write a risk report that:
+- Uses simple, everyday language (avoid technical jargon)
+- Highlights the most important red flags and green flags
+- Explains what the data means in plain English
+- Makes it easy for regular people to decide if this token is safe to trade
 
-**IMPORTANT:** Base your analysis ONLY on the provided data. Do not make assumptions or provide financial advice.
+**CRITICAL:** Only use the data provided. Don't make up information. Write like you're explaining to a friend, not a technical expert.
 
 ---
 
@@ -206,74 +211,83 @@ ${suspiciousPatternsText}
 
 ---
 
-## 📋 ANALYSIS INSTRUCTIONS
+## 📋 HOW TO WRITE THE REPORT
 
-Please provide a comprehensive risk assessment in the following format:
+Write your report in this exact format:
 
 ### 1. RISK SCORE (Required - First Line)
-Provide a numerical risk score from 0-100:
-- **0-20:** Very Low Risk (Highly trustworthy pool)
-- **21-40:** Low Risk (Generally safe with minor concerns)
-- **41-60:** Medium Risk (Proceed with caution)
-- **61-80:** High Risk (Significant red flags present)
-- **81-100:** Critical Risk (Strong rug pull/scam indicators)
+Give a number from 0-100:
+- **0-20:** Very Safe (You can probably trust this)
+- **21-40:** Mostly Safe (Small concerns, but probably okay)
+- **41-60:** Be Careful (Some warning signs)
+- **61-80:** Dangerous (Lots of red flags)
+- **81-100:** Very Dangerous (Strong scam/rug pull signs)
 
 **Format:** Risk Score: [NUMBER]
 
-### 2. EXECUTIVE SUMMARY (2-3 sentences)
-Provide a high-level overview of the pool's risk profile.
+### 2. QUICK SUMMARY (2-3 sentences)
+Give a simple overview: Is this token safe? What's the biggest concern?
 
-### 3. DETAILED ANALYSIS
+### 3. WHAT YOU NEED TO KNOW
 
-#### A. Liquidity Health Analysis
-- Evaluate reserve amounts
-- Assess liquidity depth
-- Identify slippage risks
-- Comment on pool stability
+Write this section in simple language. Explain each point like you're talking to someone who's new to crypto:
 
-#### B. Token Security Analysis
-- Analyze freeze/mint authority presence
-- Assess rug pull risk
-- Evaluate token distribution
-- Check for honeypot indicators
+#### 💰 Is There Enough Money in the Pool?
+- Can you easily buy/sell without losing money on price changes?
+- Is there enough money locked in the pool?
+- Explain in simple terms: "There's $X in the pool, which means..."
 
-#### C. Trading Activity Analysis
-- Analyze buy/sell ratio (is it balanced?)
-- Evaluate transaction patterns
-- Identify unusual trading behavior
-- Assess market sentiment
+#### 🔒 Is This Token Safe?
+- Can the creators freeze your tokens? (Bad sign!)
+- Can they print more tokens? (Very bad sign!)
+- Is this a scam waiting to happen?
+- Use simple language: "The creators can/cannot do X, which means..."
 
-#### D. Manipulation Risk Analysis
-- Check for wash trading indicators
-- Evaluate wallet concentration
-- Identify pump & dump patterns
-- Assess bot activity risks
-- **PHASE 3:** Analyze wallet profiles (age, activity, bot/human classification)
-- **PHASE 3:** Evaluate whale wallet risk based on account history
+#### 📊 What's Happening with Trading?
+- Are more people buying or selling?
+- Are the trades real or fake?
+- Is someone manipulating the price?
+- Explain clearly: "We see X% buying vs Y% selling, which suggests..."
 
-### 4. KEY FINDINGS (Bullet Points)
-List 3-5 most critical findings, both positive and negative.
+#### 🚨 Are People Cheating?
+- Are there fake trades to make it look popular?
+- Is one person controlling too much?
+- Are bots trading instead of real people?
+- Make it clear: "We found X suspicious patterns, which means..."
 
-### 5. RISK WARNINGS (If Applicable)
-Clearly state any high-priority risks that users should be aware of.
+### 4. 🎯 KEY INSIGHTS (The Most Important Things)
 
-### 6. RECOMMENDATIONS
-Provide actionable guidance:
-- Should users proceed with this pool?
-- What precautions should be taken?
-- What additional due diligence is needed?
+List 3-5 eye-catching findings. Make them stand out! Examples:
+- "⚠️ WARNING: We found 6 wallets doing fake trades to pump the price"
+- "✅ GOOD NEWS: No one can freeze your tokens or print more"
+- "🚨 DANGER: One wallet controls 45% of all trades - this is risky!"
+- "💡 INTERESTING: 80% of trades are buys, suggesting people are optimistic"
+
+### 5. ⚠️ WARNINGS (If There Are Any)
+
+If there are serious problems, list them clearly:
+- "DO NOT invest more than you can afford to lose"
+- "This pool has very little money - you might lose 20%+ on every trade"
+- "We detected fake trading activity - the price might be manipulated"
+
+### 6. 💡 WHAT SHOULD YOU DO?
+
+Give clear, simple advice:
+- Should people trade this token? (Yes/No/Maybe, and why)
+- What should they watch out for?
+- What questions should they ask before investing?
 
 ---
 
-## ⚠️ IMPORTANT GUIDELINES
+## ✍️ WRITING RULES
 
-1. **Be Objective:** Base analysis strictly on provided data
-2. **No Financial Advice:** Never say "buy" or "sell" - only assess risks
-3. **Use Specific Numbers:** Quote actual metrics from the data
-4. **Explain Reasoning:** For each risk, explain WHY it's concerning
-5. **Acknowledge Limitations:** Note what data is unavailable
-6. **Use Clear Language:** Write for both beginners and experts
-7. **Markdown Formatting:** Use headers, bold, lists for readability
+1. **Use Simple Words:** Say "money" not "liquidity", "safe" not "secure", "fake trades" not "wash trading"
+2. **Explain Everything:** Don't assume people know what "slippage" or "rug pull" means - explain it!
+3. **Be Honest:** If something is dangerous, say it clearly. If it's safe, say that too.
+4. **Use Numbers:** "6 fake trades" is better than "some fake trades"
+5. **Make It Interesting:** Use emojis, bold text, and clear sections to make it easy to read
+6. **No Financial Advice:** Don't tell people to buy or sell - just tell them the risks
+7. **Be Helpful:** Help people understand what the data means for them
 
 ---
 

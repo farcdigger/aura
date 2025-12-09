@@ -17,6 +17,9 @@ export default function DeepResearchPage() {
   const [pricingInfo, setPricingInfo] = useState<any>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [tokenMint, setTokenMint] = useState("");
+  const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
 
   // Check whitelist access
   useEffect(() => {
@@ -36,8 +39,27 @@ export default function DeepResearchPage() {
   useEffect(() => {
     if (isConnected && address) {
       fetchPricingInfo();
+      fetchAnalysisHistory();
     }
   }, [isConnected, address]);
+
+  // Fetch analysis history
+  const fetchAnalysisHistory = async () => {
+    if (!address) return;
+    
+    setLoadingHistory(true);
+    try {
+      const response = await fetch(`/api/deep-research/history?userWallet=${address}&limit=20`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnalysisHistory(data.analyses || []);
+      }
+    } catch (error) {
+      console.error("Error fetching analysis history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const fetchPricingInfo = async () => {
     if (!address) return;
@@ -266,6 +288,71 @@ export default function DeepResearchPage() {
           </>
         )}
 
+        {/* Analysis History Section */}
+        {isConnected && address && (
+          <div className="mt-16 pt-16 border-t border-gray-200 dark:border-gray-800">
+            <h2 className="text-2xl font-bold mb-6">Your Analysis History</h2>
+            
+            {loadingHistory ? (
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                Loading your analyses...
+              </div>
+            ) : analysisHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                No analyses yet. Start your first analysis above!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {analysisHistory.map((analysis: any) => {
+                  const report = analysis.analysisReport || {};
+                  const riskScore = analysis.riskScore || report?.riskScore || report?.riskScoreBreakdown?.totalScore || null;
+                  
+                  return (
+                    <div
+                      key={analysis.id}
+                      className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                      onClick={() => {
+                        setSelectedAnalysis({
+                          analysisResult: report,
+                          riskScore: typeof riskScore === 'number' ? riskScore : (riskScore ? parseInt(riskScore) : 0),
+                        });
+                        setShowModal(true);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                              {analysis.poolId?.substring(0, 8)}...{analysis.poolId?.substring(analysis.poolId.length - 6)}
+                            </span>
+                            {riskScore !== null && (
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                riskScore <= 20 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                riskScore <= 40 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                riskScore <= 60 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                riskScore <= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                'bg-red-200 text-red-900 dark:bg-red-950 dark:text-red-100'
+                              }`}>
+                                Risk: {riskScore}/100
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {new Date(analysis.generatedAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <button className="text-sm font-semibold text-black dark:text-white hover:underline">
+                          View Report →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-gray-200 dark:border-gray-800">
           <div>
@@ -298,8 +385,11 @@ export default function DeepResearchPage() {
           tokenMint={tokenMint}
           onAnalysisComplete={() => {
             setShowModal(false);
+            setSelectedAnalysis(null);
             fetchPricingInfo(); // Refresh limits
+            fetchAnalysisHistory(); // Refresh history
           }}
+          selectedAnalysis={selectedAnalysis}
         />
       )}
     </div>

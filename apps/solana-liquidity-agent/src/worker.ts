@@ -164,6 +164,14 @@ async function processAnalysis(job: Job<QueueJobData>) {
         console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
       }
       
+      // Calculate LP supply from reserves (simplified AMM formula)
+      // LP supply ≈ sqrt(tokenA * tokenB) for constant product AMMs
+      let lpSupply: string | undefined = undefined;
+      if (tokenAReserve > 0 && tokenBReserve > 0) {
+        const calculatedLP = Math.sqrt(tokenAReserve * tokenBReserve);
+        lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      }
+      
       // Create reserves object with DexScreener liquidity and reserves
       reserves = {
         tokenAMint: tokenAMint,
@@ -171,6 +179,7 @@ async function processAnalysis(job: Job<QueueJobData>) {
         tokenAReserve: tokenAReserve, // ✅ Use DexScreener reserve amounts
         tokenBReserve: tokenBReserve, // ✅ Use DexScreener reserve amounts
         tvlUSD: liquidityUsd, // ✅ Use DexScreener liquidity as TVL
+        lpSupply, // ✅ Calculate LP supply from reserves
         poolStatus: 'Active',
         poolType: dexId,
       };
