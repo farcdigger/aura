@@ -93,8 +93,9 @@ export default function DeepResearchModal({
       return;
     }
 
-    setStatus("processing");
-    setProgress(5);
+    // ❌ REMOVED: Don't set status to "processing" before payment
+    // Payment should complete first, then we start processing
+    setError(null);
 
     try {
       // Calculate USDC amount (6 decimals)
@@ -131,10 +132,10 @@ export default function DeepResearchModal({
       const data = await response.json();
       console.log("✅ Payment successful:", data);
 
-      // Payment successful, analysis queued
+      // ✅ Payment successful - NOW start processing
+      setStatus("processing");
+      setProgress(5);
       setJobId(data.jobId);
-      setProgress(20);
-      // Status already set to "processing"
     } catch (err: any) {
       console.error("❌ Payment error:", err);
       setError(err.message || "Payment failed. Please try again.");
