@@ -451,7 +451,11 @@ export function analyzeTransactions(
   for (let i = 1; i < transactions.length; i++) {
     const prev = transactions[i - 1];
     const curr = transactions[i];
-    if (prev.amountOutUsd && curr.amountInUsd && prev.amountInUsd && curr.amountOutUsd) {
+    if (prev.priceToken && curr.priceToken && prev.priceToken > 0) {
+      const change = Math.abs((curr.priceToken - prev.priceToken) / prev.priceToken) * 100;
+      priceChanges.push(change);
+    } else if (prev.amountOutUsd && curr.amountInUsd && prev.amountInUsd && curr.amountOutUsd) {
+      // Fallback to old method if priceToken not available
       const prevPrice = prev.amountOutUsd / prev.amountInUsd;
       const currPrice = curr.amountOutUsd / curr.amountInUsd;
       if (prevPrice > 0) {
@@ -466,6 +470,283 @@ export function analyzeTransactions(
     if (highVolatilityCount > priceChanges.length * 0.2) {
       suspiciousPatterns.push(
         `High price volatility: ${((highVolatilityCount / priceChanges.length) * 100).toFixed(1)}% of trades show >10% price swings - possible manipulation`
+      );
+    }
+  }
+
+  // ============================================================================
+  // ADVANCED FORENSIC PATTERNS (6 New Detection Algorithms)
+  // ============================================================================
+
+  // 11. MAFYA KÜMESİ (Cluster Analysis) - Synchronized wallet activity
+  // Detect wallets trading in the same second (coordinated bot activity)
+  if (transactions.length > 20) {
+    // Group transactions by second (timestamp rounded to nearest second)
+    const secondGroups = new Map<number, ParsedSwap[]>();
+    transactions.forEach(tx => {
+      const second = Math.floor(tx.timestamp / 1000);
+      if (!secondGroups.has(second)) {
+        secondGroups.set(second, []);
+      }
+      secondGroups.get(second)!.push(tx);
+    });
+
+    // Find seconds with multiple wallets trading simultaneously
+    let clusterCount = 0;
+    let clusterVolume = 0;
+    const clusterWallets = new Set<string>();
+    
+    secondGroups.forEach((txs, second) => {
+      if (txs.length >= 3) { // At least 3 transactions in same second
+        const uniqueWallets = new Set(txs.map(tx => tx.wallet));
+        if (uniqueWallets.size >= 3) { // At least 3 different wallets
+          clusterCount++;
+          const secondVolume = txs.reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+          clusterVolume += secondVolume;
+          uniqueWallets.forEach(w => clusterWallets.add(w));
+        }
+      }
+    });
+
+    if (clusterCount > 0 && totalUsdVolume > 0) {
+      const clusterVolumePercent = (clusterVolume / totalUsdVolume) * 100;
+      if (clusterVolumePercent > 20) {
+        suspiciousPatterns.push(
+          `⚠️ MAFYA KÜMESİ: ${clusterWallets.size} cüzdan aynı saniyelerde senkronize hareket ediyor. Hacmin ${clusterVolumePercent.toFixed(1)}%'i koordineli işlemlerden oluşuyor - yapay yükseliş riski`
+        );
+      }
+    }
+  }
+
+  // 12. KÂR BASINCI (Profit Pressure) - Calculate holder cost basis
+  // Track average entry price per wallet to determine profit/loss pressure
+  if (transactions.length > 50 && transactions.some(tx => tx.priceToken)) {
+    const walletCostBasis = new Map<string, { totalCost: number; totalTokens: number; avgPrice: number }>();
+    const currentPrice = transactions[0]?.priceToken; // Most recent price (transactions are usually sorted newest first)
+    
+    // Calculate cost basis for each wallet (only for buys)
+    transactions.forEach(tx => {
+      if (tx.direction === 'buy' && tx.priceToken && tx.amountOutUsd) {
+        const existing = walletCostBasis.get(tx.wallet) || { totalCost: 0, totalTokens: 0, avgPrice: 0 };
+        existing.totalCost += tx.amountOutUsd; // USD spent
+        // Calculate tokens received: amountOutUsd / priceToken
+        const tokensReceived = tx.priceToken > 0 ? tx.amountOutUsd / tx.priceToken : 0;
+        existing.totalTokens += tokensReceived;
+        walletCostBasis.set(tx.wallet, existing);
+      }
+    });
+
+    // Calculate average price per wallet
+    walletCostBasis.forEach((basis, wallet) => {
+      if (basis.totalTokens > 0) {
+        basis.avgPrice = basis.totalCost / basis.totalTokens;
+      }
+    });
+
+    // Analyze profit pressure
+    if (currentPrice && currentPrice > 0) {
+      let profitableWallets = 0;
+      let totalProfitableVolume = 0;
+      let unprofitableWallets = 0;
+      let totalUnprofitableVolume = 0;
+
+      walletCostBasis.forEach((basis, wallet) => {
+        if (basis.avgPrice > 0) {
+          const profitMultiplier = currentPrice / basis.avgPrice;
+          const walletVolume = walletMap.get(wallet)?.volumeUSD || 0;
+          
+          if (profitMultiplier >= 1.5) { // 1.5x+ profit
+            profitableWallets++;
+            totalProfitableVolume += walletVolume;
+          } else if (profitMultiplier < 0.9) { // 10%+ loss
+            unprofitableWallets++;
+            totalUnprofitableVolume += walletVolume;
+          }
+        }
+      });
+
+      const totalWalletsWithBasis = walletCostBasis.size;
+      if (totalWalletsWithBasis > 0) {
+        const profitablePercent = (profitableWallets / totalWalletsWithBasis) * 100;
+        const profitableVolumePercent = totalUsdVolume > 0 ? (totalProfitableVolume / totalUsdVolume) * 100 : 0;
+        
+        if (profitablePercent > 70 && profitableVolumePercent > 30) {
+          suspiciousPatterns.push(
+            `💰 KÂR BASINCI: Cüzdanların ${profitablePercent.toFixed(0)}%'i şu an 1.5x+ kârda. Hacmin ${profitableVolumePercent.toFixed(1)}%'i kârlı cüzdanlardan. Büyük bir kâr satışı (profit taking) duvarı gelebilir`
+          );
+        } else if (unprofitableWallets > totalWalletsWithBasis * 0.6) {
+          suspiciousPatterns.push(
+            `📉 ZARAR BASINCI: Cüzdanların ${((unprofitableWallets / totalWalletsWithBasis) * 100).toFixed(0)}%'i zararda. İlk yükselişte başa baş noktasında (break-even) kaçış başlayabilir`
+          );
+        }
+      }
+    }
+  }
+
+  // 13. YEMLEME & TUZAK (Bait Watch) - High transaction count but no price movement
+  // Detect micro-transactions trying to manipulate trending lists
+  if (transactions.length > 100) {
+    // Split into time windows (e.g., 1-minute windows)
+    const windowSize = 60 * 1000; // 1 minute in milliseconds
+    const windows = new Map<number, { count: number; volume: number; priceStart?: number; priceEnd?: number }>();
+    
+    transactions.forEach(tx => {
+      const window = Math.floor(tx.timestamp / windowSize) * windowSize;
+      const existing = windows.get(window) || { count: 0, volume: 0 };
+      existing.count++;
+      existing.volume += tx.amountInUsd || tx.amountOutUsd || 0;
+      if (tx.priceToken) {
+        if (!existing.priceStart) existing.priceStart = tx.priceToken;
+        existing.priceEnd = tx.priceToken;
+      }
+      windows.set(window, existing);
+    });
+
+    // Find windows with high transaction count but low volume or no price movement
+    let baitWindows = 0;
+    windows.forEach((window, time) => {
+      const avgTxSize = window.volume / window.count;
+      const priceChange = window.priceStart && window.priceEnd 
+        ? Math.abs((window.priceEnd - window.priceStart) / window.priceStart) * 100 
+        : 0;
+      
+      // High transaction count but small average size and no price movement
+      if (window.count > 20 && avgTxSize < 10 && priceChange < 2) {
+        baitWindows++;
+      }
+    });
+
+    if (baitWindows > windows.size * 0.2) {
+      suspiciousPatterns.push(
+        `🎣 YEMLEME & TUZAK: ${baitWindows} zaman penceresinde dakikada 20+ işlem var ama fiyat sabit. Mikro alımlarla (ortalama $${(transactions.reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0) / transactions.length).toFixed(2)}) trending listelerini manipüle etmeye çalışıyorlar - sahte hype riski`
+      );
+    }
+  }
+
+  // 14. DIAMOND HANDS & SMART MONEY (Conviction Score) - Early holders still holding
+  // Detect wallets that bought early and haven't sold (or only added more)
+  const timeRangeDays = timeRange ? (timeRange.latest.getTime() - timeRange.earliest.getTime()) / (1000 * 60 * 60 * 24) : 0;
+  if (transactions.length > 50 && timeRangeDays > 0) {
+    const earlyBuyers = new Map<string, { firstBuy: number; lastBuy: number; totalBought: number; hasSold: boolean }>();
+    // Sort transactions by timestamp (oldest first) for early buyer detection
+    const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+    const earlyThreshold = sortedTxs.length > 10 ? sortedTxs[Math.floor(sortedTxs.length * 0.1)].timestamp : sortedTxs[sortedTxs.length - 1].timestamp; // First 10% of transactions
+    
+    sortedTxs.forEach(tx => {
+      if (tx.direction === 'buy' && tx.timestamp <= earlyThreshold) {
+        const existing = earlyBuyers.get(tx.wallet) || { firstBuy: tx.timestamp, lastBuy: tx.timestamp, totalBought: 0, hasSold: false };
+        existing.firstBuy = Math.min(existing.firstBuy, tx.timestamp);
+        existing.lastBuy = Math.max(existing.lastBuy, tx.timestamp);
+        existing.totalBought += tx.amountOutUsd || 0;
+        earlyBuyers.set(tx.wallet, existing);
+      } else if (tx.direction === 'sell' && earlyBuyers.has(tx.wallet)) {
+        const existing = earlyBuyers.get(tx.wallet)!;
+        existing.hasSold = true;
+      }
+    });
+
+    const diamondHands = Array.from(earlyBuyers.values()).filter(w => !w.hasSold);
+    const diamondHandsPercent = earlyBuyers.size > 0 ? (diamondHands.length / earlyBuyers.size) * 100 : 0;
+    const diamondHandsVolume = diamondHands.reduce((sum, w) => sum + w.totalBought, 0);
+    const totalEarlyVolume = Array.from(earlyBuyers.values()).reduce((sum, w) => sum + w.totalBought, 0);
+    const diamondHandsVolumePercent = totalEarlyVolume > 0 ? (diamondHandsVolume / totalEarlyVolume) * 100 : 0;
+
+    if (diamondHandsPercent > 50 && diamondHandsVolumePercent > 30) {
+      suspiciousPatterns.push(
+        `💎 DIAMOND HANDS: Erken giren 'Alpha' cüzdanların ${diamondHandsPercent.toFixed(0)}%'i hala içeride (satış yapmamış). Erken yatırım hacminin ${diamondHandsVolumePercent.toFixed(1)}%'i tutuluyor. Projeye inanç yüksek - uzun vadeli potansiyel göstergesi`
+      );
+    } else if (diamondHandsPercent < 20) {
+      suspiciousPatterns.push(
+        `⚠️ ERKEN ÇIKIŞ: Erken giren cüzdanların ${((1 - diamondHandsPercent / 100) * 100).toFixed(0)}%'i zaten satış yaptı. İçeriden bilgi alanlar (insiders) erken çıkmış olabilir`
+      );
+    }
+  }
+
+  // 15. FOMO vs. PANIK HIZ GÖSTERGESİ (Velocity Sentiment) - Transaction velocity acceleration
+  // Detect sudden spikes in transaction frequency (panic or FOMO)
+  if (transactions.length > 100) {
+    // Calculate transaction velocity (transactions per minute) in time windows
+    const windowSize = 60 * 1000; // 1 minute
+    const velocityWindows: number[] = [];
+    const windows = new Map<number, ParsedSwap[]>();
+    
+    transactions.forEach(tx => {
+      const window = Math.floor(tx.timestamp / windowSize) * windowSize;
+      if (!windows.has(window)) {
+        windows.set(window, []);
+      }
+      windows.get(window)!.push(tx);
+    });
+
+    // Calculate velocity for each window
+    Array.from(windows.entries())
+      .sort(([a], [b]) => a - b)
+      .forEach(([_, txs]) => {
+        velocityWindows.push(txs.length); // Transactions per minute
+      });
+
+    // Detect velocity spikes (sudden acceleration)
+    if (velocityWindows.length > 10) {
+      const avgVelocity = velocityWindows.reduce((a, b) => a + b, 0) / velocityWindows.length;
+      const recentVelocity = velocityWindows.slice(-5).reduce((a, b) => a + b, 0) / 5; // Last 5 minutes
+      const velocityRatio = avgVelocity > 0 ? recentVelocity / avgVelocity : 1;
+
+      // Check if price is moving opposite to velocity (panic selling)
+      const recentTxs = transactions.slice(0, Math.min(50, transactions.length));
+      const oldestPrice = recentTxs[recentTxs.length - 1]?.priceToken;
+      const newestPrice = recentTxs[0]?.priceToken;
+      const priceChange = oldestPrice && newestPrice && oldestPrice > 0 
+        ? ((newestPrice - oldestPrice) / oldestPrice) * 100 
+        : 0;
+
+      if (velocityRatio > 3 && priceChange < -5) {
+        suspiciousPatterns.push(
+          `🚨 PANIK SATIŞI: İşlem hızı son 5 dakikada ${velocityRatio.toFixed(1)}x arttı + Fiyat ${Math.abs(priceChange).toFixed(1)}% düştü = PANIC SELL başladı. Şelale düşüşü (cascade) riski yüksek`
+        );
+      } else if (velocityRatio > 3 && priceChange > 10) {
+        suspiciousPatterns.push(
+          `📈 FOMO PATLAMASI: İşlem hızı ${velocityRatio.toFixed(1)}x arttı + Fiyat ${priceChange.toFixed(1)}% yükseldi = FOMO (Fear of Missing Out) başladı. Aşırı alım (overbought) riski`
+        );
+      }
+    }
+  }
+
+  // 16. TAZE KAN GİRİŞİ (New Wallet Flow) - Unique new wallets entering
+  // Detect if new wallets (never seen before) are driving volume
+  if (transactions.length > 50) {
+    // Sort transactions by time (oldest first for this analysis)
+    const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+    const seenWallets = new Set<string>();
+    const newWalletTxs: ParsedSwap[] = [];
+    const oldWalletTxs: ParsedSwap[] = [];
+    
+    sortedTxs.forEach(tx => {
+      if (seenWallets.has(tx.wallet)) {
+        oldWalletTxs.push(tx);
+      } else {
+        seenWallets.add(tx.wallet);
+        newWalletTxs.push(tx);
+      }
+    });
+
+    const newWalletCount = newWalletTxs.length;
+    const newWalletVolume = newWalletTxs.reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+    const newWalletVolumePercent = totalUsdVolume > 0 ? (newWalletVolume / totalUsdVolume) * 100 : 0;
+    const newWalletTxPercent = totalCount > 0 ? (newWalletCount / totalCount) * 100 : 0;
+
+    // Focus on recent transactions (last 20% of time range)
+    const recentThreshold = sortedTxs[Math.floor(sortedTxs.length * 0.8)].timestamp;
+    const recentNewWallets = newWalletTxs.filter(tx => tx.timestamp >= recentThreshold);
+    const recentNewWalletVolume = recentNewWallets.reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+    const recentNewWalletVolumePercent = totalUsdVolume > 0 ? (recentNewWalletVolume / totalUsdVolume) * 100 : 0;
+
+    if (recentNewWalletVolumePercent > 50 && newWalletTxPercent > 60) {
+      suspiciousPatterns.push(
+        `🆕 TAZE KAN GİRİŞİ: Son zamanlardaki alıcıların ${newWalletTxPercent.toFixed(0)}%'i taze cüzdanlar (daha önce görülmemiş). Hacmin ${recentNewWalletVolumePercent.toFixed(1)}%'i yeni yatırımcılardan geliyor. Proje kendi ekosisteminden çıkıp virale gidiyor - organik büyüme göstergesi`
+      );
+    } else if (newWalletVolumePercent < 20 && newWalletTxPercent < 30) {
+      suspiciousPatterns.push(
+        `🔄 KAPALI DÖNGÜ: Hacmin ${((1 - newWalletVolumePercent / 100) * 100).toFixed(0)}%'i mevcut cüzdanlardan geliyor. Token kendi içinde dönüyor, dışarıdan yatırımcı çekemiyor - organik büyüme yok`
       );
     }
   }

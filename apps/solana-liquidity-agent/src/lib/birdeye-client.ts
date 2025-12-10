@@ -509,15 +509,45 @@ export class BirdeyeClient {
         ? tx.to.price * tx.to.uiAmount 
         : undefined;
 
+      // Calculate token price at time of transaction (for profit pressure analysis)
+      // For BUY: priceToken = amountInUsd / amountOut (how much USD per token)
+      // For SELL: priceToken = amountOutUsd / amountIn (how much USD per token)
+      let priceToken: number | undefined = undefined;
+      if (direction === 'buy' && amountOutUsd && tx.to?.uiAmount && tx.to.uiAmount > 0) {
+        priceToken = amountOutUsd / tx.to.uiAmount;
+      } else if (direction === 'sell' && amountOutUsd && tx.from?.uiAmount && tx.from.uiAmount > 0) {
+        priceToken = amountOutUsd / tx.from.uiAmount;
+      } else if (tx.to?.price) {
+        // Fallback: use price from API if available
+        priceToken = tx.to.price;
+      } else if (tx.from?.price && direction === 'sell') {
+        // For sell, use from token price
+        priceToken = tx.from.price;
+      }
+
+      // Extract slot if available (Birdeye may not provide this, but we'll try)
+      // Note: Birdeye API doesn't typically include slot, but we can estimate from timestamp
+      // Solana blocks are ~400ms apart, so we can approximate slot from timestamp
+      // Slot = (timestamp - genesis_timestamp) / 0.4 (approximate)
+      // For now, we'll use timestamp in seconds as a proxy for slot grouping
+      const slot = undefined; // Will be calculated from timestamp grouping if needed
+
+      // Signer: For now, use owner as signer (Birdeye doesn't provide separate signer field)
+      // In Solana, owner is typically the signer, but for advanced detection we'd need RPC data
+      const signer = tx.owner; // Default to owner, can be enhanced with RPC call if needed
+
       return {
         signature: tx.txHash,
         timestamp,
+        slot, // Will be calculated from timestamp grouping
         wallet: tx.owner,
+        signer, // Same as owner for now (can be enhanced)
         direction,
         amountIn,
         amountOut,
         amountInUsd,
         amountOutUsd,
+        priceToken, // Token price at transaction time
         priceImpact: undefined, // Birdeye doesn't provide this directly in txs endpoint
       };
 

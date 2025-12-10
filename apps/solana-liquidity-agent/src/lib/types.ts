@@ -210,10 +210,14 @@ export interface WalletProfile {
 export interface ParsedSwap {
   /** Transaction signature */
   signature: string;
-  /** Block timestamp */
+  /** Block timestamp (milliseconds) */
   timestamp: number;
-  /** Wallet that initiated the swap */
+  /** Block slot number (for cluster detection - if available) */
+  slot?: number;
+  /** Wallet that initiated the swap (token receiver/sender) */
   wallet: string;
+  /** Signer address (fee payer - for master wallet detection) */
+  signer?: string;
   /** Swap direction (buy = SOL → Token, sell = Token → SOL) */
   direction: 'buy' | 'sell';
   /** Amount in (raw) */
@@ -224,6 +228,8 @@ export interface ParsedSwap {
   amountInUsd?: number;
   /** Amount out USD (for volume calculations) */
   amountOutUsd?: number;
+  /** Token price at time of transaction (USD per token) */
+  priceToken?: number;
   /** Price impact percentage (optional) */
   priceImpact?: number;
 }
