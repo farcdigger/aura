@@ -98,9 +98,10 @@ export interface DexScreenerData {
   priceUsd?: string;
   
   // Worker.ts doğrudan bu alanlara erişiyor
-  liquidityBase?: number;
-  liquidityQuote?: number;
+  liquidityBase: number; // ✅ Zorunlu hale getirildi (tip güvenliği için)
+  liquidityQuote: number; // ✅ Zorunlu hale getirildi (tip güvenliği için)
   
+  // ✅ Zorunlu alanlar (tip güvenliği için)
   baseToken: {
     address: string;
     name: string;

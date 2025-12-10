@@ -120,11 +120,13 @@ async function processAnalysis(job: Job<QueueJobData>) {
             }
             
             // ✅ DÜZELTME: Dışarıdaki 'reserves' değişkenine atama yapıyoruz
+            // ✅ Tip güvenliği: dexScreenerData null kontrolü yapıldıktan sonra buraya geliyoruz
+            // baseToken ve quoteToken artık zorunlu alanlar (types.ts'de güncellendi)
             reserves = {
-              tokenAMint: dexScreenerData.baseToken.address, // Types.ts ile uyumlu hale getirildi
+              tokenAMint: dexScreenerData.baseToken.address,
               tokenBMint: dexScreenerData.quoteToken.address,
-              tokenAReserve: dexScreenerData.liquidityBase || 0,
-              tokenBReserve: dexScreenerData.liquidityQuote || 0,
+              tokenAReserve: dexScreenerData.liquidityBase, // Artık zorunlu alan, || 0 gerekmez ama güvenlik için bırakıyoruz
+              tokenBReserve: dexScreenerData.liquidityQuote, // Artık zorunlu alan
               tokenASymbol: dexScreenerData.baseToken.symbol,
               tokenBSymbol: dexScreenerData.quoteToken.symbol,
               tvlUSD: dexScreenerData.liquidityUsd || 0,
