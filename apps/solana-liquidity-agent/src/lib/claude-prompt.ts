@@ -51,8 +51,9 @@ export function buildAnalysisPrompt(params: {
   
   // Calculate liquidity-to-market-cap ratio (estimate market cap from TVL)
   // For memecoins, market cap is often 3-5x TVL (rough estimate)
-  const estimatedMarketCap = reserves.tvlUSD > 0 ? reserves.tvlUSD * 3.5 : 0; // Conservative estimate
-  const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (reserves.tvlUSD / estimatedMarketCap) * 100 : 0;
+  const tvlUSD = reserves?.tvlUSD || 0;
+  const estimatedMarketCap = tvlUSD > 0 ? tvlUSD * 3.5 : 0; // Conservative estimate
+  const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (tvlUSD / estimatedMarketCap) * 100 : 0;
   
   // Calculate wallet diversity metrics
   const uniqueWallets = transactions.uniqueWallets;
@@ -172,22 +173,22 @@ ${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk
 
   // Pool health section (NEW)
   // Check if LP supply is actually zero (not just missing)
-  const lpSupplyValue = reserves.lpSupply;
+  const lpSupplyValue = reserves?.lpSupply;
   const hasZeroLP = lpSupplyValue === '0' || lpSupplyValue === '0.00' || (lpSupplyValue && parseFloat(lpSupplyValue) === 0);
   const hasValidLP = lpSupplyValue && !hasZeroLP;
   
   const poolHealthSection = `
 ## 🏊 POOL HEALTH METRICS
 
-**Pool Type:** ${reserves.poolType || 'Raydium AMM V4'}
-**Pool Status:** ${reserves.poolStatus || 'Active'}
+**Pool Type:** ${reserves?.poolType || 'Raydium AMM V4'}
+**Pool Status:** ${reserves?.poolStatus || 'Active'}
 **LP Token Supply:** ${hasValidLP ? lpSupplyValue : 'Not available (calculated from reserves)'}
-**Swap Fee:** ${reserves.feeInfo || '0.25% (standard)'}
+**Swap Fee:** ${reserves?.feeInfo || '0.25% (standard)'}
 
 **Liquidity Depth:**
-- **${tokenA.symbol} Reserve:** ${reserves.tokenAReserve.toLocaleString()} tokens
-- **${tokenB.symbol} Reserve:** ${reserves.tokenBReserve.toLocaleString()} tokens
-${reserves.tvlUSD && reserves.tvlUSD > 0 ? `- **Estimated TVL:** $${reserves.tvlUSD.toLocaleString()} USD` : '- **Estimated TVL:** Not available (price data pending)'}
+- **${tokenA.symbol} Reserve:** ${reserves?.tokenAReserve?.toLocaleString() || '0'} tokens
+- **${tokenB.symbol} Reserve:** ${reserves?.tokenBReserve?.toLocaleString() || '0'} tokens
+${tvlUSD > 0 ? `- **Estimated TVL:** $${tvlUSD.toLocaleString()} USD` : '- **Estimated TVL:** Not available (price data pending)'}
 
 **Liquidity Risk Interpretation:**
 - **Deep liquidity (>$1M TVL):** Low slippage, safer for large trades
@@ -196,9 +197,9 @@ ${reserves.tvlUSD && reserves.tvlUSD > 0 ? `- **Estimated TVL:** $${reserves.tvl
 - **Very low liquidity (<$10K):** CRITICAL: Very high slippage risk
 - **Zero LP supply:** CRITICAL: Pool may be drained or inactive
 
-${reserves.poolStatus === 'Disabled' ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
+${reserves?.poolStatus === 'Disabled' ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
 ${hasZeroLP ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive or drained!' : ''}
-${hasValidLP && reserves.tokenAReserve > 0 && reserves.tokenBReserve > 0 ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
+${hasValidLP && reserves?.tokenAReserve > 0 && reserves?.tokenBReserve > 0 ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
 `;
 
   // Build advanced metrics section
@@ -215,7 +216,7 @@ ${hasValidLP && reserves.tokenAReserve > 0 && reserves.tokenBReserve > 0 ? '✅ 
 - **Key Insight:** Compare buy/sell RATIOS vs buy/sell VOLUMES. High buy count but low buy volume = small retail traders. High buy volume = real money flowing in.
 
 ### Liquidity Health:
-- **Pool TVL:** $${reserves.tvlUSD.toLocaleString()}
+- **Pool TVL:** $${tvlUSD.toLocaleString()}
 - **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()} (rough estimate: TVL × 3.5 for memecoins)
 - **Liquidity-to-Market Cap Ratio:** ${liquidityToMarketCapRatio.toFixed(1)}%
 - **Key Insight:** For memecoins, 20-30% liquidity ratio is HEALTHY. Below 10% = risky. Above 50% = unusual but could be good.
