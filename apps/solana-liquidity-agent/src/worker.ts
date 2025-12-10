@@ -319,6 +319,12 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 5. Claude prompt oluştur
     console.log(`🤖 [Job ${job.id}] Building AI analysis prompt...`);
+    
+    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (buildAnalysisPrompt'a geçmeden önce)
+    if (!reserves) {
+      throw new Error('reserves is undefined. Cannot build analysis prompt without pool reserves data.');
+    }
+    
     const prompt = buildAnalysisPrompt({
       poolId,
       tokenA,

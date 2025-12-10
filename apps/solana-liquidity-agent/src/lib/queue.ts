@@ -8,7 +8,7 @@ import type { QueueJobData, JobStatusResponse } from './types';
 
 const QUEUE_NAME = 'pool-analysis';
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5');
-const MAX_ATTEMPTS = parseInt(process.env.WORKER_MAX_ATTEMPTS || '3');
+const MAX_ATTEMPTS = parseInt(process.env.WORKER_MAX_ATTEMPTS || '2'); // ✅ En fazla 2 deneme (3. deneme gereksiz)
 const BACKOFF_DELAY_MS = parseInt(process.env.WORKER_BACKOFF_DELAY_MS || '5000');
 
 // =============================================================================

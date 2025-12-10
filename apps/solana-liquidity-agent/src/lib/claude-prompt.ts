@@ -23,6 +23,11 @@ export function buildAnalysisPrompt(params: {
 }): string {
   const { poolId, tokenA, tokenB, reserves, transactions, poolHistory } = params;
   
+  // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol
+  if (!reserves) {
+    throw new Error('reserves parameter is required but was not provided to buildAnalysisPrompt');
+  }
+  
   // ============================================================================
   // ADVANCED FEATURE ENGINEERING - Calculate derived metrics for deep analysis
   // ============================================================================
