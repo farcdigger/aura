@@ -10,7 +10,7 @@
 
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
-import type { QueueJobData } from './lib/types';
+import type { QueueJobData, AdjustedPoolReserves } from './lib/types';
 import { BirdeyeClient } from './lib/birdeye-client';
 import { buildAnalysisPrompt, validateAnalysisResponse, parseRiskScore } from './lib/claude-prompt';
 import { saveAnalysis } from './lib/supabase';
@@ -187,6 +187,12 @@ async function processAnalysis(job: Job<QueueJobData>) {
       
       console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}, Reserves: A=${tokenAReserve.toLocaleString()}, B=${tokenBReserve.toLocaleString()}`);
     }
+    
+    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (başka yapay zekanın önerisi)
+    if (!reserves) {
+      throw new Error('Failed to fetch pool reserves from both Birdeye and DexScreener. Cannot proceed with analysis.');
+    }
+    
     await job.updateProgress(30);
     
     // 3. Token metadata (Birdeye)
