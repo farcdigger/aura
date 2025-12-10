@@ -2,7 +2,9 @@
 nixPkgs = ["bun", "python3", "gcc", "gnumake", "pkg-config", "stdenv.cc.cc.lib"]
 
 [phases.install]
-cmds = ["bun install"]
+cmds = [
+  "bun install || (echo '⚠️ Install failed, retrying with --ignore-scripts (native modules will be skipped)...' && bun install --ignore-scripts)"
+]
 
 [phases.build]
 cmds = []
