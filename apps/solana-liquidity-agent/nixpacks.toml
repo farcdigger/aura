@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["bun", "python3", "gcc", "gnumake", "pkg-config"]
+nixPkgs = ["bun", "python3", "gcc", "gnumake", "pkg-config", "stdenv.cc.cc.lib"]
 
 [phases.install]
 cmds = ["bun install"]
@@ -7,6 +7,5 @@ cmds = ["bun install"]
 [phases.build]
 cmds = []
 
-[phases.start]
-cmd = "bun run src/index.ts"
-
+[start]
+cmd = "bun run src/index.ts & bun run src/worker.ts"
