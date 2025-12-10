@@ -49,7 +49,9 @@ export default function DeepResearchPage() {
     
     setLoadingHistory(true);
     try {
-      const response = await fetch(`/api/deep-research/history?userWallet=${address}&limit=20`);
+      // Normalize wallet address to lowercase for consistent querying
+      const normalizedAddress = address.toLowerCase();
+      const response = await fetch(`/api/deep-research/history?userWallet=${normalizedAddress}&limit=20`);
       if (response.ok) {
         const data = await response.json();
         setAnalysisHistory(data.analyses || []);
@@ -384,8 +386,7 @@ export default function DeepResearchPage() {
           pricingInfo={pricingInfo}
           tokenMint={tokenMint}
           onAnalysisComplete={() => {
-            setShowModal(false);
-            setSelectedAnalysis(null);
+            // Don't close modal - just refresh data
             fetchPricingInfo(); // Refresh limits
             fetchAnalysisHistory(); // Refresh history
           }}

@@ -108,7 +108,7 @@ export async function saveAnalysis(
       tokens_used: analysis.tokensUsed,
       generated_at: analysis.generatedAt,
       user_id: userId || null,
-      user_wallet: userWallet || null,  // ✅ YENİ: Kullanıcı cüzdanı
+      user_wallet: userWallet ? userWallet.toLowerCase() : null,  // ✅ YENİ: Kullanıcı cüzdanı (normalized)
     };
 
     const { data, error } = await supabase
@@ -222,10 +222,13 @@ export async function getUserAnalyses(
   offset: number = 0
 ): Promise<PoolAnalysisRecord[]> {
   try {
+    // Normalize wallet address (lowercase) to handle case sensitivity issues
+    const normalizedWallet = userWallet.toLowerCase();
+    
     const { data, error } = await supabase
       .from('pool_analyses')
       .select('*')
-      .eq('user_wallet', userWallet)
+      .eq('user_wallet', normalizedWallet)
       .order('generated_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

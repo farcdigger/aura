@@ -52,10 +52,11 @@ const birdeyeClient = new BirdeyeClient();
  * Ana analiz fonksiyonu
  */
 async function processAnalysis(job: Job<QueueJobData>) {
-  const { poolId, userId, options } = job.data;
+  const { poolId, userId, userWallet, options } = job.data;
   
   console.log(`\n🔄 [Job ${job.id}] Starting analysis for pool: ${poolId}`);
   console.log(`👤 User: ${userId || 'anonymous'}`);
+  console.log(`👛 Wallet: ${userWallet || 'not provided'}`);
   
   // Progress tracking
   await job.updateProgress(10);
@@ -389,8 +390,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 8. Supabase'e kaydet
     console.log(`💾 [Job ${job.id}] Saving to Supabase...`);
-    // userWallet'ı job data'dan al (frontend'den gelecek)
-    const userWallet = job.data.userWallet;
+    // userWallet already destructured from job.data at the top
+    console.log(`💾 [Job ${job.id}] Saving with userWallet: ${userWallet || 'NULL'}`);
     const savedRecord = await saveAnalysis(analysisResult, userId, userWallet);
     
     if (!savedRecord) {

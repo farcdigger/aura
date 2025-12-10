@@ -22,10 +22,44 @@ export function buildAnalysisPrompt(params: {
   poolHistory?: PoolHistoryTrend;
 }): string {
   const { poolId, tokenA, tokenB, reserves, transactions, poolHistory } = params;
-  // Calculate derived metrics
+  
+  // ============================================================================
+  // ADVANCED FEATURE ENGINEERING - Calculate derived metrics for deep analysis
+  // ============================================================================
+  
   const totalTransactions = transactions.totalCount;
   const buyRatio = totalTransactions > 0 ? (transactions.buyCount / totalTransactions) * 100 : 0;
   const sellRatio = totalTransactions > 0 ? (transactions.sellCount / totalTransactions) * 100 : 0;
+  
+  // Calculate total USD volume (buy + sell)
+  const totalUsdVolume = transactions.topWallets.reduce((sum, w) => sum + (w.volumeUSD || 0), 0);
+  const avgTransactionSize = totalUsdVolume > 0 && totalTransactions > 0 ? totalUsdVolume / totalTransactions : 0;
+  
+  // Calculate buy vs sell USD volume (not just count)
+  const buyVolumeUSD = transactions.topWallets.reduce((sum, w) => {
+    // Estimate: if wallet has more buys, assume most volume is from buys
+    const buyVolumeEstimate = w.buyCount > w.sellCount ? (w.volumeUSD || 0) * (w.buyCount / (w.buyCount + w.sellCount)) : 0;
+    return sum + buyVolumeEstimate;
+  }, 0);
+  const sellVolumeUSD = totalUsdVolume - buyVolumeUSD;
+  const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
+  
+  // Calculate liquidity-to-market-cap ratio (estimate market cap from TVL)
+  // For memecoins, market cap is often 3-5x TVL (rough estimate)
+  const estimatedMarketCap = reserves.tvlUSD > 0 ? reserves.tvlUSD * 3.5 : 0; // Conservative estimate
+  const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (reserves.tvlUSD / estimatedMarketCap) * 100 : 0;
+  
+  // Calculate wallet diversity metrics
+  const uniqueWallets = transactions.uniqueWallets;
+  const avgTradesPerWallet = uniqueWallets > 0 ? totalTransactions / uniqueWallets : 0;
+  const newWalletRatio = transactions.topWallets.filter(w => w.txCount <= 2).length / Math.max(uniqueWallets, 1) * 100;
+  
+  // Calculate time-based metrics
+  const timeRangeDays = transactions.timeRange 
+    ? (transactions.timeRange.latest.getTime() - transactions.timeRange.earliest.getTime()) / (1000 * 60 * 60 * 24)
+    : 0;
+  const avgDailyTransactions = timeRangeDays > 0 ? totalTransactions / timeRangeDays : 0;
+  const avgDailyVolume = timeRangeDays > 0 ? totalUsdVolume / timeRangeDays : 0;
   
   // Time range info
   const timeRangeText = transactions.timeRange
@@ -143,18 +177,67 @@ ${hasZeroLP ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive 
 ${hasValidLP && reserves.tokenAReserve > 0 && reserves.tokenBReserve > 0 ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
 `;
 
+  // Build advanced metrics section
+  const advancedMetricsSection = `
+## 🔬 ADVANCED METRICS & FEATURE ENGINEERING
+
+**IMPORTANT:** You must analyze these calculated metrics deeply. Don't just report them - interpret what they mean!
+
+### Trading Volume Analysis:
+- **Total USD Volume:** $${totalUsdVolume.toLocaleString()}
+- **Average Transaction Size:** $${avgTransactionSize.toFixed(2)}
+- **Buy Volume (USD):** $${buyVolumeUSD.toLocaleString()} (${buyVolumeRatio.toFixed(1)}% of total volume)
+- **Sell Volume (USD):** $${sellVolumeUSD.toLocaleString()} (${(100 - buyVolumeRatio).toFixed(1)}% of total volume)
+- **Key Insight:** Compare buy/sell RATIOS vs buy/sell VOLUMES. High buy count but low buy volume = small retail traders. High buy volume = real money flowing in.
+
+### Liquidity Health:
+- **Pool TVL:** $${reserves.tvlUSD.toLocaleString()}
+- **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()} (rough estimate: TVL × 3.5 for memecoins)
+- **Liquidity-to-Market Cap Ratio:** ${liquidityToMarketCapRatio.toFixed(1)}%
+- **Key Insight:** For memecoins, 20-30% liquidity ratio is HEALTHY. Below 10% = risky. Above 50% = unusual but could be good.
+
+### Wallet Distribution:
+- **Unique Wallets:** ${uniqueWallets}
+- **Average Trades per Wallet:** ${avgTradesPerWallet.toFixed(1)}
+- **New Wallets (1-2 trades):** ${newWalletRatio.toFixed(1)}% of all wallets
+- **Key Insight:** High new wallet ratio could mean NEW INVESTORS (good) OR bot farm (bad). Analyze transaction patterns to distinguish!
+
+### Trading Activity:
+- **Time Range:** ${timeRangeDays.toFixed(1)} days
+- **Average Daily Transactions:** ${avgDailyTransactions.toFixed(1)} trades/day
+- **Average Daily Volume:** $${avgDailyVolume.toLocaleString()}/day
+- **Key Insight:** Compare transaction count vs volume. Many small trades = retail interest. Few large trades = whale activity.
+`;
+
   // Build the comprehensive prompt
-  const prompt = `You are an expert cryptocurrency analyst who explains complex DeFi risks in simple, easy-to-understand language. Your job is to analyze a Solana token's liquidity pool and write a clear, engaging risk report that anyone can understand.
+  const prompt = `You are an EXPERT CRYPTOCURRENCY DATA ANALYST and RISK ASSESSOR. Your job is to perform DEEP FEATURE ENGINEERING on the provided data and generate insights that go beyond surface-level observations.
 
 ## 🎯 YOUR MISSION
 
-Write a risk report that:
-- Uses simple, everyday language (avoid technical jargon)
-- Highlights the most important red flags and green flags
-- Explains what the data means in plain English
-- Makes it easy for regular people to decide if this token is safe to trade
+You are NOT just reporting data - you are a DATA SCIENTIST analyzing patterns. Your report must:
 
-**CRITICAL:** Only use the data provided. Don't make up information. Write like you're explaining to a friend, not a technical expert.
+1. **PERFORM FEATURE ENGINEERING:** Calculate new metrics from raw data, find correlations, identify anomalies
+2. **DEEP ANALYSIS:** Don't just say "80% buys" - analyze WHY. Is it retail FOMO? Whale accumulation? Bot manipulation?
+3. **CONTEXTUAL INTERPRETATION:** A $45K pool for a $150K market cap token is NORMAL (30% ratio). Don't call it "low liquidity" without context!
+4. **NON-OBVIOUS INSIGHTS:** Everyone can see "many new wallets" - you must determine if they're real investors or bots
+5. **VOLUME vs COUNT:** Transaction COUNT and USD VOLUME tell different stories. Analyze BOTH!
+
+**CRITICAL RULES:**
+- Use the ADVANCED METRICS section to perform deep analysis
+- Don't make obvious statements - find hidden patterns
+- Compare ratios, not just absolute numbers
+- Consider market context (memecoin vs established token)
+- Distinguish between correlation and causation
+
+**🎨 CREATIVITY & INNOVATION:**
+You are an expert data analyst with unlimited creativity. Beyond the specific instructions above, use your analytical skills to:
+- **Create new insights:** Calculate additional metrics, find correlations, identify anomalies that others might miss
+- **Make predictions:** Based on patterns, predict potential risks or opportunities (e.g., "If this pattern continues, we might see...")
+- **Feature engineering:** Derive new features from existing data (e.g., volatility indices, concentration metrics, momentum indicators, trader behavior scores)
+- **Think outside the box:** Don't limit yourself to standard analysis - find unique angles and insights
+- **Tell a story:** Connect the dots between different metrics to paint a complete picture of what's really happening
+
+**Your creativity has no limits** - extract every possible insight from this data. Surprise us with findings that go beyond surface-level observations! If you see a pattern, analyze it. If you can calculate a new metric, do it. If you can make a prediction, share it.
 
 ---
 
@@ -182,14 +265,28 @@ ${poolHealthSection}
 ${historicalTrendSection}
 ---
 
+${advancedMetricsSection}
+
+---
+
 ## 📈 TRANSACTION ANALYSIS (Last ${totalTransactions} Transactions)
 
-**Time Range:** ${timeRangeText}
+**Time Range:** ${timeRangeText} (${timeRangeDays.toFixed(1)} days)
 
-**Trade Distribution:**
+### Transaction Count Distribution:
 - **Buy Transactions:** ${transactions.buyCount} (${buyRatio.toFixed(1)}%)
 - **Sell Transactions:** ${transactions.sellCount} (${sellRatio.toFixed(1)}%)
-- **Average Volume:** ${transactions.avgVolumeUSD > 0 ? `$${transactions.avgVolumeUSD.toLocaleString()}` : 'Not available'}
+
+### Transaction Volume Distribution (USD):
+- **Buy Volume:** $${buyVolumeUSD.toLocaleString()} (${buyVolumeRatio.toFixed(1)}% of total volume)
+- **Sell Volume:** $${sellVolumeUSD.toLocaleString()} (${(100 - buyVolumeRatio).toFixed(1)}% of total volume)
+- **Average Transaction Size:** $${avgTransactionSize.toFixed(2)}
+
+**🔍 CRITICAL ANALYSIS REQUIRED:**
+- If buy COUNT is high but buy VOLUME is low → Small retail traders (could be FOMO or bots)
+- If buy COUNT is low but buy VOLUME is high → Whale accumulation (could be bullish or manipulation)
+- If both are high → Strong organic interest
+- If both are low → Low activity, high risk
 
 **Top 5 Active Wallets:**
 ${topWalletsText}
@@ -197,6 +294,7 @@ ${walletProfilesSection}
 **Wallet Concentration:**
 - Top wallet controls: **${topWalletShare.toFixed(1)}%** of transaction volume
 - Risk threshold: >30% concentration = High manipulation risk
+- **Wallet Diversity:** ${uniqueWallets} unique wallets, ${avgTradesPerWallet.toFixed(1)} avg trades/wallet
 
 ---
 
@@ -233,9 +331,11 @@ Give a simple overview: Is this token safe? What's the biggest concern?
 Write this section in simple language. Explain each point like you're talking to someone who's new to crypto:
 
 #### 💰 Is There Enough Money in the Pool?
+- **Calculate liquidity-to-market-cap ratio** (provided in Advanced Metrics)
+- For memecoins: 20-30% liquidity ratio is HEALTHY, not "low"
+- Below 10% = risky, above 50% = unusual
 - Can you easily buy/sell without losing money on price changes?
-- Is there enough money locked in the pool?
-- Explain in simple terms: "There's $X in the pool, which means..."
+- Explain: "There's $X in the pool with estimated $Y market cap, which is a ${liquidityToMarketCapRatio.toFixed(1)}% ratio. This means..."
 
 #### 🔒 Is This Token Safe?
 - Can the creators freeze your tokens? (Bad sign!)
@@ -244,10 +344,15 @@ Write this section in simple language. Explain each point like you're talking to
 - Use simple language: "The creators can/cannot do X, which means..."
 
 #### 📊 What's Happening with Trading?
-- Are more people buying or selling?
-- Are the trades real or fake?
-- Is someone manipulating the price?
-- Explain clearly: "We see X% buying vs Y% selling, which suggests..."
+- **ANALYZE BOTH COUNT AND VOLUME:**
+  - Transaction count: ${buyRatio.toFixed(1)}% buys vs ${sellRatio.toFixed(1)}% sells
+  - USD volume: ${buyVolumeRatio.toFixed(1)}% buy volume vs ${(100 - buyVolumeRatio).toFixed(1)}% sell volume
+- **KEY QUESTION:** Do these ratios match? If not, why?
+  - More buy COUNT but less buy VOLUME = small retail traders (could be FOMO or bots)
+  - Less buy COUNT but more buy VOLUME = whale accumulation (could be bullish or manipulation)
+- Are the trades real or fake? (Analyze patterns, not just numbers)
+- Is someone manipulating the price? (Look for timing patterns, volume spikes, bot behavior)
+- Average transaction size: $${avgTransactionSize.toFixed(2)} - is this normal for this token type?
 
 #### 🚨 Are People Cheating?
 - Are there fake trades to make it look popular?
@@ -256,7 +361,10 @@ Write this section in simple language. Explain each point like you're talking to
 - Are there rapid buy-sell cycles (someone buying and selling quickly)?
 - Are there large single transactions (whale dumps or pumps)?
 - Is trading activity concentrated in specific times (coordinated pumps)?
-- Are there many new wallets with only 1-2 trades (bot farms)?
+- Are there many new wallets with only 1-2 trades? **CRITICAL:** ${newWalletRatio.toFixed(1)}% are new wallets. Analyze if they're:
+  - Real new investors (good sign - growing community)
+  - Bot farm (bad sign - fake activity)
+  - How to tell: Look at transaction timing, sizes, patterns. Real investors trade at different times, different amounts. Bots trade in patterns.
 - Are there sudden volume spikes (pump events)?
 - Is the price changing very rapidly (manipulation)?
 - Make it clear: "We found X suspicious patterns, which means..."
