@@ -73,6 +73,25 @@ export function buildAnalysisPrompt(params: {
     .map((w, i) => `${i + 1}. ${w.address.substring(0, 8)}... - ${w.txCount} transactions (${w.volumeShare.toFixed(1)}% of volume)`)
     .join('\n');
 
+  // High-value buyers and sellers analysis
+  const highValueBuyersText = transactions.highValueBuyers && transactions.highValueBuyers.length > 0
+    ? transactions.highValueBuyers.slice(0, 10).map((buyer, i) => {
+        const soldAfter = buyer.hasSoldAfterBuy 
+          ? `⚠️ SOLD after buying (${buyer.sellAfterBuyCount} sells)` 
+          : `✅ HOLDING (no sells after buy)`;
+        return `${i + 1}. **${buyer.address}** - Total: $${buyer.totalBuyVolume.toFixed(2)} | Largest: $${buyer.largestBuy.toFixed(2)} | ${buyer.buyCount} buys | ${soldAfter}`;
+      }).join('\n')
+    : 'No high-value buyers detected (threshold: 5x average transaction size)';
+
+  const highValueSellersText = transactions.highValueSellers && transactions.highValueSellers.length > 0
+    ? transactions.highValueSellers.slice(0, 10).map((seller, i) => {
+        const boughtAfter = seller.hasBoughtAfterSell
+          ? `🔄 RE-ENTERED (${seller.buyAfterSellCount} buys after sell)`
+          : `🚪 EXITED (no buys after sell)`;
+        return `${i + 1}. **${seller.address}** - Total: $${seller.totalSellVolume.toFixed(2)} | Largest: $${seller.largestSell.toFixed(2)} | ${seller.sellCount} sells | ${boughtAfter}`;
+      }).join('\n')
+    : 'No high-value sellers detected (threshold: 5x average transaction size)';
+
   // PHASE 3: Wallet Profiles
   const walletProfilesSection = transactions.walletProfiles && transactions.walletProfiles.length > 0
     ? `\n\n**🔍 WALLET PROFILES (Advanced Analysis - Phase 3):**
@@ -296,9 +315,21 @@ ${advancedMetricsSection}
 - If both are high → Strong organic interest
 - If both are low → Low activity, high risk
 
-**Top 5 Active Wallets:**
+**Top 5 Active Wallets (by total volume):**
 ${topWalletsText}
 ${walletProfilesSection}
+
+**🔍 HIGH-VALUE BUYERS (Wallets with large buy transactions - 5x+ average):**
+${highValueBuyersText}
+
+**🔍 HIGH-VALUE SELLERS (Wallets with large sell transactions - 5x+ average):**
+${highValueSellersText}
+
+**📊 Large Transaction Analysis:**
+- Large buy transactions represent ${transactions.largeBuyRatio?.toFixed(1) || 0}% of total volume
+- Large sell transactions represent ${transactions.largeSellRatio?.toFixed(1) || 0}% of total volume
+- **Key Insight:** If large buys > large sells = whale accumulation (bullish). If large sells > large buys = whale exit (bearish).
+
 **Wallet Concentration:**
 - Top wallet controls: **${topWalletShare.toFixed(1)}%** of transaction volume
 - Risk threshold: >30% concentration = High manipulation risk
@@ -331,20 +362,28 @@ The system has performed deep forensic analysis and detected the following advan
 
 ## 📋 HOW TO WRITE THE REPORT
 
+**CRITICAL: You must provide BALANCED analysis - not just risks, but also opportunities and normal behaviors for memecoins!**
+
 Write your report in this exact format:
 
 ### 1. RISK SCORE (Required - First Line)
 Give a number from 0-100:
 - **0-20:** Very Safe (You can probably trust this)
 - **21-40:** Mostly Safe (Small concerns, but probably okay)
-- **41-60:** Be Careful (Some warning signs)
+- **41-60:** Be Careful (Some warning signs, but could be normal for memecoins)
 - **61-80:** Dangerous (Lots of red flags)
 - **81-100:** Very Dangerous (Strong scam/rug pull signs)
 
 **Format:** Risk Score: [NUMBER]
 
+**IMPORTANT:** For new memecoins, many "suspicious" patterns are NORMAL:
+- Low transaction sizes ($5-50) = normal retail activity
+- Many new wallets = could be viral growth, not just bots
+- High sell ratio = normal profit-taking after pump
+- Don't automatically mark everything as "dangerous" - analyze context!
+
 ### 2. QUICK SUMMARY (2-3 sentences)
-Give a simple overview: Is this token safe? What's the biggest concern?
+Give a BALANCED overview: What are the main risks AND opportunities? Is this token safe? What's the biggest concern AND what's positive?
 
 ### 3. WHAT YOU NEED TO KNOW
 
@@ -364,50 +403,56 @@ Write this section in simple language. Explain each point like you're talking to
 - Use simple language: "The creators can/cannot do X, which means..."
 
 #### 📊 What's Happening with Trading?
-- **ANALYZE BOTH COUNT AND VOLUME:**
+- **ANALYZE BOTH COUNT AND VOLUME - THEY TELL DIFFERENT STORIES:**
   - Transaction count: ${buyRatio.toFixed(1)}% buys vs ${sellRatio.toFixed(1)}% sells
   - USD volume: ${buyVolumeRatio.toFixed(1)}% buy volume vs ${(100 - buyVolumeRatio).toFixed(1)}% sell volume
-- **KEY QUESTION:** Do these ratios match? If not, why?
-  - More buy COUNT but less buy VOLUME = small retail traders (could be FOMO or bots)
-  - Less buy COUNT but more buy VOLUME = whale accumulation (could be bullish or manipulation)
-- Are the trades real or fake? (Analyze patterns, not just numbers)
-- Is someone manipulating the price? (Look for timing patterns, volume spikes, bot behavior)
-- Average transaction size: $${avgTransactionSize.toFixed(2)} - is this normal for this token type?
+- **CRITICAL:** Do these ratios match? If not, explain WHY:
+  - More buy COUNT but less buy VOLUME = small retail traders (NORMAL for memecoins, could be FOMO or organic growth)
+  - Less buy COUNT but more buy VOLUME = whale accumulation (could be bullish OR manipulation - analyze further)
+  - Both high = Strong organic interest
+  - Both low = Low activity, high risk
+- **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For memecoins, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
+- **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? Mention specific wallet addresses and their behavior.
+- **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? Mention specific wallet addresses.
 
-#### 🚨 Are People Cheating?
+#### 🚨 Are People Cheating? (BALANCED ANALYSIS REQUIRED)
+
+**⚠️ RISK PATTERNS (Report these, but also explain if they're normal for memecoins):**
 - **MAFYA KÜMESİ (Cluster Analysis):** Are multiple wallets trading in the same second? This indicates coordinated bot activity. Check the detected patterns above.
 - **YEMLEME & TUZAK (Bait Watch):** Are there many transactions but no price movement? This suggests micro-transactions trying to manipulate trending lists. Check detected patterns.
-- Are there fake trades to make it look popular?
-- Is one person controlling too much?
-- Are bots trading instead of real people?
-- Are there rapid buy-sell cycles (someone buying and selling quickly)?
-- Are there large single transactions (whale dumps or pumps)?
-- Is trading activity concentrated in specific times (coordinated pumps)?
-- **TAZE KAN GİRİŞİ (New Wallet Flow):** ${newWalletRatio.toFixed(1)}% are new wallets. Analyze if they're:
-  - Real new investors (good sign - growing community, going viral)
-  - Bot farm (bad sign - fake activity, closed loop)
-  - How to tell: Look at transaction timing, sizes, patterns. Real investors trade at different times, different amounts. Bots trade in patterns.
+- **TAZE KAN GİRİŞİ (New Wallet Flow):** ${newWalletRatio.toFixed(1)}% are new wallets. **CRITICAL:** Analyze if they're:
+  - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
+  - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
 - **FOMO vs. PANIK (Velocity Sentiment):** Is transaction velocity spiking while price moves opposite direction? This indicates panic selling or FOMO buying. Check detected patterns.
-- Are there sudden volume spikes (pump events)?
-- Is the price changing very rapidly (manipulation)?
-- **KÂR BASINCI (Profit Pressure):** Are most holders in profit? This creates profit-taking pressure. Check detected patterns.
+
+**✅ POSITIVE PATTERNS (ALWAYS report these if present):**
 - **DIAMOND HANDS:** Are early buyers still holding? This shows long-term conviction. Check detected patterns.
-- Make it clear: "We found X suspicious patterns, which means..."
+- **WHALE ACCUMULATION:** Are high-value buyers holding (not selling after buy)? This is BULLISH.
+- **RE-ENTRY PATTERNS:** Are high-value sellers re-entering (buying after sell)? This shows accumulation strategy, not exit.
+- **ORGANIC GROWTH:** Are new wallets showing varied transaction patterns (different sizes, times)? This suggests real investors, not bots.
+- **BALANCED TRADING:** Are buy/sell ratios reasonable (not extreme)? This shows healthy market.
+
+**🔍 WALLET-SPECIFIC ANALYSIS (REQUIRED):**
+- **Mention specific wallet addresses** from HIGH-VALUE BUYERS and HIGH-VALUE SELLERS sections
+- For each significant wallet, explain: "Wallet [ADDRESS] made [X] large buys totaling $[Y]. They [HOLDING/SOLD after buy]. This suggests [conviction/profit-taking/accumulation]."
+- **Identify suspicious wallets:** "Wallet [ADDRESS] shows bot-like behavior: [specific pattern]. This wallet should be monitored."
+- **Identify bullish wallets:** "Wallet [ADDRESS] is accumulating: [specific pattern]. This is a positive signal."
 
 ### 4. 🎯 KEY INSIGHTS (The Most Important Things)
 
-List 8-12 eye-catching findings using the advanced forensic patterns. Make them stand out! Examples:
-- "⚠️ MAFYA KÜMESİ: 8 cüzdan aynı saniyede senkronize hareket ediyor - koordineli bot aktivitesi"
-- "💰 KÂR BASINCI: Cüzdanların 90%'i 3x kârda - büyük bir profit-taking duvarı gelebilir"
-- "🎣 YEMLEME & TUZAK: Dakikada 100 işlem var ama fiyat sabit - trending listelerini manipüle ediyorlar"
-- "💎 DIAMOND HANDS: Erken giren Alpha cüzdanların 70%'i hala içeride - projeye inanç tam"
-- "🚨 PANIK SATIŞI: İşlem hızı 5x arttı + Fiyat düştü = Şelale düşüşü başlıyor"
-- "🆕 TAZE KAN: Son alıcıların 85%'i yeni cüzdanlar - proje virale gidiyor"
-- "✅ GOOD NEWS: No one can freeze your tokens or print more"
-- "🚨 DANGER: One wallet controls 45% of all trades - this is risky!"
-- "💡 INTERESTING: 80% buy count ama 60% buy volume = küçük retail trader'lar (FOMO riski)"
-- "🐋 WHALE ALERT: Large transactions detected - someone moved $50K+ in a single trade"
-- "📈 VOLATILITY: Price swings >10% on 25% of trades - high manipulation risk"
+**BALANCE IS CRITICAL:** List 10-15 findings, mixing risks AND opportunities. Don't just report risks!
+
+**Examples of BALANCED insights:**
+- **POSITIVE:** "✅ DIAMOND HANDS: Erken giren Alpha cüzdanların 70%'i hala içeride - projeye inanç tam"
+- **POSITIVE:** "🔄 RE-ENTRY: Yüksek değerli satış yapan 3 cüzdan tekrar alım yaptı - accumulation stratejisi"
+- **POSITIVE:** "🆕 TAZE KAN: Son alıcıların 85%'i yeni cüzdanlar - proje virale gidiyor (organik büyüme)"
+- **POSITIVE:** "🐋 WHALE ACCUMULATION: Wallet [ADDRESS] $50K+ alım yaptı ve hala tutuyor - bullish signal"
+- **NEUTRAL/INFO:** "💡 INTERESTING: 80% buy count ama 60% buy volume = küçük retail trader'lar (memecoin için normal)"
+- **RISK:** "⚠️ MAFYA KÜMESİ: 8 cüzdan aynı saniyede senkronize hareket ediyor - koordineli bot aktivitesi"
+- **RISK:** "🚨 PANIK SATIŞI: İşlem hızı 5x arttı + Fiyat düştü = Şelale düşüşü başlıyor"
+- **RISK:** "⚠️ SUSPICIOUS WALLET: Wallet [ADDRESS] yüksek değerli satış yaptı ve çıktı - takip edilmeli"
+
+**REQUIRED:** Include at least 3-5 wallet-specific insights with addresses!
 
 ### 5. ⚠️ WARNINGS (If There Are Any)
 
@@ -415,12 +460,14 @@ If there are serious problems, list them clearly:
 - "DO NOT invest more than you can afford to lose"
 - "This pool has very little money - you might lose 20%+ on every trade"
 - "We detected fake trading activity - the price might be manipulated"
+- "Wallet [ADDRESS] shows suspicious behavior - monitor this wallet"
 
 ### 6. 💡 WHAT SHOULD YOU DO?
 
-Give clear, simple advice:
-- Should people trade this token? (Yes/No/Maybe, and why)
-- What should they watch out for?
+Give clear, BALANCED advice:
+- Should people trade this token? (Yes/No/Maybe, and why - consider both risks AND opportunities)
+- What are the POSITIVE signals to watch for?
+- What are the RISK signals to watch for?
 - What questions should they ask before investing?
 
 ---

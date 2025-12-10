@@ -265,6 +265,31 @@ export interface TransactionSummary {
   };
   /** Wallet profiles for top traders (Phase 3) */
   walletProfiles?: WalletProfile[];
+  /** High-value buyers analysis */
+  highValueBuyers?: Array<{
+    address: string;
+    totalBuyVolume: number;
+    buyCount: number;
+    avgBuySize: number;
+    largestBuy: number;
+    lastBuyTime: number;
+    hasSoldAfterBuy: boolean;
+    sellAfterBuyCount: number;
+  }>;
+  /** High-value sellers analysis */
+  highValueSellers?: Array<{
+    address: string;
+    totalSellVolume: number;
+    sellCount: number;
+    avgSellSize: number;
+    largestSell: number;
+    lastSellTime: number;
+    hasBoughtAfterSell: boolean;
+    buyAfterSellCount: number;
+  }>;
+  /** Large transaction ratios relative to liquidity */
+  largeBuyRatio?: number;
+  largeSellRatio?: number;
 }
 
 // =============================================================================

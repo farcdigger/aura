@@ -797,6 +797,107 @@ export function analyzeTransactions(
       volume: Number(w.totalVolume) / 1e9, // Convert to readable units
     }));
 
+  // ============================================================================
+  // DETAILED WALLET BEHAVIOR ANALYSIS (For AI Prompt)
+  // ============================================================================
+  
+  // Find high-value buyers (wallets with large buy transactions)
+  const highValueBuyers: Array<{
+    address: string;
+    totalBuyVolume: number;
+    buyCount: number;
+    avgBuySize: number;
+    largestBuy: number;
+    lastBuyTime: number;
+    hasSoldAfterBuy: boolean;
+    sellAfterBuyCount: number;
+  }> = [];
+  
+  // Find high-value sellers (wallets with large sell transactions)
+  const highValueSellers: Array<{
+    address: string;
+    totalSellVolume: number;
+    sellCount: number;
+    avgSellSize: number;
+    largestSell: number;
+    lastSellTime: number;
+    hasBoughtAfterSell: boolean;
+    buyAfterSellCount: number;
+  }> = [];
+
+  // Calculate average transaction size for threshold
+  const avgTxSize = avgVolumeUSD;
+  const highValueThreshold = avgTxSize * 5; // 5x average = high value
+
+  // Analyze each wallet's behavior
+  walletMap.forEach((wallet, address) => {
+    // Get all transactions for this wallet, sorted by time
+    const walletTxs = transactions
+      .filter(tx => tx.wallet === address)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // Analyze buy behavior
+    const buyTxs = walletTxs.filter(tx => tx.direction === 'buy');
+    const buyVolumes = buyTxs.map(tx => tx.amountInUsd || tx.amountOutUsd || 0);
+    const totalBuyVolume = buyVolumes.reduce((sum, v) => sum + v, 0);
+    const largestBuy = buyVolumes.length > 0 ? Math.max(...buyVolumes) : 0;
+
+    if (totalBuyVolume > highValueThreshold && buyTxs.length > 0) {
+      const lastBuy = buyTxs[buyTxs.length - 1];
+      const sellsAfterLastBuy = walletTxs.filter(tx => 
+        tx.direction === 'sell' && tx.timestamp > lastBuy.timestamp
+      );
+      
+      highValueBuyers.push({
+        address,
+        totalBuyVolume,
+        buyCount: buyTxs.length,
+        avgBuySize: totalBuyVolume / buyTxs.length,
+        largestBuy,
+        lastBuyTime: lastBuy.timestamp,
+        hasSoldAfterBuy: sellsAfterLastBuy.length > 0,
+        sellAfterBuyCount: sellsAfterLastBuy.length,
+      });
+    }
+
+    // Analyze sell behavior
+    const sellTxs = walletTxs.filter(tx => tx.direction === 'sell');
+    const sellVolumes = sellTxs.map(tx => tx.amountInUsd || tx.amountOutUsd || 0);
+    const totalSellVolume = sellVolumes.reduce((sum, v) => sum + v, 0);
+    const largestSell = sellVolumes.length > 0 ? Math.max(...sellVolumes) : 0;
+
+    if (totalSellVolume > highValueThreshold && sellTxs.length > 0) {
+      const lastSell = sellTxs[sellTxs.length - 1];
+      const buysAfterLastSell = walletTxs.filter(tx => 
+        tx.direction === 'buy' && tx.timestamp > lastSell.timestamp
+      );
+      
+      highValueSellers.push({
+        address,
+        totalSellVolume,
+        sellCount: sellTxs.length,
+        avgSellSize: totalSellVolume / sellTxs.length,
+        largestSell,
+        lastSellTime: lastSell.timestamp,
+        hasBoughtAfterSell: buysAfterLastSell.length > 0,
+        buyAfterSellCount: buysAfterLastSell.length,
+      });
+    }
+  });
+
+  // Sort by volume
+  highValueBuyers.sort((a, b) => b.totalBuyVolume - a.totalBuyVolume);
+  highValueSellers.sort((a, b) => b.totalSellVolume - a.totalSellVolume);
+
+  // Calculate liquidity-to-transaction ratios
+  const liquidityUSD = reserves.tvlUSD || 0;
+  const largeBuyRatio = highValueBuyers.length > 0 
+    ? highValueBuyers.reduce((sum, w) => sum + w.largestBuy, 0) / liquidityUSD * 100
+    : 0;
+  const largeSellRatio = highValueSellers.length > 0
+    ? highValueSellers.reduce((sum, w) => sum + w.largestSell, 0) / liquidityUSD * 100
+    : 0;
+
   // Time range already calculated above (in ADVANCED FORENSIC PATTERNS section)
 
   // Generate summary text
@@ -814,6 +915,10 @@ export function analyzeTransactions(
     suspiciousPatterns,
     summary,
     timeRange,
+    highValueBuyers: highValueBuyers.slice(0, 10), // Top 10 high-value buyers
+    highValueSellers: highValueSellers.slice(0, 10), // Top 10 high-value sellers
+    largeBuyRatio,
+    largeSellRatio,
   };
 }
 

@@ -390,9 +390,11 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 8. Supabase'e kaydet
     console.log(`💾 [Job ${job.id}] Saving to Supabase...`);
-    // userWallet already destructured from job.data at the top
-    console.log(`💾 [Job ${job.id}] Saving with userWallet: ${userWallet || 'NULL'}`);
-    const savedRecord = await saveAnalysis(analysisResult, userId, userWallet);
+    // Normalize userWallet to lowercase before saving
+    const normalizedUserWallet = userWallet ? userWallet.toLowerCase().trim() : undefined;
+    console.log(`💾 [Job ${job.id}] Saving with userWallet: ${normalizedUserWallet || 'NULL'}`);
+    console.log(`💾 [Job ${job.id}] Original userWallet: ${userWallet || 'NULL'}`);
+    const savedRecord = await saveAnalysis(analysisResult, userId, normalizedUserWallet);
     
     if (!savedRecord) {
       throw new Error('Failed to save analysis to database');
