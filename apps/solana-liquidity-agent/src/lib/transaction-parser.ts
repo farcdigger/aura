@@ -253,6 +253,7 @@ export function analyzeTransactions(
     buyCount: number;
     sellCount: number;
     totalVolume: bigint;
+    volumeUSD?: number;
     firstSeen: number;
     lastSeen: number;
   }>();
@@ -303,6 +304,14 @@ export function analyzeTransactions(
     (sum, w) => sum + w.totalVolume,
     BigInt(0)
   );
+
+  // Calculate total USD volume for avgVolumeUSD (needed for pattern detection)
+  const totalUsdVolume = transactions
+    .filter(tx => tx.amountInUsd !== undefined)
+    .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
+  const avgVolumeUSD = totalUsdVolume > 0 && transactions.length > 0 
+    ? totalUsdVolume / transactions.length 
+    : 0;
 
   // Detect suspicious patterns
   const suspiciousPatterns: string[] = [];
@@ -367,6 +376,7 @@ export function analyzeTransactions(
   }
 
   // 6. Time-based patterns (clustered trading activity)
+  // Calculate timestamps once for both pattern detection and time range
   const timestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0);
   if (timestamps.length > 10) {
     // Group transactions by hour
@@ -460,14 +470,6 @@ export function analyzeTransactions(
     }
   }
 
-  // Calculate total USD volume for avgVolumeUSD
-  const totalUsdVolume = transactions
-    .filter(tx => tx.amountInUsd !== undefined)
-    .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
-  const avgVolumeUSD = totalUsdVolume > 0 && transactions.length > 0 
-    ? totalUsdVolume / transactions.length 
-    : 0;
-
   // Build top wallets list
   const topWallets: WalletActivity[] = Array.from(walletMap.values())
     .sort((a, b) => {
@@ -505,8 +507,7 @@ export function analyzeTransactions(
       volume: Number(w.totalVolume) / 1e9, // Convert to readable units
     }));
 
-  // Time range
-  const timestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0);
+  // Time range (timestamps already calculated above in pattern detection section)
   const timeRange = timestamps.length > 0 ? {
     earliest: new Date(Math.min(...timestamps) * 1000),
     latest: new Date(Math.max(...timestamps) * 1000),

@@ -161,9 +161,9 @@ export class BirdeyeClient {
       let endpointStrategy: 'pair_v2' | 'token_v2' = tokenMint ? 'token_v2' : 'pair_v2';
       let lastError: any = null;
       
-      // ✅ Offset limit: Birdeye API may have limits on max offset
-      // Token endpoint typically supports up to 10,000 offset, but we'll be conservative
-      const MAX_OFFSET = 5000; // Safety limit (100 pages * 50 per page)
+      // ✅ Offset limit: Birdeye API supports up to 10,000 offset
+      // Token endpoint supports up to 10,000 offset (200 pages * 50 per page)
+      const MAX_OFFSET = 10000; // Maximum supported by Birdeye API
 
       while (allSwaps.length < targetLimit) {
         // ✅ Check offset limit before making request
