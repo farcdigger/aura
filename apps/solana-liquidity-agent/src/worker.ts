@@ -167,7 +167,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     // 4. TRANSACTION HISTORY
     // ==================================================================================
     console.log(`📊 [Job ${job.id}] Fetching transaction history...`);
-    const txLimit = options?.transactionLimit || 10000;
+    // ✅ Swap limitini 7000'e düşürdük (zaman aşımı riskini azaltmak için)
+    const txLimit = options?.transactionLimit || 7000;
     
     const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
     
@@ -212,6 +213,13 @@ async function processAnalysis(job: Job<QueueJobData>) {
     // 5. CLAUDE AI ANALYSIS
     // ==================================================================================
     console.log(`🤖 [Job ${job.id}] Building AI analysis prompt...`);
+    
+    // ✅ KRİTİK KONTROL: finalReserves'in tanımlı olduğundan emin ol
+    if (!finalReserves) {
+      throw new Error('finalReserves is undefined. Cannot build analysis prompt without pool reserves data.');
+    }
+    
+    console.log(`🔍 [Job ${job.id}] Reserves check: tokenAMint=${finalReserves.tokenAMint}, tokenBMint=${finalReserves.tokenBMint}, tvlUSD=${finalReserves.tvlUSD}`);
     
     const prompt = buildAnalysisPrompt({
       poolId,
