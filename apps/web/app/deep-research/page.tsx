@@ -382,7 +382,7 @@ export default function DeepResearchPage() {
       {showModal && (
         <DeepResearchModal
           onClose={() => setShowModal(false)}
-          userWallet={address || ""}
+          userWallet={address ? address.toLowerCase() : ""}
           pricingInfo={pricingInfo}
           tokenMint={tokenMint}
           onAnalysisComplete={() => {

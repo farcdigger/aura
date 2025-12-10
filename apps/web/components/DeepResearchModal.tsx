@@ -129,7 +129,7 @@ export default function DeepResearchModal({
         },
         body: JSON.stringify({
           tokenMint,
-          walletAddress: userWallet,
+          walletAddress: userWallet.toLowerCase(), // Normalize to lowercase for consistent storage
         }),
       });
 

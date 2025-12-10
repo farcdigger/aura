@@ -101,6 +101,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Normalize wallet address to lowercase for consistent handling
+  // Ethereum addresses can be in checksum format (mixed case) or lowercase
+  const normalizedWalletAddress = walletAddress.toLowerCase();
+
   // Determine pricing based on trial period and NFT ownership
   let paymentAmount: string;
   let hasNFT = false;
@@ -165,6 +169,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Normalize wallet address to lowercase for consistent storage
+    // Ethereum addresses can be in checksum format (mixed case) or lowercase
+    const normalizedWalletAddress = walletAddress.toLowerCase();
 
     // If no payment header, return 402 with payment requirements
     if (!paymentHeader) {
@@ -258,12 +266,17 @@ export async function POST(request: NextRequest) {
     const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
 
     try {
+      // Normalize wallet address to lowercase for consistent storage
+      // Ethereum addresses can be in checksum format (mixed case) or lowercase
+      // We always store in lowercase to avoid matching issues
+      const normalizedWalletAddress = walletAddress.toLowerCase();
+      
       const analysisResponse = await fetch(`${agentUrl}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tokenMint,
-          userWallet: walletAddress,
+          userWallet: normalizedWalletAddress,
           transactionLimit: 10000,
         }),
       });
