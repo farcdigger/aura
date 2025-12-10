@@ -95,7 +95,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     // 2. Pool reserves çek (Birdeye) - Try to get, but fallback to DexScreener if fails
     console.log(`🔍 [Job ${job.id}] Fetching pool reserves from Birdeye...`);
-    let reserves: AdjustedPoolReserves;
+    // ✅ KRİTİK: reserves'i en dışarıda tanımla ve null ile başlat (scope hatasını önle)
+    let reserves: AdjustedPoolReserves | null = null;
     try {
       reserves = await birdeyeClient.getPoolData(poolId);
     } catch (error: any) {
@@ -188,10 +189,13 @@ async function processAnalysis(job: Job<QueueJobData>) {
       console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}, Reserves: A=${tokenAReserve.toLocaleString()}, B=${tokenBReserve.toLocaleString()}`);
     }
     
-    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (başka yapay zekanın önerisi)
+    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (scope hatasını önle)
     if (!reserves) {
       throw new Error('Failed to fetch pool reserves from both Birdeye and DexScreener. Cannot proceed with analysis.');
     }
+    
+    // ✅ KRİTİK: reserves'in artık null olmadığından emin ol (TypeScript type narrowing)
+    // Bu satırdan sonra reserves kesinlikle AdjustedPoolReserves tipinde
     
     await job.updateProgress(30);
     
