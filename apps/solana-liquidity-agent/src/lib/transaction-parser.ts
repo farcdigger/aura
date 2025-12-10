@@ -313,6 +313,15 @@ export function analyzeTransactions(
     ? totalUsdVolume / transactions.length 
     : 0;
 
+  // Calculate timestamps and timeRange EARLY (needed for multiple pattern detections)
+  // Note: tx.timestamp is in milliseconds (from Birdeye API: blockUnixTime * 1000)
+  const timestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0);
+  const timeRange = timestamps.length > 0 ? {
+    earliest: new Date(Math.min(...timestamps)),
+    latest: new Date(Math.max(...timestamps)),
+  } : undefined;
+  const timeRangeDays = timeRange ? (timeRange.latest.getTime() - timeRange.earliest.getTime()) / (1000 * 60 * 60 * 24) : 0;
+
   // Detect suspicious patterns
   const suspiciousPatterns: string[] = [];
 
@@ -376,13 +385,12 @@ export function analyzeTransactions(
   }
 
   // 6. Time-based patterns (clustered trading activity)
-  // Calculate timestamps once for both pattern detection and time range
-  const timestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0);
+  // timestamps already calculated above, reuse it
   if (timestamps.length > 10) {
     // Group transactions by hour
     const hourlyGroups = new Map<number, number>();
     timestamps.forEach(ts => {
-      const hour = new Date(ts * 1000).getHours();
+      const hour = new Date(ts).getHours(); // ts is already in milliseconds
       hourlyGroups.set(hour, (hourlyGroups.get(hour) || 0) + 1);
     });
     
@@ -477,6 +485,7 @@ export function analyzeTransactions(
   // ============================================================================
   // ADVANCED FORENSIC PATTERNS (6 New Detection Algorithms)
   // ============================================================================
+  // timeRange and timeRangeDays already calculated above (at the beginning of function)
 
   // 11. MAFYA KÜMESİ (Cluster Analysis) - Synchronized wallet activity
   // Detect wallets trading in the same second (coordinated bot activity)
@@ -624,8 +633,8 @@ export function analyzeTransactions(
   }
 
   // 14. DIAMOND HANDS & SMART MONEY (Conviction Score) - Early holders still holding
+  // timeRange and timeRangeDays already calculated above
   // Detect wallets that bought early and haven't sold (or only added more)
-  const timeRangeDays = timeRange ? (timeRange.latest.getTime() - timeRange.earliest.getTime()) / (1000 * 60 * 60 * 24) : 0;
   if (transactions.length > 50 && timeRangeDays > 0) {
     const earlyBuyers = new Map<string, { firstBuy: number; lastBuy: number; totalBought: number; hasSold: boolean }>();
     // Sort transactions by timestamp (oldest first) for early buyer detection
@@ -788,11 +797,7 @@ export function analyzeTransactions(
       volume: Number(w.totalVolume) / 1e9, // Convert to readable units
     }));
 
-  // Time range (timestamps already calculated above in pattern detection section)
-  const timeRange = timestamps.length > 0 ? {
-    earliest: new Date(Math.min(...timestamps) * 1000),
-    latest: new Date(Math.max(...timestamps) * 1000),
-  } : undefined;
+  // Time range already calculated above (in ADVANCED FORENSIC PATTERNS section)
 
   // Generate summary text
   const summary = `Analyzed ${totalCount} transactions: ${buyCount} buys (${((buyCount / totalCount) * 100).toFixed(1)}%), ${sellCount} sells (${((sellCount / totalCount) * 100).toFixed(1)}%). ${walletMap.size} unique wallets. ${suspiciousPatterns.length} suspicious patterns detected.`;
