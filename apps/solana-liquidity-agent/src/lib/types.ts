@@ -4,38 +4,23 @@ import { z } from 'zod';
 // INPUT SCHEMAS (Zod Validation)
 // =============================================================================
 
-/**
- * Pool Analysis Input Schema (HYBRID)
- * Validates user input for pool analysis requests
- * 
- * Users can provide EITHER:
- * 1. poolId: Direct pool address (for specific pool analysis)
- * 2. tokenMint: Token mint address (auto-finds best pool)
- * 3. Both: Token mint + specific pool ID (advanced)
- */
 export const PoolAnalysisInputSchema = z.object({
-  // Pool ID (optional if tokenMint provided)
   poolId: z
     .string()
-    .min(32, 'Pool ID must be at least 32 characters')
-    .max(44, 'Pool ID must not exceed 44 characters')
-    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana address format')
+    .min(32)
+    .max(44)
+    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/)
     .optional(),
-  
-  // Token Mint (optional if poolId provided)
   tokenMint: z
     .string()
-    .min(32, 'Token mint must be at least 32 characters')
-    .max(44, 'Token mint must not exceed 44 characters')
-    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana address format')
+    .min(32)
+    .max(44)
+    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/)
     .optional(),
-  
   userId: z.string().optional(),
-  
   options: z.object({
     transactionLimit: z.number().min(1).max(10000).optional(),
     skipCache: z.boolean().optional(),
-    // If tokenMint provided, prefer specific DEX
     preferredDEX: z.enum(['raydium-v4', 'raydium-clmm', 'orca', 'meteora', 'auto']).optional(),
   }).optional(),
 }).refine(
@@ -48,257 +33,199 @@ export const PoolAnalysisInputSchema = z.object({
 
 export type PoolAnalysisInput = z.infer<typeof PoolAnalysisInputSchema>;
 
-/**
- * Job Status Check Input Schema
- */
 export const JobStatusInputSchema = z.object({
-  jobId: z.string().min(1, 'Job ID is required'),
+  jobId: z.string().min(1),
 });
 
 export type JobStatusInput = z.infer<typeof JobStatusInputSchema>;
 
 // =============================================================================
-// TOKEN METADATA
+// TOKEN & POOL DATA
 // =============================================================================
 
-/**
- * Token Metadata from Helius DAS API
- */
 export interface TokenMetadata {
-  /** Token mint address */
   mint: string;
-  /** Token symbol (e.g., "SOL", "USDC") */
   symbol: string;
-  /** Full token name */
   name: string;
-  /** Decimal places (e.g., 9 for SOL, 6 for USDC) */
   decimals: number;
-  /** Logo image URI (optional) */
   logoURI?: string;
-  /** CoinGecko ID for price data (optional) */
   coingeckoId?: string;
-  /** Token authorities (for rug pull detection) */
   authorities?: {
     freezeAuthority?: string | null;
     mintAuthority?: string | null;
   };
 }
 
-// =============================================================================
-// RAYDIUM POOL DATA
-// =============================================================================
-
-/**
- * Raydium Pool Reserve Information
- */
 export interface PoolReserves {
-  /** Token A mint address */
   tokenAMint: string;
-  /** Token B mint address */
   tokenBMint: string;
-  /** Token A reserve amount (raw, not adjusted for decimals) */
   tokenAReserve: bigint;
-  /** Token B reserve amount (raw, not adjusted for decimals) */
   tokenBReserve: bigint;
-  /** Pool authority address */
   poolAuthority: string;
-  /** Pool LP token mint (optional) */
   lpMint?: string;
 }
 
-/**
- * Adjusted Pool Reserves (with decimal adjustment)
- */
 export interface AdjustedPoolReserves {
   tokenAMint: string;
   tokenBMint: string;
-  /** Token A reserve (human-readable, decimal adjusted) */
   tokenAReserve: number;
-  /** Token B reserve (human-readable, decimal adjusted) */
   tokenBReserve: number;
-  /** Token A symbol (for display) */
   tokenASymbol?: string;
-  /** Token B symbol (for display) */
   tokenBSymbol?: string;
-  /** Token A amount (alias for tokenAReserve) */
   tokenAAmount?: number;
-  /** Token B amount (alias for tokenBReserve) */
   tokenBAmount?: number;
-  /** Total Value Locked in USD (if price data available) */
   tvlUSD?: number;
-  /** LP token mint address */
   lpMint?: string;
-  /** LP token supply */
   lpSupply?: string;
-  /** Pool status text (Active/Disabled/etc) */
   poolStatus?: string;
-  /** Fee information */
   feeInfo?: string;
-  /** Estimated TVL (alias) */
   estimatedTVL?: number;
-  /** Pool type (AMM V4, CLMM, etc) */
   poolType?: string;
 }
 
 // =============================================================================
-// TRANSACTION ANALYSIS
+// DEXSCREENER TYPES (Worker.ts Hataları İçin Düzeltildi)
+// =============================================================================
+
+/**
+ * Worker.ts dosyasındaki kod yapısına tam uyan tip tanımı.
+ * 'dexLabel', 'liquidityBase' gibi düzleştirilmiş (flattened) alanları içerir.
+ */
+export interface DexScreenerData {
+  poolAddress: string;
+  dexLabel: string; // Worker 'dexId' yerine 'dexLabel' kullanıyor
+  liquidityUsd: number;
+  priceUsd?: string;
+  
+  // Worker.ts doğrudan bu alanlara erişiyor
+  liquidityBase?: number;
+  liquidityQuote?: number;
+  
+  baseToken: {
+    address: string;
+    name: string;
+    symbol: string;
+  };
+  quoteToken: {
+    address: string;
+    name: string;
+    symbol: string;
+  };
+}
+
+// Geriye dönük uyumluluk için (eğer başka yerde kullanılıyorsa)
+export type DexScreenerPair = DexScreenerData;
+
+// =============================================================================
+// TRANSACTION ANALYSIS (Claude-Prompt.ts Hataları İçin Düzeltildi)
 // =============================================================================
 
 /**
  * Wallet Activity Pattern
+ * claude-prompt.ts içindeki hataları gidermek için tüm alanlar ZORUNLU yapıldı.
  */
 export interface WalletActivity {
-  /** Wallet address */
   address: string;
-  /** Number of transactions */
   txCount: number;
-  /** Total volume (raw amount) */
-  totalVolume?: bigint;
-  /** Percentage of total volume */
   volumeShare: number;
-  /** Estimated volume in USD (if available) */
-  volumeUSD?: number;
-  /** First seen timestamp */
+  
+  // ✅ Prompt.ts hatası: Bunlar artık zorunlu (optional ? kaldırıldı)
+  buyCount: number;
+  sellCount: number;
+  volumeUSD: number;
+  
+  totalVolume?: bigint;
   firstSeen?: number;
-  /** Last seen timestamp */
   lastSeen?: number;
 }
 
-/**
- * Top Trader Information
- */
-export interface TopTrader {
-  /** Wallet address */
-  wallet: string;
-  /** Number of buy transactions */
+export interface HighValueWallet {
+  address: string;
+  totalBuyVolume: number;
   buyCount: number;
-  /** Number of sell transactions */
+  largestBuy: number;
+  avgBuySize?: number;
+  lastBuyTime?: number;
+  hasSoldAfterBuy: boolean;
+  sellAfterBuyCount: number;
+  totalSellVolume: number;
   sellCount: number;
-  /** Total volume traded */
+  largestSell: number;
+  avgSellSize?: number;
+  lastSellTime?: number;
+  hasBoughtAfterSell: boolean;
+  buyAfterSellCount: number;
+}
+
+export interface TopTrader {
+  wallet: string;
+  buyCount: number;
+  sellCount: number;
   volume: number;
 }
 
-/**
- * Wallet Profile (Advanced)
- */
 export interface WalletProfile {
-  /** Wallet address */
   address: string;
-  /** Wallet age in days */
   ageInDays: number;
-  /** Account creation date (first transaction) */
   createdAt: Date;
-  /** Total transaction count (all time) */
   totalTransactions: number;
-  /** Recent transaction count (last 7 days) */
   recentTransactions: number;
-  /** Average transactions per day */
   avgTxPerDay: number;
-  /** Is this likely a bot? */
   isLikelyBot: boolean;
-  /** Is this a whale wallet? (based on pool-specific activity) */
   isWhale: boolean;
-  /** Risk level: low, medium, high */
   riskLevel: 'low' | 'medium' | 'high';
-  /** Human-readable summary */
   summary: string;
 }
 
-/**
- * Parsed Swap Transaction
- */
 export interface ParsedSwap {
-  /** Transaction signature */
   signature: string;
-  /** Block timestamp (milliseconds) */
   timestamp: number;
-  /** Block slot number (for cluster detection - if available) */
   slot?: number;
-  /** Wallet that initiated the swap (token receiver/sender) */
   wallet: string;
-  /** Signer address (fee payer - for master wallet detection) */
   signer?: string;
-  /** Swap direction (buy = SOL → Token, sell = Token → SOL) */
   direction: 'buy' | 'sell';
-  /** Amount in (raw) */
   amountIn: bigint;
-  /** Amount out (raw) */
   amountOut: bigint;
-  /** Amount in USD (for volume calculations) */
   amountInUsd?: number;
-  /** Amount out USD (for volume calculations) */
   amountOutUsd?: number;
-  /** Token price at time of transaction (USD per token) */
   priceToken?: number;
-  /** Price impact percentage (optional) */
   priceImpact?: number;
 }
 
 /**
- * Transaction Summary from Helius RPC
+ * Transaction Summary
+ * uniqueWallets hatası için undefined olma durumu kaldırıldı.
  */
 export interface TransactionSummary {
-  /** Total number of transactions analyzed */
   totalCount: number;
-  /** Alias for totalCount */
   totalTransactions: number;
-  /** Number of buy transactions */
   buyCount: number;
-  /** Number of sell transactions */
   sellCount: number;
-  /** Average transaction volume in USD */
   avgVolumeUSD: number;
-  /** Number of unique wallets */
-  uniqueWallets?: number;
-  /** Top active wallets */
+  
+  // ✅ Prompt.ts hatası: uniqueWallets artık undefined olamaz
+  uniqueWallets: number; 
+  
+  totalVolumeUSD?: number;
   topWallets: WalletActivity[];
-  /** Top traders with buy/sell breakdown */
   topTraders?: TopTrader[];
-  /** Detected suspicious patterns */
   suspiciousPatterns: string[];
-  /** Text summary of transaction analysis */
   summary: string;
-  /** Time range of analyzed transactions */
   timeRange?: {
     earliest: Date;
     latest: Date;
   };
-  /** Wallet profiles for top traders (Phase 3) */
   walletProfiles?: WalletProfile[];
-  /** High-value buyers analysis */
-  highValueBuyers?: Array<{
-    address: string;
-    totalBuyVolume: number;
-    buyCount: number;
-    avgBuySize: number;
-    largestBuy: number;
-    lastBuyTime: number;
-    hasSoldAfterBuy: boolean;
-    sellAfterBuyCount: number;
-  }>;
-  /** High-value sellers analysis */
-  highValueSellers?: Array<{
-    address: string;
-    totalSellVolume: number;
-    sellCount: number;
-    avgSellSize: number;
-    largestSell: number;
-    lastSellTime: number;
-    hasBoughtAfterSell: boolean;
-    buyAfterSellCount: number;
-  }>;
-  /** Large transaction ratios relative to liquidity */
+  highValueBuyers?: HighValueWallet[];
+  highValueSellers?: HighValueWallet[];
   largeBuyRatio?: number;
   largeSellRatio?: number;
 }
 
 // =============================================================================
-// ANALYSIS RESULT
+// ANALYSIS RESULT & HISTORY
 // =============================================================================
 
-/**
- * Risk Score Breakdown (Phase 3)
- */
 export interface RiskScoreBreakdown {
   totalScore: number;
   riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'critical';
@@ -313,9 +240,6 @@ export interface RiskScoreBreakdown {
   summary: string;
 }
 
-/**
- * Pool History Trend (Phase 3)
- */
 export interface PoolHistoryTrend {
   poolId: string;
   dataPoints: number;
@@ -336,7 +260,7 @@ export interface PoolHistoryTrend {
   stability: {
     isStable: boolean;
     volatility: number;
-    level: 'highly_stable' | 'stable' | 'moderate' | 'volatile' | 'unknown';
+    level: 'very_stable' | 'highly_stable' | 'stable' | 'moderate' | 'volatile' | 'high_volatility' | 'unknown';
     summary: string;
   };
   risk: {
@@ -355,80 +279,44 @@ export interface PoolHistoryTrend {
   }>;
 }
 
-/**
- * Complete Pool Analysis Result
- */
 export interface AnalysisResult {
-  /** Pool ID that was analyzed */
   poolId: string;
-  /** Token A metadata */
   tokenA: TokenMetadata;
-  /** Token B metadata */
   tokenB: TokenMetadata;
-  /** Pool reserve information */
   reserves: AdjustedPoolReserves;
-  /** Transaction activity summary */
   transactions: TransactionSummary;
-  /** AI-generated risk analysis (Markdown format) */
   riskAnalysis: string;
-  /** Risk score (0-100, higher = more risky) */
   riskScore: number;
-  /** Timestamp when analysis was generated */
   generatedAt: string;
-  /** Model used for analysis */
   modelUsed?: string;
-  /** Total tokens used (for cost tracking) */
   tokensUsed?: number;
-  /** Pool history trend (Phase 3) */
   poolHistory?: PoolHistoryTrend;
-  /** Algorithmic risk score breakdown (Phase 3) */
   riskScoreBreakdown?: RiskScoreBreakdown;
 }
 
 // =============================================================================
-// QUEUE JOB DATA
+// QUEUE & API
 // =============================================================================
 
-/**
- * BullMQ Job Data Structure
- */
 export interface QueueJobData {
-  /** Pool ID to analyze */
   poolId: string;
-  /** User ID (optional, for tracking) */
   userId?: string;
-  /** User wallet address (for user-specific reports) */
   userWallet?: string;
-  /** Token mint (optional, for Pump.fun pool support) */
   tokenMint?: string;
-  /** Timestamp when request was made */
   requestedAt?: string;
-  /** Priority (optional, higher = more important) */
   priority?: number;
-  /** Analysis options */
   options?: {
-    /** Number of transactions to fetch (default: 1000) */
     transactionLimit?: number;
-    /** Skip cache and force fresh analysis */
     skipCache?: boolean;
   };
 }
 
-/**
- * Job Status Response
- */
 export interface JobStatusResponse {
-  /** Job ID */
   jobId: string;
-  /** Current status */
   status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed' | 'not_found';
-  /** Progress percentage (0-100) */
   progress?: number;
-  /** Result data (if completed) */
   result?: AnalysisResult;
-  /** Error message (if failed) */
   error?: string;
-  /** Additional metadata */
   metadata?: {
     attempts: number;
     processedAt?: string;
@@ -436,13 +324,6 @@ export interface JobStatusResponse {
   };
 }
 
-// =============================================================================
-// API RESPONSES
-// =============================================================================
-
-/**
- * Standard API Response Wrapper
- */
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -452,23 +333,17 @@ export interface ApiResponse<T> {
   };
 }
 
-/**
- * Analysis Request Response
- */
 export type AnalysisRequestResponse = ApiResponse<{
   status: 'cached' | 'queued' | 'processing';
   jobId?: string;
   result?: AnalysisResult;
-  estimatedWaitTime?: number; // in seconds
+  estimatedWaitTime?: number;
 }>;
 
 // =============================================================================
-// DATABASE TYPES (for Supabase)
+// DATABASE TYPES
 // =============================================================================
 
-/**
- * Pool Analysis Record in Database
- */
 export interface PoolAnalysisRecord {
   id: string;
   pool_id: string;
@@ -489,53 +364,31 @@ export interface PoolAnalysisRecord {
 // CONFIGURATION TYPES
 // =============================================================================
 
-/**
- * Worker Configuration
- */
 export interface WorkerConfig {
   concurrency: number;
   maxAttempts: number;
   backoffDelayMs: number;
 }
 
-/**
- * Cache Configuration
- */
 export interface CacheConfig {
   ttlSeconds: number;
   keyPrefix: string;
 }
 
-/**
- * Environment Configuration
- */
 export interface EnvConfig {
-  // Agent
   agentName: string;
   agentVersion: string;
   agentPort: number;
-
-  // APIs
   heliusApiKey: string;
   inferenceApiKey: string;
   daydreamsBaseUrl: string;
   reportModel: string;
   maxCompletionTokens: number;
-
-  // Redis
   redisUrl: string;
   cacheTtl: number;
-
-  // Supabase
   supabaseUrl: string;
   supabaseServiceKey: string;
-
-  // Worker
   workerConcurrency: number;
   workerMaxAttempts: number;
   workerBackoffDelay: number;
 }
-
-
-
-

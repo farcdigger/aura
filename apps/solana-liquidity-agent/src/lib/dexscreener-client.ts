@@ -1,20 +1,20 @@
 // apps/solana-liquidity-agent/src/lib/dexscreener-client.ts
 
+import { DexScreenerData } from './types';
+
 /**
  * DexScreener API Client
- * 
- * DexScreener provides FREE API access (no key required!) to DEX data.
+ * * DexScreener provides FREE API access (no key required!) to DEX data.
  * We use it to find the most liquid pool for any token.
- * 
- * Benefits:
+ * * Benefits:
  * - NO API key required (completely free!)
  * - Real-time liquidity data
  * - Supports all major Solana DEXs
  * - Rate limit: ~300 req/min (sufficient)
- * 
- * Docs: https://docs.dexscreener.com/api/reference
+ * * Docs: https://docs.dexscreener.com/api/reference
  */
 
+// API'den dönen ham veri yapısı (Opsiyonel alanlar belirtildi)
 export interface DexScreenerPair {
   chainId: string;
   dexId: string;
@@ -50,14 +50,15 @@ export interface DexScreenerPair {
     h6: number;
     h24: number;
   };
-  liquidity: {
-    usd: number;
-    base: number;
-    quote: number;
+  // Likidite bazen eksik gelebilir veya base/quote detayları olmayabilir
+  liquidity?: {
+    usd?: number;
+    base?: number;
+    quote?: number;
   };
-  fdv: number;
-  marketCap: number;
-  pairCreatedAt: number;
+  fdv?: number;
+  marketCap?: number;
+  pairCreatedAt?: number;
 }
 
 export interface DexScreenerResponse {
@@ -68,13 +69,12 @@ export interface DexScreenerResponse {
 /**
  * Find the most liquid pool for a token using DexScreener API
  * NO API KEY REQUIRED!
- * 
- * @param tokenMint - The token mint address
- * @returns Pool address of the most liquid pool, or null if not found
+ * * @param tokenMint - The token mint address
+ * @returns Pool address of the most liquid pool and details, or null if not found
  */
 export async function findBestPoolViaDexScreener(
   tokenMint: string
-): Promise<{ poolAddress: string; dexLabel: string; liquidityUsd: number } | null> {
+): Promise<DexScreenerData | null> {
   try {
     console.log(`[DexScreener] 🔍 Finding best pool for token: ${tokenMint.slice(0, 8)}...`);
     
@@ -99,7 +99,7 @@ export async function findBestPoolViaDexScreener(
       return null;
     }
     
-    const data: DexScreenerResponse = await response.json();
+    const data = await response.json() as DexScreenerResponse;
     
     if (!data.pairs || data.pairs.length === 0) {
       console.log(`[DexScreener] ⚠️ No pairs found for this token`);
@@ -112,6 +112,7 @@ export async function findBestPoolViaDexScreener(
       const hasToken = 
         pair.baseToken.address.toLowerCase() === tokenMint.toLowerCase() ||
         pair.quoteToken.address.toLowerCase() === tokenMint.toLowerCase();
+      // Liquidity kontrolü güvenli hale getirildi
       const hasLiquidity = pair.liquidity && typeof pair.liquidity.usd === 'number';
       return isSolana && hasToken && hasLiquidity;
     });
@@ -145,7 +146,8 @@ export async function findBestPoolViaDexScreener(
     // Get the most liquid pair
     const bestPair = sortedPairs[0];
     
-    if (!bestPair.pairAddress) {
+    // ✅ HATA DÜZELTME 1: bestPair'in var olup olmadığını kontrol et
+    if (!bestPair || !bestPair.pairAddress) {
       console.log(`[DexScreener] ⚠️ No pool address found`);
       return null;
     }
@@ -153,16 +155,19 @@ export async function findBestPoolViaDexScreener(
     console.log(`[DexScreener] ✅ Best pool found!`);
     console.log(`[DexScreener]    Pool: ${bestPair.pairAddress}`);
     console.log(`[DexScreener]    DEX: ${bestPair.dexId}`);
-    console.log(`[DexScreener]    Liquidity: $${bestPair.liquidity.usd.toLocaleString()}`);
+    // Güvenli erişim (optional chaining)
+    console.log(`[DexScreener]    Liquidity: $${bestPair.liquidity?.usd?.toLocaleString() || '0'}`);
     console.log(`[DexScreener]    24h Volume: $${bestPair.volume.h24.toLocaleString()}`);
     console.log(`[DexScreener]    Pair: ${bestPair.baseToken.symbol}/${bestPair.quoteToken.symbol}`);
     
+    // ✅ HATA DÜZELTME 2: Opsiyonel alanları güvenli bir şekilde al (? ve || operatörleri)
     return {
       poolAddress: bestPair.pairAddress,
       dexLabel: bestPair.dexId,
-      liquidityUsd: bestPair.liquidity.usd,
-      liquidityBase: bestPair.liquidity.base || 0, // Reserve amount for base token
-      liquidityQuote: bestPair.liquidity.quote || 0, // Reserve amount for quote token
+      liquidityUsd: bestPair.liquidity?.usd || 0,
+      priceUsd: bestPair.priceUsd,
+      liquidityBase: bestPair.liquidity?.base || 0,
+      liquidityQuote: bestPair.liquidity?.quote || 0,
       baseToken: bestPair.baseToken,
       quoteToken: bestPair.quoteToken,
     };
@@ -179,4 +184,3 @@ export async function findBestPoolViaDexScreener(
     return null;
   }
 }
-

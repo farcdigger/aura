@@ -1,11 +1,10 @@
 /**
  * BullMQ Worker - Kuyruktan job alıp Solana havuz analizlerini işler
- * 
- * Bu worker:
+ * * Bu worker:
  * - Redis kuyruğundan analiz isteklerini alır
- * - Helius API'den blockchain verileri çeker
+ * - Birdeye ve Fallback (DexScreener) üzerinden veriyi toplar
  * - Daydreams/Anthropic Claude ile analiz yapar
- * - Sonuçları Supabase'e kaydeder ve Redis'e cache'ler
+ * - Sonuçları Supabase'e kaydeder
  */
 
 import 'dotenv/config';
@@ -14,7 +13,7 @@ import type { QueueJobData, AdjustedPoolReserves } from './lib/types';
 import { BirdeyeClient } from './lib/birdeye-client';
 import { buildAnalysisPrompt, validateAnalysisResponse, parseRiskScore } from './lib/claude-prompt';
 import { saveAnalysis } from './lib/supabase';
-import { setCachedAnalysis } from './lib/cache';
+// import { setCachedAnalysis } from './lib/cache'; // Cache devre dışı
 import { redis } from './lib/cache'; // Redis connection'ı paylaşıyoruz
 
 // Environment validation
@@ -84,31 +83,42 @@ async function processAnalysis(job: Job<QueueJobData>) {
     console.warn(`[Job ${job.id}] Failed to increment daily count:`, error.message);
   }
   
+  // ==================================================================================
+  // 1. & 2. POOL VE REZERV VERİLERİNİ TOPLAMA (SCOPE FIX UYGULANDI)
+  // ==================================================================================
+  
+  // ✅ KRİTİK: reserves değişkenini en dış kapsamda tanımlıyoruz.
+  let reserves: AdjustedPoolReserves | null = null;
+
   try {
-    // 1. Pool bilgilerini çek (Birdeye) - Lenient validation
+    // 1. Pool validasyonu (Opsiyonel, log amaçlı)
     console.log(`📡 [Job ${job.id}] Validating pool exists...`);
     const poolExists = await birdeyeClient.validatePoolExists(poolId);
     if (!poolExists) {
-      console.warn(`⚠️ [Job ${job.id}] Pool validation failed, but continuing (may be Pump.fun pool)...`);
+      console.warn(`⚠️ [Job ${job.id}] Pool validation failed (could be Pump.fun), continuing check...`);
     }
     await job.updateProgress(20);
     
-    // 2. Pool reserves çek (Birdeye) - Try to get, but fallback to DexScreener if fails
+    // 2. Birdeye'dan rezerv çekmeyi dene
     console.log(`🔍 [Job ${job.id}] Fetching pool reserves from Birdeye...`);
-    // ✅ KRİTİK: reserves'i en dışarıda tanımla ve null ile başlat (scope hatasını önle)
-    let reserves: AdjustedPoolReserves | null = null;
+    
     try {
+      // Birdeye API çağrısı
       reserves = await birdeyeClient.getPoolData(poolId);
-    } catch (error: any) {
-      console.warn(`⚠️ [Job ${job.id}] Failed to fetch pool data from Birdeye: ${error.message}`);
+      console.log(`✅ [Job ${job.id}] Birdeye reserves fetched successfully.`);
+
+    } catch (birdeyeError: any) {
+      console.warn(`⚠️ [Job ${job.id}] Failed to fetch pool data from Birdeye: ${birdeyeError.message}`);
       console.warn(`⚠️ [Job ${job.id}] Trying DexScreener as fallback for liquidity data...`);
       
-      // Fallback: Get liquidity from DexScreener (FREE API, no rate limit issues!)
+      // ==========================================================================
+      // FALLBACK: DEXSCREENER LOGIC
+      // ==========================================================================
       let liquidityUsd = 0;
       let dexId = 'Unknown';
       let tokenAReserve = 0;
       let tokenBReserve = 0;
-      let tokenAMint = 'So11111111111111111111111111111111111111112'; // SOL default
+      let tokenAMint = 'So11111111111111111111111111111111111111112'; // Default SOL
       let tokenBMint = job.data.tokenMint || 'UNKNOWN';
       
       try {
@@ -116,39 +126,32 @@ async function processAnalysis(job: Job<QueueJobData>) {
           const { findBestPoolViaDexScreener } = await import('./lib/dexscreener-client');
           const dexScreenerData = await findBestPoolViaDexScreener(job.data.tokenMint);
           
-          // ✅ IMPORTANT: Use DexScreener data if pool ID matches OR if it's the best pool for this token
-          // Pool discovery already found the best pool, so we should use DexScreener data for that pool
           if (dexScreenerData) {
-            // Check if DexScreener found the same pool (most likely) or use it anyway if it's the best pool
+            // Pool ID kontrolü
             const poolMatches = dexScreenerData.poolAddress.toLowerCase() === poolId.toLowerCase();
             
             if (poolMatches) {
               console.log(`✅ [Job ${job.id}] DexScreener pool matches job pool ID`);
             } else {
-              console.warn(`⚠️ [Job ${job.id}] DexScreener pool differs from job pool ID`);
-              console.warn(`⚠️ [Job ${job.id}] Job pool: ${poolId}`);
-              console.warn(`⚠️ [Job ${job.id}] DexScreener pool: ${dexScreenerData.poolAddress}`);
-              console.warn(`⚠️ [Job ${job.id}] Using DexScreener pool data anyway (it's the best pool for this token)`);
+              console.warn(`⚠️ [Job ${job.id}] DexScreener pool differs but using as best alternative.`);
             }
             
             liquidityUsd = dexScreenerData.liquidityUsd || 0;
             dexId = dexScreenerData.dexLabel || 'Unknown';
             
-            // ✅ Use DexScreener reserve amounts if available
+            // Token adreslerini eşleştirme ve rezerv atama
             if (dexScreenerData.baseToken && dexScreenerData.quoteToken) {
-              // Determine which token is which based on addresses
               const requestedToken = job.data.tokenMint.toLowerCase();
               const baseTokenAddress = dexScreenerData.baseToken.address.toLowerCase();
-              const quoteTokenAddress = dexScreenerData.quoteToken.address.toLowerCase();
               
               if (baseTokenAddress === requestedToken) {
-                // Requested token is base token
+                // Requested token is base
                 tokenBMint = dexScreenerData.baseToken.address;
                 tokenAMint = dexScreenerData.quoteToken.address;
                 tokenBReserve = dexScreenerData.liquidityBase || 0;
                 tokenAReserve = dexScreenerData.liquidityQuote || 0;
               } else {
-                // Requested token is quote token
+                // Requested token is quote
                 tokenBMint = dexScreenerData.quoteToken.address;
                 tokenAMint = dexScreenerData.baseToken.address;
                 tokenBReserve = dexScreenerData.liquidityQuote || 0;
@@ -157,188 +160,118 @@ async function processAnalysis(job: Job<QueueJobData>) {
             }
             
             console.log(`✅ [Job ${job.id}] DexScreener provided liquidity data: $${liquidityUsd.toLocaleString()}`);
-            console.log(`✅ [Job ${job.id}] Reserve amounts: Token A=${tokenAReserve.toLocaleString()}, Token B=${tokenBReserve.toLocaleString()}`);
-          } else {
-            console.warn(`⚠️ [Job ${job.id}] DexScreener returned no data for token`);
           }
         }
       } catch (dexError: any) {
         console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
       }
       
-      // Calculate LP supply from reserves (simplified AMM formula)
-      // LP supply ≈ sqrt(tokenA * tokenB) for constant product AMMs
+      // LP Supply Tahmini Hesaplama
       let lpSupply: string | undefined = undefined;
       if (tokenAReserve > 0 && tokenBReserve > 0) {
         const calculatedLP = Math.sqrt(tokenAReserve * tokenBReserve);
         lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
       }
       
-      // Create reserves object with DexScreener liquidity and reserves
+      // ✅ KRİTİK: Dışarıdaki 'reserves' değişkenine atama yapıyoruz
       reserves = {
         tokenAMint: tokenAMint,
         tokenBMint: tokenBMint,
-        tokenAReserve: tokenAReserve, // ✅ Use DexScreener reserve amounts
-        tokenBReserve: tokenBReserve, // ✅ Use DexScreener reserve amounts
-        tvlUSD: liquidityUsd, // ✅ Use DexScreener liquidity as TVL
-        lpSupply, // ✅ Calculate LP supply from reserves
+        tokenAReserve: tokenAReserve,
+        tokenBReserve: tokenBReserve,
+        tvlUSD: liquidityUsd,
+        lpSupply,
         poolStatus: 'Active',
         poolType: dexId,
       };
       
-      console.log(`📊 [Job ${job.id}] Fallback reserves created with TVL: $${liquidityUsd.toLocaleString()}, Reserves: A=${tokenAReserve.toLocaleString()}, B=${tokenBReserve.toLocaleString()}`);
+      console.log(`📊 [Job ${job.id}] Fallback reserves created successfully.`);
     }
-    
-    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (scope hatasını önle)
+
+    // ✅ CHECK: Reserves verisi oluştu mu?
     if (!reserves) {
-      throw new Error('Failed to fetch pool reserves from both Birdeye and DexScreener. Cannot proceed with analysis.');
+      throw new Error('Failed to fetch pool reserves from both Birdeye and DexScreener. Cannot proceed.');
     }
-    
-    // ✅ KRİTİK: reserves'in artık null olmadığından emin ol (TypeScript type narrowing)
-    // Bu satırdan sonra reserves kesinlikle AdjustedPoolReserves tipinde
+
+    // TypeScript için Type Narrowing: Artık reserves null olamaz
+    const finalReserves = reserves as AdjustedPoolReserves;
     
     await job.updateProgress(30);
     
-    // 3. Token metadata (Birdeye)
-    console.log(`🪙 [Job ${job.id}] Fetching token metadata from Birdeye...`);
+    // ==================================================================================
+    // 3. TOKEN METADATA
+    // ==================================================================================
+    console.log(`🪙 [Job ${job.id}] Fetching token metadata...`);
     const [tokenA, tokenB] = await Promise.all([
-      birdeyeClient.getTokenMetadata(reserves.tokenAMint),
-      birdeyeClient.getTokenMetadata(reserves.tokenBMint),
+      birdeyeClient.getTokenMetadata(finalReserves.tokenAMint),
+      birdeyeClient.getTokenMetadata(finalReserves.tokenBMint),
     ]);
     await job.updateProgress(40);
     
-    // 4. Transaction history çek (Birdeye)
-    console.log(`📊 [Job ${job.id}] Fetching transaction history from Birdeye...`);
-    console.log(`📊 [Job ${job.id}] Target: ${options?.transactionLimit || 10000} swaps`);
-    const txLimit = options?.transactionLimit || 10000; // Production: 10,000 swaps (Lite plan)
+    // ==================================================================================
+    // 4. TRANSACTION HISTORY
+    // ==================================================================================
+    console.log(`📊 [Job ${job.id}] Fetching transaction history...`);
+    const txLimit = options?.transactionLimit || 10000;
     
     const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
     
-    // Detailed swap statistics
-    console.log(`\n📊 [Job ${job.id}] ========== SWAP DATA SUMMARY ==========`);
-    console.log(`📊 [Job ${job.id}] Total Swaps Fetched: ${swaps.length}`);
-    
-    // ⚠️ CRITICAL: NO SWAP DATA = NO AI ANALYSIS (prevents wasting API credits)
+    // İşlem kontrolü
     if (swaps.length === 0) {
-      console.error(`❌ [Job ${job.id}] ========================================`);
-      console.error(`❌ [Job ${job.id}] NO SWAP DATA - ABORTING ANALYSIS`);
-      console.error(`❌ [Job ${job.id}] ========================================`);
-      console.error(`❌ [Job ${job.id}] Reasons this might happen:`);
-      console.error(`❌ [Job ${job.id}]   1. Pool has no trading activity`);
-      console.error(`❌ [Job ${job.id}]   2. Birdeye API endpoint doesn't support this pool type`);
-      console.error(`❌ [Job ${job.id}]   3. Birdeye Standard plan doesn't support swap endpoints`);
-      console.error(`❌ [Job ${job.id}]   4. Wrong pool address or token mint`);
-      console.error(`❌ [Job ${job.id}] ========================================`);
       throw new Error('No swap data available for analysis. Cannot proceed without transaction history.');
     }
     
-    if (swaps.length > 0) {
-      const swapsWithUsd = swaps.filter(s => s.amountInUsd !== undefined || s.amountOutUsd !== undefined);
-      const totalUsdVolume = swaps.reduce((sum, s) => sum + (s.amountInUsd || s.amountOutUsd || 0), 0);
-      const buyCount = swaps.filter(s => s.direction === 'buy').length;
-      const sellCount = swaps.filter(s => s.direction === 'sell').length;
-      const uniqueWallets = new Set(swaps.map(s => s.wallet)).size;
-      
-      console.log(`📊 [Job ${job.id}] Swaps with USD data: ${swapsWithUsd.length}/${swaps.length} (${((swapsWithUsd.length / swaps.length) * 100).toFixed(1)}%)`);
-      console.log(`📊 [Job ${job.id}] Total USD Volume: $${totalUsdVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-      console.log(`📊 [Job ${job.id}] Buy/Sell Distribution: ${buyCount} buys (${((buyCount / swaps.length) * 100).toFixed(1)}%) / ${sellCount} sells (${((sellCount / swaps.length) * 100).toFixed(1)}%)`);
-      console.log(`📊 [Job ${job.id}] Unique Wallets: ${uniqueWallets}`);
-      
-      // Top 5 wallets by USD volume
-      const walletVolumes = new Map<string, number>();
-      swaps.forEach(s => {
-        const volume = s.amountInUsd || s.amountOutUsd || 0;
-        walletVolumes.set(s.wallet, (walletVolumes.get(s.wallet) || 0) + volume);
-      });
-      
-      const topWallets = Array.from(walletVolumes.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-      
-      if (topWallets.length > 0) {
-        console.log(`📊 [Job ${job.id}] Top 5 Wallets by USD Volume:`);
-        topWallets.forEach(([wallet, volume], i) => {
-          const walletSwaps = swaps.filter(s => s.wallet === wallet);
-          const walletBuys = walletSwaps.filter(s => s.direction === 'buy').length;
-          const walletSells = walletSwaps.filter(s => s.direction === 'sell').length;
-          console.log(`📊 [Job ${job.id}]   ${i + 1}. ${wallet.substring(0, 8)}...${wallet.substring(wallet.length - 4)}: $${volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${walletSwaps.length} swaps: ${walletBuys}B/${walletSells}S)`);
-        });
-      }
-      
-      // Sample swaps (first 3)
-      console.log(`📊 [Job ${job.id}] Sample Swaps (first 3):`);
-      swaps.slice(0, 3).forEach((swap, i) => {
-        const date = new Date(swap.timestamp);
-        const usdAmount = swap.amountInUsd || swap.amountOutUsd || 0;
-        console.log(`📊 [Job ${job.id}]   ${i + 1}. ${swap.direction.toUpperCase()} | Wallet: ${swap.wallet.substring(0, 8)}... | USD: $${usdAmount.toFixed(2)} | Time: ${date.toISOString()}`);
-      });
-    } else {
-      console.warn(`⚠️ [Job ${job.id}] ⚠️ NO SWAPS FETCHED! This may indicate:`);
-      console.warn(`⚠️ [Job ${job.id}]    - Pool has no swap history`);
-      console.warn(`⚠️ [Job ${job.id}]    - Birdeye API endpoint issue`);
-      console.warn(`⚠️ [Job ${job.id}]    - Standard plan may not support this endpoint`);
-    }
-    console.log(`📊 [Job ${job.id}] ===========================================\n`);
+    console.log(`📊 [Job ${job.id}] Swaps Fetched: ${swaps.length}`);
     
-    // Convert swaps to TransactionSummary format
+    // Transaction özeti oluşturma
     const { analyzeTransactions } = await import('./lib/transaction-parser');
     const transactions = analyzeTransactions(swaps);
     
-    console.log(`📊 [Job ${job.id}] Transaction Analysis Results:`);
-    console.log(`📊 [Job ${job.id}]    - Total: ${transactions.totalCount}`);
-    console.log(`📊 [Job ${job.id}]    - Buys: ${transactions.buyCount} (${((transactions.buyCount / transactions.totalCount) * 100).toFixed(1)}%)`);
-    console.log(`📊 [Job ${job.id}]    - Sells: ${transactions.sellCount} (${((transactions.sellCount / transactions.totalCount) * 100).toFixed(1)}%)`);
-    console.log(`📊 [Job ${job.id}]    - Avg Volume USD: $${transactions.avgVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-    console.log(`📊 [Job ${job.id}]    - Unique Wallets: ${transactions.uniqueWallets || 0}`);
-    console.log(`📊 [Job ${job.id}]    - Top Wallet Share: ${transactions.topWallets[0]?.volumeShare.toFixed(1) || 0}%`);
+    console.log(`📊 [Job ${job.id}] Transaction Analysis: ${transactions.buyCount} Buys / ${transactions.sellCount} Sells`);
     
     await job.updateProgress(60);
     
-    // 4.5. PHASE 3: Historical trend analysis (7 days)
+    // ==================================================================================
+    // 4.5. PHASE 3: HISTORICAL TRENDS & RISK SCORING
+    // ==================================================================================
     console.log(`📈 [Job ${job.id}] PHASE 3: Analyzing historical trend...`);
     let poolHistory: any = undefined;
     try {
       const { getPoolHistoryTrend } = await import('./lib/pool-history');
       const { supabase } = await import('./lib/supabase');
       poolHistory = await getPoolHistoryTrend(supabase, poolId, 7);
-      console.log(`📈 [Job ${job.id}] ✅ Historical trend: ${poolHistory.tvl.trend} TVL, ${poolHistory.volume.trend} volume`);
     } catch (error: any) {
-      console.warn(`[Job ${job.id}] ⚠️ Historical trend analysis failed: ${error.message}`);
-      // Continue without historical data
+      console.warn(`[Job ${job.id}] Historical trend analysis failed (non-fatal): ${error.message}`);
     }
-    await job.updateProgress(65);
     
-    // 4.6. PHASE 3: Algorithmic risk scoring
     console.log(`🎯 [Job ${job.id}] PHASE 3: Calculating algorithmic risk score...`);
     let riskScoreBreakdown: any = undefined;
     try {
       const { calculateRiskScore } = await import('./lib/risk-scorer');
-      riskScoreBreakdown = calculateRiskScore(reserves, tokenA, tokenB, transactions, poolHistory);
-      console.log(`🎯 [Job ${job.id}] ✅ Algorithmic risk: ${riskScoreBreakdown.totalScore}/100 (${riskScoreBreakdown.riskLevel})`);
+      // Burada 'finalReserves' kullanıyoruz, kesinlikle tanımlı
+      riskScoreBreakdown = calculateRiskScore(finalReserves, tokenA, tokenB, transactions, poolHistory);
+      console.log(`🎯 [Job ${job.id}] Algorithmic risk: ${riskScoreBreakdown.totalScore}/100`);
     } catch (error: any) {
-      console.warn(`[Job ${job.id}] ⚠️ Risk scoring failed: ${error.message}`);
-      // Continue without risk breakdown
+      console.warn(`[Job ${job.id}] Risk scoring failed (non-fatal): ${error.message}`);
     }
+    
     await job.updateProgress(70);
     
-    // 5. Claude prompt oluştur
+    // ==================================================================================
+    // 5. CLAUDE AI ANALYSIS
+    // ==================================================================================
     console.log(`🤖 [Job ${job.id}] Building AI analysis prompt...`);
     
-    // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol (buildAnalysisPrompt'a geçmeden önce)
-    if (!reserves) {
-      throw new Error('reserves is undefined. Cannot build analysis prompt without pool reserves data.');
-    }
-    
+    // Prompt oluştururken kesinlikle tanımlı olan 'finalReserves' kullanılıyor
     const prompt = buildAnalysisPrompt({
       poolId,
       tokenA,
       tokenB,
-      reserves, // Now includes TVL, pool health, etc.
+      reserves: finalReserves, // ✅ Scope hatası düzeltildi
       transactions,
-      poolHistory, // PHASE 3: Historical trend
+      poolHistory,
     });
     
-    // 6. Claude'a gönder (Daydreams Inference API - using fetch like yama-agent)
     console.log(`🧠 [Job ${job.id}] Sending to AI for analysis...`);
     const model = process.env.REPORT_MODEL || 'openai/gpt-4o';
     const maxTokens = parseInt(process.env.MAX_COMPLETION_TOKENS || '4096', 10);
@@ -376,56 +309,48 @@ async function processAnalysis(job: Job<QueueJobData>) {
     
     await job.updateProgress(80);
     
-    // 7. Yanıtı parse et ve validate et
+    // ==================================================================================
+    // 7. RESPONSE PARSING & SAVING
+    // ==================================================================================
     console.log(`✅ [Job ${job.id}] Parsing AI response...`);
     const rawResponse = result.choices?.[0]?.message?.content || '';
     
-    // Validate the response
+    // Validate response
     const validation = validateAnalysisResponse(rawResponse);
     if (!validation.isValid) {
       console.warn(`[Job ${job.id}] Analysis missing sections:`, validation.missingSections);
     }
     
-    // Parse risk score from response
     const riskScore = parseRiskScore(rawResponse);
     
-    // Build complete AnalysisResult object
+    // Build final result object
     const analysisResult = {
       poolId,
       tokenA,
       tokenB,
-      reserves,
+      reserves: finalReserves,
       transactions,
       riskAnalysis: rawResponse,
       riskScore,
       generatedAt: new Date().toISOString(),
       modelUsed: model,
-      poolHistory, // PHASE 3: Historical trend
-      riskScoreBreakdown, // PHASE 3: Algorithmic risk score
+      poolHistory,
+      riskScoreBreakdown,
     };
     
-    // 8. Supabase'e kaydet
+    // Save to Supabase
     console.log(`💾 [Job ${job.id}] Saving to Supabase...`);
-    // Normalize userWallet to lowercase before saving
     const normalizedUserWallet = userWallet ? userWallet.toLowerCase().trim() : undefined;
-    console.log(`💾 [Job ${job.id}] Saving with userWallet: ${normalizedUserWallet || 'NULL'}`);
-    console.log(`💾 [Job ${job.id}] Original userWallet: ${userWallet || 'NULL'}`);
     const savedRecord = await saveAnalysis(analysisResult, userId, normalizedUserWallet);
     
     if (!savedRecord) {
       throw new Error('Failed to save analysis to database');
     }
     
-    // ❌ CACHE REMOVED: No caching, always fresh data
-    console.log(`✅ [Job ${job.id}] Analysis completed (no cache, always fresh)`);
-    
     await job.updateProgress(100);
+    console.log(`✅ [Job ${job.id}] Analysis completed successfully! Record ID: ${savedRecord.id}`);
     
-    console.log(`✅ [Job ${job.id}] Analysis completed successfully!`);
-    console.log(`📄 Record ID: ${savedRecord.id}`);
-    console.log(`⚠️  Risk Score: ${analysisResult.riskScore}/100`);
-    
-    // Helper function to serialize BigInt values
+    // Helper function for serialization
     const serializeBigInt = (obj: any): any => {
       if (obj === null || obj === undefined) return obj;
       if (typeof obj === 'bigint') return obj.toString();
@@ -442,7 +367,6 @@ async function processAnalysis(job: Job<QueueJobData>) {
       return obj;
     };
     
-    // Job sonucu - BigInt'leri serialize et
     return {
       success: true,
       recordId: savedRecord.id,
@@ -452,17 +376,11 @@ async function processAnalysis(job: Job<QueueJobData>) {
     };
     
   } catch (error: any) {
-    console.error(`❌ [Job ${job.id}] Analysis failed:`, error.message);
-    
-    // Detaylı hata logging
+    console.error(`❌ [Job ${job.id}] Analysis process error:`, error.message);
     if (error.response) {
-      console.error('API Error Response:', {
-        status: error.response.status,
-        data: error.response.data,
-      });
+      console.error('API Error details:', error.response.data);
     }
-    
-    throw error; // BullMQ retry mekanizması devreye girecek
+    throw error;
   }
 }
 
@@ -470,30 +388,24 @@ async function processAnalysis(job: Job<QueueJobData>) {
  * Worker instance oluştur
  */
 const worker = new Worker<QueueJobData>(
-  'pool-analysis', // Queue ismi (queue.ts ile aynı olmalı)
+  'pool-analysis', // Queue ismi
   processAnalysis,
   {
-    connection: redis, // Redis bağlantısını paylaş
+    connection: redis,
     concurrency: WORKER_CONFIG.concurrency,
     lockDuration: WORKER_CONFIG.lockDuration,
     lockRenewTime: WORKER_CONFIG.lockRenewTime,
-    maxStalledCount: 2, // 2 kez stall olursa job fail
-    stalledInterval: 30000, // 30 saniyede bir stalled job kontrolü
+    maxStalledCount: 2,
+    stalledInterval: 30000,
   }
 );
 
 /**
  * Event Listeners
  */
-
 worker.on('ready', () => {
   console.log('🚀 Worker is ready and waiting for jobs...');
   console.log(`⚙️  Concurrency: ${WORKER_CONFIG.concurrency}`);
-  console.log(`🔒 Lock Duration: ${WORKER_CONFIG.lockDuration / 1000}s`);
-  console.log(`🤖 Model: ${process.env.REPORT_MODEL || 'openai/gpt-4o'}`);
-  console.log(`📊 Transaction Limit: 10,000 swaps (Lite plan)`);
-  console.log(`⚡ Rate Limit: 15 RPS (Lite plan)`);
-  console.log(`📅 Weekly Limit: 140 reports/week`);
 });
 
 worker.on('active', (job) => {
@@ -502,26 +414,10 @@ worker.on('active', (job) => {
 
 worker.on('completed', (job, result) => {
   console.log(`\n✅ [Job ${job.id}] Completed in ${Date.now() - job.timestamp}ms`);
-  console.log(`   Pool: ${result.poolId}`);
-  console.log(`   Risk Score: ${result.riskScore}/100`);
 });
 
 worker.on('failed', (job, err) => {
-  if (job) {
-    console.error(`\n❌ [Job ${job.id}] Failed after ${job.attemptsMade} attempts`);
-    console.error(`   Error: ${err.message}`);
-    console.error(`   Pool: ${job.data.poolId}`);
-  } else {
-    console.error(`\n❌ Job failed: ${err.message}`);
-  }
-});
-
-worker.on('progress', (job, progress) => {
-  console.log(`   📈 [Job ${job.id}] Progress: ${progress}%`);
-});
-
-worker.on('stalled', (jobId) => {
-  console.warn(`⚠️  [Job ${jobId}] Stalled! Retrying...`);
+  console.error(`\n❌ [Job ${job ? job.id : 'unknown'}] Failed: ${err.message}`);
 });
 
 worker.on('error', (err) => {
@@ -532,18 +428,11 @@ worker.on('error', (err) => {
  * Graceful Shutdown
  */
 const shutdown = async (signal: string) => {
-  console.log(`\n\n🛑 Received ${signal}, shutting down gracefully...`);
-  
+  console.log(`\n🛑 Received ${signal}, shutting down...`);
   try {
-    // Worker'ı durdur (aktif job'ları bitirmesine izin ver)
     await worker.close();
-    console.log('✅ Worker closed');
-    
-    // Redis bağlantısını kapat
     await redis.quit();
-    console.log('✅ Redis connection closed');
-    
-    console.log('👋 Goodbye!');
+    console.log('✅ Shutdown complete');
     process.exit(0);
   } catch (error: any) {
     console.error('❌ Error during shutdown:', error.message);
@@ -551,21 +440,7 @@ const shutdown = async (signal: string) => {
   }
 };
 
-// Signal handlers
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-// Unhandled rejection handler
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise);
-  console.error('💥 Reason:', reason);
-  // Production'da process.exit(1) yapılabilir
-});
-
-console.log('🎯 Solana Liquidity Analysis Worker');
-console.log('====================================');
-console.log(`📅 Started at: ${new Date().toISOString()}`);
-console.log(`🔧 Node/Bun Version: ${process.version}`);
-console.log(`💻 Platform: ${process.platform}`);
-console.log('');
-
+console.log('🎯 Solana Liquidity Analysis Worker Started');

@@ -37,20 +37,21 @@ export function buildAnalysisPrompt(params: {
   const sellRatio = totalTransactions > 0 ? (transactions.sellCount / totalTransactions) * 100 : 0;
   
   // Calculate total USD volume (buy + sell)
+  // 'volumeUSD' types.ts içinde tanımlı olmalı
   const totalUsdVolume = transactions.topWallets.reduce((sum, w) => sum + (w.volumeUSD || 0), 0);
   const avgTransactionSize = totalUsdVolume > 0 && totalTransactions > 0 ? totalUsdVolume / totalTransactions : 0;
   
   // Calculate buy vs sell USD volume (not just count)
   const buyVolumeUSD = transactions.topWallets.reduce((sum, w) => {
     // Estimate: if wallet has more buys, assume most volume is from buys
+    // 'buyCount' ve 'sellCount' types.ts içinde tanımlı olmalı
     const buyVolumeEstimate = w.buyCount > w.sellCount ? (w.volumeUSD || 0) * (w.buyCount / (w.buyCount + w.sellCount)) : 0;
     return sum + buyVolumeEstimate;
   }, 0);
   const sellVolumeUSD = totalUsdVolume - buyVolumeUSD;
   const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
   
-  // Calculate liquidity-to-market-cap ratio (estimate market cap from TVL)
-  // For memecoins, market cap is often 3-5x TVL (rough estimate)
+  // Calculate liquidity-to-market-cap ratio
   const tvlUSD = reserves?.tvlUSD || 0;
   const estimatedMarketCap = tvlUSD > 0 ? tvlUSD * 3.5 : 0; // Conservative estimate
   const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (tvlUSD / estimatedMarketCap) * 100 : 0;
@@ -58,18 +59,19 @@ export function buildAnalysisPrompt(params: {
   // Calculate wallet diversity metrics
   const uniqueWallets = transactions.uniqueWallets;
   const avgTradesPerWallet = uniqueWallets > 0 ? totalTransactions / uniqueWallets : 0;
+  // 'txCount' types.ts içinde tanımlı olmalı
   const newWalletRatio = transactions.topWallets.filter(w => w.txCount <= 2).length / Math.max(uniqueWallets, 1) * 100;
   
   // Calculate time-based metrics
   const timeRangeDays = transactions.timeRange 
-    ? (transactions.timeRange.latest.getTime() - transactions.timeRange.earliest.getTime()) / (1000 * 60 * 60 * 24)
+    ? (new Date(transactions.timeRange.latest).getTime() - new Date(transactions.timeRange.earliest).getTime()) / (1000 * 60 * 60 * 24)
     : 0;
   const avgDailyTransactions = timeRangeDays > 0 ? totalTransactions / timeRangeDays : 0;
   const avgDailyVolume = timeRangeDays > 0 ? totalUsdVolume / timeRangeDays : 0;
   
   // Time range info
   const timeRangeText = transactions.timeRange
-    ? `${transactions.timeRange.earliest.toISOString()} to ${transactions.timeRange.latest.toISOString()}`
+    ? `${new Date(transactions.timeRange.earliest).toISOString()} to ${new Date(transactions.timeRange.latest).toISOString()}`
     : 'Not available';
 
   // Top wallet concentration
@@ -79,7 +81,7 @@ export function buildAnalysisPrompt(params: {
     .map((w, i) => `${i + 1}. ${w.address.substring(0, 8)}... - ${w.txCount} transactions (${w.volumeShare.toFixed(1)}% of volume)`)
     .join('\n');
 
-  // High-value buyers and sellers analysis
+  // High-value buyers and sellers analysis (SAFE CHECK EKLENDİ)
   const highValueBuyersText = transactions.highValueBuyers && transactions.highValueBuyers.length > 0
     ? transactions.highValueBuyers.slice(0, 10).map((buyer, i) => {
         const soldAfter = buyer.hasSoldAfterBuy 
@@ -98,7 +100,7 @@ export function buildAnalysisPrompt(params: {
       }).join('\n')
     : 'No high-value sellers detected (threshold: 5x average transaction size)';
 
-  // PHASE 3: Wallet Profiles
+  // PHASE 3: Wallet Profiles (SAFE CHECK EKLENDİ)
   const walletProfilesSection = transactions.walletProfiles && transactions.walletProfiles.length > 0
     ? `\n\n**🔍 WALLET PROFILES (Advanced Analysis - Phase 3):**
 
@@ -172,7 +174,6 @@ ${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk
     : '✅ No mint authority detected';
 
   // Pool health section (NEW)
-  // Check if LP supply is actually zero (not just missing)
   const lpSupplyValue = reserves?.lpSupply;
   const hasZeroLP = lpSupplyValue === '0' || lpSupplyValue === '0.00' || (lpSupplyValue && parseFloat(lpSupplyValue) === 0);
   const hasValidLP = lpSupplyValue && !hasZeroLP;
@@ -317,7 +318,7 @@ ${advancedMetricsSection}
 
 **🔍 CRITICAL ANALYSIS REQUIRED:**
 - If buy COUNT is high but buy VOLUME is low → Small retail traders (could be FOMO or bots)
-- If buy COUNT is low but buy VOLUME is high → Whale accumulation (could be bullish or manipulation)
+- If buy COUNT is low but buy VOLUME is high → Whale accumulation (could be bullish OR manipulation)
 - If both are high → Strong organic interest
 - If both are low → Low activity, high risk
 
@@ -629,4 +630,3 @@ Based on automated checks, this pool has a risk score of ${riskScore}/100. Pleas
 
   return { analysis, riskScore };
 }
-
