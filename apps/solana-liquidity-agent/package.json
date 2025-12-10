@@ -5,6 +5,8 @@
   "type": "module",
   "description": "AI-powered Raydium liquidity pool analyzer with Helius integration",
   "scripts": {
+    "clean": "rm -rf api dist node_modules/.cache",
+    "prebuild": "bun run clean",
     "dev": "bun run --watch src/index.ts",
     "worker": "bun run --watch src/worker.ts",
     "start": "bun run src/index.ts",
