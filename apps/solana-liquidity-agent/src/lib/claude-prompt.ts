@@ -21,11 +21,20 @@ export function buildAnalysisPrompt(params: {
   transactions: TransactionSummary;
   poolHistory?: PoolHistoryTrend;
 }): string {
+  // ✅ KRİTİK KONTROL: params ve reserves'in tanımlı olduğundan emin ol
+  if (!params) {
+    throw new Error('params parameter is required but was not provided to buildAnalysisPrompt');
+  }
+  if (!params.reserves) {
+    throw new Error('reserves parameter is required but was not provided to buildAnalysisPrompt');
+  }
+  
+  // ✅ Güvenli destructuring - reserves'i ayrı bir değişkene al
   const { poolId, tokenA, tokenB, reserves, transactions, poolHistory } = params;
   
-  // ✅ KRİTİK KONTROL: reserves'in tanımlı olduğundan emin ol
-  if (!reserves) {
-    throw new Error('reserves parameter is required but was not provided to buildAnalysisPrompt');
+  // ✅ Ekstra kontrol: reserves'in gerçekten bir obje olduğundan emin ol
+  if (typeof reserves !== 'object' || reserves === null) {
+    throw new Error('reserves must be a valid object but received: ' + typeof reserves);
   }
   
   // ============================================================================
@@ -173,22 +182,29 @@ ${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk
     ? '⚠️ WARNING: One or both tokens have MINT AUTHORITY enabled - supply can be inflated!'
     : '✅ No mint authority detected';
 
-  // Pool health section (NEW)
+  // Pool health section (NEW) - ✅ TÜM reserves DEĞERLERİNİ YEREL DEĞİŞKENLERE ÇIKARDIK
+  const poolType = reserves?.poolType || 'Raydium AMM V4';
+  const poolStatus = reserves?.poolStatus || 'Active';
+  const feeInfo = reserves?.feeInfo || '0.25% (standard)';
+  const tokenAReserve = reserves?.tokenAReserve || 0;
+  const tokenBReserve = reserves?.tokenBReserve || 0;
   const lpSupplyValue = reserves?.lpSupply;
   const hasZeroLP = lpSupplyValue === '0' || lpSupplyValue === '0.00' || (lpSupplyValue && parseFloat(lpSupplyValue) === 0);
   const hasValidLP = lpSupplyValue && !hasZeroLP;
+  const isPoolDisabled = poolStatus === 'Disabled';
+  const hasActiveLiquidity = hasValidLP && tokenAReserve > 0 && tokenBReserve > 0;
   
   const poolHealthSection = `
 ## 🏊 POOL HEALTH METRICS
 
-**Pool Type:** ${reserves?.poolType || 'Raydium AMM V4'}
-**Pool Status:** ${reserves?.poolStatus || 'Active'}
-**LP Token Supply:** ${hasValidLP ? lpSupplyValue : 'Not available (calculated from reserves)'}
-**Swap Fee:** ${reserves?.feeInfo || '0.25% (standard)'}
+**Pool Type:** ${poolType}
+**Pool Status:** ${poolStatus}
+**LP Token Supply:** ${hasValidLP ? lpSupplyValue : 'Not available (calculated from pool reserves)'}
+**Swap Fee:** ${feeInfo}
 
 **Liquidity Depth:**
-- **${tokenA.symbol} Reserve:** ${reserves?.tokenAReserve?.toLocaleString() || '0'} tokens
-- **${tokenB.symbol} Reserve:** ${reserves?.tokenBReserve?.toLocaleString() || '0'} tokens
+- **${tokenA.symbol} Reserve:** ${tokenAReserve.toLocaleString()} tokens
+- **${tokenB.symbol} Reserve:** ${tokenBReserve.toLocaleString()} tokens
 ${tvlUSD > 0 ? `- **Estimated TVL:** $${tvlUSD.toLocaleString()} USD` : '- **Estimated TVL:** Not available (price data pending)'}
 
 **Liquidity Risk Interpretation:**
@@ -198,9 +214,9 @@ ${tvlUSD > 0 ? `- **Estimated TVL:** $${tvlUSD.toLocaleString()} USD` : '- **Est
 - **Very low liquidity (<$10K):** CRITICAL: Very high slippage risk
 - **Zero LP supply:** CRITICAL: Pool may be drained or inactive
 
-${reserves?.poolStatus === 'Disabled' ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
+${isPoolDisabled ? '🚨 **WARNING:** This pool is currently DISABLED by authority!' : ''}
 ${hasZeroLP ? '🚨 **WARNING:** Zero LP supply detected - pool may be inactive or drained!' : ''}
-${hasValidLP && reserves?.tokenAReserve > 0 && reserves?.tokenBReserve > 0 ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
+${hasActiveLiquidity ? '✅ **LP supply and reserves indicate active liquidity**' : ''}
 `;
 
   // Build advanced metrics section
