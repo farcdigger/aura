@@ -435,17 +435,17 @@ Memecoins have DIFFERENT normal behaviors than established tokens. When assessin
 
 Write your report in this exact format:
 
-### 1. RISK SCORE (Required - First Line)
-**Token:** ${tokenA.symbol} / ${tokenB.symbol}
+**CRITICAL:** The risk score must be on the FIRST LINE ONLY, in the format "Risk Score: [NUMBER]". Do NOT include the risk score anywhere else in the report. Do NOT create a "RISK SCORE" section header. The risk score is only for internal parsing and should not be displayed prominently in the report content.
 
-Give a number from 0-100:
+**First Line (Required - Parse Only):**
+Risk Score: [NUMBER from 0-100]
+
+**Scoring Guidelines:**
 - **0-20:** Very Safe (You can probably trust this)
 - **21-40:** Mostly Safe (Small concerns, but probably okay)
 - **41-60:** Be Careful (Some warning signs, but could be normal for memecoins)
 - **61-80:** Dangerous (Lots of red flags)
 - **81-100:** Very Dangerous (Strong scam/rug pull signs)
-
-**Format:** Risk Score: [NUMBER]
 
 **IMPORTANT:** For new memecoins, many "suspicious" patterns are NORMAL:
 - Low transaction sizes ($5-50) = normal retail activity
@@ -453,10 +453,14 @@ Give a number from 0-100:
 - High sell ratio = normal profit-taking after pump
 - Don't automatically mark everything as "dangerous" - analyze context!
 
-### 2. QUICK SUMMARY (2-3 sentences)
+---
+
+## Token Analysis Report: ${tokenA.symbol} / ${tokenB.symbol} (${tokenA.name})
+
+### 1. QUICK SUMMARY (2-3 sentences)
 Give a BALANCED overview: What are the main risks AND opportunities? Is this token safe? What's the biggest concern AND what's positive?
 
-### 3. WHAT YOU NEED TO KNOW
+### 2. WHAT YOU NEED TO KNOW
 
 Write this section in simple language. Explain each point like you're talking to someone who's new to crypto:
 
