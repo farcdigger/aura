@@ -37,6 +37,18 @@ export function buildAnalysisPrompt(params: {
     throw new Error('reserves must be a valid object but received: ' + typeof reserves);
   }
   
+  // ✅ DETAYLI LOG: Reserves verilerini logla (Railway için)
+  console.log('[buildAnalysisPrompt] ✅ Reserves data received:', {
+    tokenAMint: reserves?.tokenAMint?.substring(0, 8) + '...',
+    tokenBMint: reserves?.tokenBMint?.substring(0, 8) + '...',
+    tokenAReserve: reserves?.tokenAReserve,
+    tokenBReserve: reserves?.tokenBReserve,
+    tvlUSD: reserves?.tvlUSD,
+    poolType: reserves?.poolType,
+    poolStatus: reserves?.poolStatus,
+    hasLpSupply: !!reserves?.lpSupply,
+  });
+  
   // ============================================================================
   // ADVANCED FEATURE ENGINEERING - Calculate derived metrics for deep analysis
   // ============================================================================
@@ -194,12 +206,15 @@ ${poolHistory.risk.historicalAvg ? `- **Historical Average:** ${poolHistory.risk
   const isPoolDisabled = poolStatus === 'Disabled';
   const hasActiveLiquidity = hasValidLP && tokenAReserve > 0 && tokenBReserve > 0;
   
+  // ✅ DÜZELTME: Nested string'i escape ediyoruz - 'reserves' kelimesi string içinde güvenli
+  const lpSupplyText = hasValidLP ? lpSupplyValue : 'Not available (calculated from pool reserves)';
+  
   const poolHealthSection = `
 ## 🏊 POOL HEALTH METRICS
 
 **Pool Type:** ${poolType}
 **Pool Status:** ${poolStatus}
-**LP Token Supply:** ${hasValidLP ? lpSupplyValue : 'Not available (calculated from pool reserves)'}
+**LP Token Supply:** ${lpSupplyText}
 **Swap Fee:** ${feeInfo}
 
 **Liquidity Depth:**
