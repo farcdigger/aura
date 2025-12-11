@@ -10,4 +10,4 @@ cmds = [
 cmds = []
 
 [start]
-cmd = "bun run src/index.ts & bun run src/worker.ts"
+cmd = "bun run src/start.ts"
