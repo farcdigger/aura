@@ -229,6 +229,11 @@ export interface TransactionSummary {
     manipulationSellVolume?: number; // Manipülasyon satış hacmi (USD)
     manipulationSellVolumePercent?: number; // Toplam satış hacmine göre manipülasyon satış hacmi (%)
     manipulationWalletAddresses?: string[]; // Manipülasyon yapan cüzdan adresleri
+    estimatedPriceImpactFromManipulationBuy?: number; // Manipülasyon alımlarının tahmini fiyat etkisi (%)
+    estimatedPriceImpactFromManipulationSell?: number; // Manipülasyon satışlarının tahmini fiyat etkisi (%)
+    diamondHandsTotalVolume?: number; // Elmas eller cüzdanlarının toplam alım hacmi (USD)
+    reEntryTotalSellVolume?: number; // Yeniden giriş yapan cüzdanların toplam satış hacmi (USD)
+    reEntryTotalBuyBackVolume?: number; // Yeniden giriş yapan cüzdanların geri alım hacmi (USD)
     panicSellIndicators?: {
       velocitySpike: number; // İşlem hızı artışı (x katı)
       priceDrop: number; // Fiyat düşüşü (%)

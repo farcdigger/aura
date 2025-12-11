@@ -418,11 +418,13 @@ Memecoins have DIFFERENT normal behaviors than established tokens. When assessin
 - **Wash trading <5% of volume:** If wash trading is less than 5% of total volume, it's likely not significant enough to manipulate price meaningfully
 - **New wallets:** 10-30% new wallet ratio is NORMAL for growing memecoins
 
-**RISK SCORING GUIDELINES:**
-- **0-40 (Low Risk):** Normal memecoin behavior, healthy liquidity, no major red flags
-- **41-60 (Medium Risk):** Some concerns but within normal memecoin parameters
-- **61-80 (High Risk):** Significant red flags beyond normal memecoin behavior (e.g., >10% wash trading, very low liquidity, suspicious patterns)
-- **81-100 (Very High Risk):** Major red flags - potential scam, rug pull, or severe manipulation
+**RISK SCORING GUIDELINES (MEMECOIN CONTEXT):**
+- **0-40 (Low Risk):** Normal memecoin behavior, healthy liquidity (>15% liquidity-to-market cap ratio), no major red flags, wash trading <5% of volume
+- **41-60 (Medium Risk):** Some concerns but within normal memecoin parameters (e.g., 5-10% wash trading, moderate liquidity 10-15%, some bot activity)
+- **61-80 (High Risk):** Significant red flags beyond normal memecoin behavior (e.g., >10% wash trading, very low liquidity <10%, coordinated manipulation patterns, suspicious wallet behavior)
+- **81-100 (Very High Risk):** Major red flags - potential scam, rug pull, or severe manipulation (>20% wash trading, extremely low liquidity, clear rug pull signs)
+
+**CRITICAL:** A memecoin with 7-8% wash trading, 14% liquidity ratio, and normal bot activity should score 50-65, NOT 81! Only score 81+ if there are SEVERE red flags beyond normal memecoin behavior.
 
 **DO NOT penalize for:**
 - Bot activity (unless it's coordinated manipulation)
@@ -485,8 +487,10 @@ Write this section in simple language. Explain each point like you're talking to
 - **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "BvyEhJjPiFbHQFAvNe3eTdHbyFPcScTAKSNwxEcjatSm" not "BvyEhJjP...".
 - **Wallet Behavior Statistics:** 
   ${transactions.walletStats ? `
-  - **Diamond Hands (Holding):** ${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} high-value buyers are still holding (${transactions.walletStats.diamondHandsRatio.toFixed(1)}% diamond hands ratio)
+  - **Diamond Hands (Holding):** ${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} high-value buyers are still holding (${transactions.walletStats.diamondHandsRatio.toFixed(1)}% diamond hands ratio). **CRITICAL:** Always mention the exact number: "${transactions.walletStats.diamondHandsCount} high-value buyers" not "important portion" or "significant number".
+  - **Diamond Hands Total Volume:** $${(transactions.walletStats.diamondHandsTotalVolume || 0).toLocaleString()} in total buy volume from diamond hands wallets
   - **Re-Entry Patterns:** ${transactions.walletStats.reEntryCount} out of ${transactions.highValueSellers?.length || 0} high-value sellers re-entered after selling (${transactions.walletStats.reEntryRatio.toFixed(1)}% re-entry ratio)
+  - **Re-Entry Details:** Re-entry wallets sold a total of $${(transactions.walletStats.reEntryTotalSellVolume || 0).toLocaleString()} but bought back $${(transactions.walletStats.reEntryTotalBuyBackVolume || 0).toLocaleString()}. **REQUIRED:** Analyze what this means - are they accumulating more? Taking profits and re-entering? What's the net effect?
   - **Total High-Value Wallets:** ${transactions.walletStats.totalHighValueWallets} unique wallets with significant trading activity
   ` : 'Wallet statistics not available'}
 
@@ -495,12 +499,20 @@ Write this section in simple language. Explain each point like you're talking to
 **⚠️ RISK PATTERNS (Report these, but also explain if they're normal for memecoins):**
 - **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing wash trading (buying and selling large amounts within 5 minutes). **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No wash trading detected - normal trading patterns." Do NOT report bot activity as manipulation - we're looking for simultaneous buy-sell patterns, not just bot activity.
   ${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
-  **Wash Trading Analysis:**
-  - Total wash trading volume: $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
-  - Wash trading buy volume: $${(transactions.walletStats.manipulationBuyVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}% of total buy volume)
-  - Wash trading sell volume: $${(transactions.walletStats.manipulationSellVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}% of total sell volume)
-  - Manipulation wallet addresses: ${(transactions.walletStats.manipulationWalletAddresses || []).slice(0, 10).join(', ')}${(transactions.walletStats.manipulationWalletAddresses || []).length > 10 ? ` (and ${(transactions.walletStats.manipulationWalletAddresses || []).length - 10} more)` : ''}
-  **REQUIRED:** Explain what these numbers mean - if wash trading represents X% of volume, how does this affect price? If buy volume is higher than sell volume in wash trading, what does this suggest?
+  **Wash Trading Analysis (MAFYA KÜMESİ):**
+  - **Wash Trading Wallets:** ${transactions.walletStats.manipulationWallets} wallets detected
+  - **Total wash trading volume:** $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
+  - **Wash trading buy volume:** $${(transactions.walletStats.manipulationBuyVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}% of total buy volume)
+  - **Wash trading sell volume:** $${(transactions.walletStats.manipulationSellVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}% of total sell volume)
+  - **Estimated price impact from wash trading buys:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0).toFixed(2)}% (estimated upward pressure)
+  - **Estimated price impact from wash trading sells:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0).toFixed(2)}% (estimated downward pressure)
+  - **Net price manipulation effect:** ${((transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0) - (transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0)).toFixed(2)}% (positive = upward manipulation, negative = downward manipulation)
+  - **Manipulation wallet addresses:** ${(transactions.walletStats.manipulationWalletAddresses || []).slice(0, 10).join(', ')}${(transactions.walletStats.manipulationWalletAddresses || []).length > 10 ? ` (and ${(transactions.walletStats.manipulationWalletAddresses || []).length - 10} more)` : ''}
+  **REQUIRED DEEP ANALYSIS:**
+  1. **Volume Impact:** If wash trading represents ${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume, how significant is this? (Remember: <5% is typically not significant for memecoins)
+  2. **Price Impact:** The estimated price impact shows ${((transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0) - (transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0)).toFixed(2)}% net manipulation. What does this mean for price discovery?
+  3. **Buy vs Sell:** If wash trading buy volume (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}%) is ${(transactions.walletStats.manipulationBuyVolumePercent || 0) > (transactions.walletStats.manipulationSellVolumePercent || 0) ? 'higher' : 'lower'} than sell volume (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}%), what does this suggest about manipulation strategy?
+  4. **Pattern Analysis:** Are these wallets coordinating? What patterns can you detect from the timing and volumes?
   ` : ''}
 - **YEMLEME & TUZAK (Bait Watch):** Are there many transactions but no price movement? This suggests micro-transactions trying to manipulate trending lists. Check detected patterns.
 - **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade. **CRITICAL:** 

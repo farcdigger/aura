@@ -899,7 +899,26 @@ export function analyzeTransactions(
 
   // ✅ YENİ: Cüzdan istatistikleri hesapla
   const diamondHandsCount = highValueBuyers.filter(w => !w.hasSoldAfterBuy).length;
+  const diamondHandsBuyers = highValueBuyers.filter(w => !w.hasSoldAfterBuy);
+  const diamondHandsTotalVolume = diamondHandsBuyers.reduce((sum, w) => sum + w.totalBuyVolume, 0);
+  
   const reEntryCount = highValueSellers.filter(w => w.hasBoughtAfterSell).length;
+  const reEntrySellers = highValueSellers.filter(w => w.hasBoughtAfterSell);
+  const reEntryTotalSellVolume = reEntrySellers.reduce((sum, w) => sum + w.totalSellVolume, 0);
+  const reEntryTotalBuyBackVolume = reEntrySellers.reduce((sum, w) => {
+    const walletTxs = transactions
+      .filter(tx => tx.wallet === w.address)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    const lastSell = walletTxs.filter(tx => tx.direction === 'sell').sort((a, b) => b.timestamp - a.timestamp)[0];
+    if (lastSell) {
+      const buysAfterLastSell = walletTxs.filter(tx => 
+        tx.direction === 'buy' && tx.timestamp > lastSell.timestamp
+      );
+      return sum + buysAfterLastSell.reduce((vol, tx) => vol + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+    }
+    return sum;
+  }, 0);
+  
   const totalHighValueWallets = new Set([
     ...highValueBuyers.map(w => w.address),
     ...highValueSellers.map(w => w.address)
@@ -953,28 +972,91 @@ export function analyzeTransactions(
   let manipulationBuyVolume = 0;
   let manipulationSellVolume = 0;
   const manipulationWalletAddresses: string[] = [];
+  const manipulationDetails: Array<{
+    address: string;
+    buyVolume: number;
+    sellVolume: number;
+    buyCount: number;
+    sellCount: number;
+    timeWindow: number; // Ortalama alım-satım arası süre (ms)
+  }> = [];
   
   if (manipulationWallets.size > 0) {
     manipulationWallets.forEach(address => {
       manipulationWalletAddresses.push(address);
-      const walletTxs = transactions.filter(tx => tx.wallet === address);
+      const walletTxs = transactions
+        .filter(tx => tx.wallet === address)
+        .sort((a, b) => a.timestamp - b.timestamp);
       
-      walletTxs.forEach(tx => {
+      let walletBuyVolume = 0;
+      let walletSellVolume = 0;
+      let walletBuyCount = 0;
+      let walletSellCount = 0;
+      const buySellPairs: Array<{ buyTime: number; sellTime: number }> = [];
+      
+      // Wash trading çiftlerini tespit et
+      walletTxs.forEach((tx, idx) => {
         const txVolume = tx.amountInUsd || tx.amountOutUsd || 0;
         manipulationTotalVolume += txVolume;
         
-        if (tx.direction === 'buy') {
-          manipulationBuyVolume += txVolume;
-        } else if (tx.direction === 'sell') {
-          manipulationSellVolume += txVolume;
+        if (tx.direction === 'buy' && txVolume > avgVolumeUSD * 3) {
+          walletBuyVolume += txVolume;
+          walletBuyCount++;
+          
+          // Bu alımdan sonra 5 dakika içinde satış var mı?
+          const sellsInWindow = walletTxs.filter(sellTx => 
+            sellTx.direction === 'sell' &&
+            sellTx.timestamp > tx.timestamp &&
+            sellTx.timestamp <= tx.timestamp + TIME_WINDOW_MS &&
+            (sellTx.amountInUsd || sellTx.amountOutUsd || 0) > avgVolumeUSD * 3
+          );
+          
+          if (sellsInWindow.length > 0) {
+            sellsInWindow.forEach(sell => {
+              buySellPairs.push({
+                buyTime: tx.timestamp,
+                sellTime: sell.timestamp,
+              });
+            });
+          }
+        } else if (tx.direction === 'sell' && txVolume > avgVolumeUSD * 3) {
+          walletSellVolume += txVolume;
+          walletSellCount++;
         }
       });
+      
+      const avgTimeWindow = buySellPairs.length > 0
+        ? buySellPairs.reduce((sum, pair) => sum + (pair.sellTime - pair.buyTime), 0) / buySellPairs.length
+        : 0;
+      
+      manipulationDetails.push({
+        address,
+        buyVolume: walletBuyVolume,
+        sellVolume: walletSellVolume,
+        buyCount: walletBuyCount,
+        sellCount: walletSellCount,
+        timeWindow: avgTimeWindow,
+      });
+      
+      manipulationBuyVolume += walletBuyVolume;
+      manipulationSellVolume += walletSellVolume;
     });
   }
   
   const manipulationVolumePercent = totalUsdVolume > 0 ? (manipulationTotalVolume / totalUsdVolume) * 100 : 0;
   const manipulationBuyVolumePercent = buyVolumeUSD > 0 ? (manipulationBuyVolume / buyVolumeUSD) * 100 : 0;
   const manipulationSellVolumePercent = sellVolumeUSD > 0 ? (manipulationSellVolume / sellVolumeUSD) * 100 : 0;
+  
+  // ✅ YENİ: Manipülasyonun fiyat etkisi tahmini
+  // Basit heuristik: Alım hacmi fiyat yükselişi, satış hacmi fiyat düşüşü yaratır
+  // Likiditeye göre normalize et
+  const liquidityUSD = reserves?.tvlUSD || 0;
+  const estimatedPriceImpactFromManipulationBuy = liquidityUSD > 0 
+    ? (manipulationBuyVolume / liquidityUSD) * 100 
+    : 0;
+  const estimatedPriceImpactFromManipulationSell = liquidityUSD > 0
+    ? (manipulationSellVolume / liquidityUSD) * 100
+    : 0;
   
   // ✅ YENİ: FOMO/Panik tespiti - İşlem hızı ve fiyat hareketi analizi
   // Son %20 işlemi analiz et (recent activity)
@@ -1051,6 +1133,11 @@ export function analyzeTransactions(
     manipulationSellVolume,
     manipulationSellVolumePercent,
     manipulationWalletAddresses,
+    estimatedPriceImpactFromManipulationBuy,
+    estimatedPriceImpactFromManipulationSell,
+    diamondHandsTotalVolume,
+    reEntryTotalSellVolume,
+    reEntryTotalBuyBackVolume,
     panicSellIndicators,
     fomoBuyIndicators,
   };
