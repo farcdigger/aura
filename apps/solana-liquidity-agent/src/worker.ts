@@ -170,8 +170,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     // 4. TRANSACTION HISTORY
     // ==================================================================================
     console.log(`📊 [Job ${job.id}] Fetching transaction history...`);
-    // ✅ Swap limitini 7000'e düşürdük (zaman aşımı riskini azaltmak için)
-    const txLimit = options?.transactionLimit || 7000;
+    // ✅ Swap limitini 10000'e çıkardık (daha kapsamlı analiz için)
+    const txLimit = options?.transactionLimit || 10000;
     
     const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
     
