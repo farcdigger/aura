@@ -307,9 +307,16 @@ export function analyzeTransactions(
   );
 
   // Calculate total USD volume for avgVolumeUSD (needed for pattern detection)
-  const totalUsdVolume = transactions
-    .filter(tx => tx.amountInUsd !== undefined)
+  // ✅ DÜZELTME: Buy ve sell volume'ü ayrı ayrı hesapla
+  const buyUsdVolume = transactions
+    .filter(tx => tx.direction === 'buy' && tx.amountInUsd !== undefined)
     .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
+  
+  const sellUsdVolume = transactions
+    .filter(tx => tx.direction === 'sell' && tx.amountInUsd !== undefined)
+    .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
+  
+  const totalUsdVolume = buyUsdVolume + sellUsdVolume;
   const avgVolumeUSD = totalUsdVolume > 0 && transactions.length > 0 
     ? totalUsdVolume / transactions.length 
     : 0;
@@ -890,6 +897,22 @@ export function analyzeTransactions(
   highValueBuyers.sort((a, b) => b.totalBuyVolume - a.totalBuyVolume);
   highValueSellers.sort((a, b) => b.totalSellVolume - a.totalSellVolume);
 
+  // ✅ YENİ: Cüzdan istatistikleri hesapla
+  const diamondHandsCount = highValueBuyers.filter(w => !w.hasSoldAfterBuy).length;
+  const reEntryCount = highValueSellers.filter(w => w.hasBoughtAfterSell).length;
+  const totalHighValueWallets = new Set([
+    ...highValueBuyers.map(w => w.address),
+    ...highValueSellers.map(w => w.address)
+  ]).size;
+  
+  const walletStats = {
+    diamondHandsCount,
+    reEntryCount,
+    diamondHandsRatio: highValueBuyers.length > 0 ? (diamondHandsCount / highValueBuyers.length) * 100 : 0,
+    reEntryRatio: highValueSellers.length > 0 ? (reEntryCount / highValueSellers.length) * 100 : 0,
+    totalHighValueWallets,
+  };
+
   // Calculate liquidity-to-transaction ratios
   // ✅ DÜZELTME: reserves parametresi optional, kontrol ediyoruz
   const liquidityUSD = reserves?.tvlUSD || 0;
@@ -912,6 +935,10 @@ export function analyzeTransactions(
     sellCount,
     avgVolumeUSD,
     uniqueWallets: walletMap.size,
+    totalVolumeUSD: totalUsdVolume,
+    buyVolumeUSD, // ✅ DÜZELTME: Buy volume eklendi
+    sellVolumeUSD, // ✅ DÜZELTME: Sell volume eklendi
+    walletStats, // ✅ YENİ: Cüzdan istatistikleri
     topWallets,
     topTraders,
     suspiciousPatterns,

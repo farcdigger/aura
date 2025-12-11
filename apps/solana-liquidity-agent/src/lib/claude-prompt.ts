@@ -57,19 +57,16 @@ export function buildAnalysisPrompt(params: {
   const buyRatio = totalTransactions > 0 ? (transactions.buyCount / totalTransactions) * 100 : 0;
   const sellRatio = totalTransactions > 0 ? (transactions.sellCount / totalTransactions) * 100 : 0;
   
-  // Calculate total USD volume (buy + sell)
-  // 'volumeUSD' types.ts içinde tanımlı olmalı
-  const totalUsdVolume = transactions.topWallets.reduce((sum, w) => sum + (w.volumeUSD || 0), 0);
+  // ✅ DÜZELTME: Buy ve sell volume'ü transaction summary'den al (doğru hesaplama)
+  const totalUsdVolume = transactions.buyVolumeUSD && transactions.sellVolumeUSD
+    ? transactions.buyVolumeUSD + transactions.sellVolumeUSD
+    : transactions.totalVolumeUSD || 0;
+  
+  const buyVolumeUSD = transactions.buyVolumeUSD || 0;
+  const sellVolumeUSD = transactions.sellVolumeUSD || 0;
   const avgTransactionSize = totalUsdVolume > 0 && totalTransactions > 0 ? totalUsdVolume / totalTransactions : 0;
   
-  // Calculate buy vs sell USD volume (not just count)
-  const buyVolumeUSD = transactions.topWallets.reduce((sum, w) => {
-    // Estimate: if wallet has more buys, assume most volume is from buys
-    // 'buyCount' ve 'sellCount' types.ts içinde tanımlı olmalı
-    const buyVolumeEstimate = w.buyCount > w.sellCount ? (w.volumeUSD || 0) * (w.buyCount / (w.buyCount + w.sellCount)) : 0;
-    return sum + buyVolumeEstimate;
-  }, 0);
-  const sellVolumeUSD = totalUsdVolume - buyVolumeUSD;
+  // ✅ DÜZELTME: Buy/sell volume ratio'yu doğru hesapla
   const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
   
   // Calculate liquidity-to-market-cap ratio
@@ -452,6 +449,12 @@ Write this section in simple language. Explain each point like you're talking to
 - **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For memecoins, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
 - **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? Mention specific wallet addresses and their behavior.
 - **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? Mention specific wallet addresses.
+- **Wallet Behavior Statistics:** 
+  ${transactions.walletStats ? `
+  - **Diamond Hands (Holding):** ${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} high-value buyers are still holding (${transactions.walletStats.diamondHandsRatio.toFixed(1)}% diamond hands ratio)
+  - **Re-Entry Patterns:** ${transactions.walletStats.reEntryCount} out of ${transactions.highValueSellers?.length || 0} high-value sellers re-entered after selling (${transactions.walletStats.reEntryRatio.toFixed(1)}% re-entry ratio)
+  - **Total High-Value Wallets:** ${transactions.walletStats.totalHighValueWallets} unique wallets with significant trading activity
+  ` : 'Wallet statistics not available'}
 
 #### 🚨 Are People Cheating? (BALANCED ANALYSIS REQUIRED)
 
@@ -475,6 +478,13 @@ Write this section in simple language. Explain each point like you're talking to
 - For each significant wallet, explain: "Wallet [ADDRESS] made [X] large buys totaling $[Y]. They [HOLDING/SOLD after buy]. This suggests [conviction/profit-taking/accumulation]."
 - **Identify suspicious wallets:** "Wallet [ADDRESS] shows bot-like behavior: [specific pattern]. This wallet should be monitored."
 - **Identify bullish wallets:** "Wallet [ADDRESS] is accumulating: [specific pattern]. This is a positive signal."
+- **Wallet Behavior Statistics (IMPORTANT - Include these numbers in your analysis):**
+  ${transactions.walletStats ? `
+  - **Diamond Hands Ratio:** ${transactions.walletStats.diamondHandsRatio.toFixed(1)}% of high-value buyers are still holding (${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} wallets)
+  - **Re-Entry Ratio:** ${transactions.walletStats.reEntryRatio.toFixed(1)}% of high-value sellers re-entered after selling (${transactions.walletStats.reEntryCount} out of ${transactions.highValueSellers?.length || 0} wallets)
+  - **Total High-Value Wallets:** ${transactions.walletStats.totalHighValueWallets} unique wallets with significant trading activity
+  - **Analysis Required:** A high diamond hands ratio (${transactions.walletStats.diamondHandsRatio.toFixed(1)}%) indicates strong conviction. A high re-entry ratio (${transactions.walletStats.reEntryRatio.toFixed(1)}%) suggests accumulation strategies rather than exits. Explain what these numbers mean for this token.
+  ` : 'Wallet statistics not available - analyze wallet behavior from HIGH-VALUE BUYERS and SELLERS sections'}
 
 ### 4. 🎯 KEY INSIGHTS (The Most Important Things)
 

@@ -47,6 +47,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
   
   console.log(`\n🔄 [Job ${job.id}] Starting analysis for pool: ${poolId}`);
   console.log(`👤 User: ${userId || 'anonymous'}`);
+  // ✅ DÜZELTME: userWallet kontrolü ve loglama
+  console.log(`💼 User Wallet: ${userWallet ? userWallet.substring(0, 16) + '...' : 'NOT PROVIDED (will be null in database)'}`);
   
   await job.updateProgress(10);
   
@@ -420,7 +422,14 @@ async function processAnalysis(job: Job<QueueJobData>) {
     };
     
     console.log(`💾 [Job ${job.id}] Saving to Supabase...`);
+    // ✅ DÜZELTME: userWallet kontrolü ve detaylı loglama
     const normalizedUserWallet = userWallet ? userWallet.toLowerCase().trim() : undefined;
+    
+    console.log(`🔍 [Job ${job.id}] Wallet info for save:`, {
+      originalUserWallet: userWallet ? userWallet.substring(0, 20) + '...' : 'undefined',
+      normalizedUserWallet: normalizedUserWallet ? normalizedUserWallet.substring(0, 20) + '...' : 'undefined',
+      userId: userId || 'undefined',
+    });
     
     let savedRecord;
     try {

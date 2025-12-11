@@ -208,6 +208,19 @@ export interface TransactionSummary {
   uniqueWallets: number; 
   
   totalVolumeUSD?: number;
+  // ✅ DÜZELTME: Buy ve sell volume'ü ayrı ayrı ekle
+  buyVolumeUSD?: number;
+  sellVolumeUSD?: number;
+  
+  // ✅ YENİ: Cüzdan analizi istatistikleri
+  walletStats?: {
+    diamondHandsCount: number; // Sattıktan sonra geri alım yapmayan cüzdan sayısı
+    reEntryCount: number; // Sattıktan sonra geri alım yapan cüzdan sayısı
+    diamondHandsRatio: number; // Diamond hands oranı (%)
+    reEntryRatio: number; // Re-entry oranı (%)
+    totalHighValueWallets: number; // Toplam yüksek değerli cüzdan sayısı
+  };
+  
   topWallets: WalletActivity[];
   topTraders?: TopTrader[];
   suspiciousPatterns: string[];
