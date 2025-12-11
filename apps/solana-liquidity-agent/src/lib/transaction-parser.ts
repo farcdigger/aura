@@ -1143,8 +1143,7 @@ export function analyzeTransactions(
   };
 
   // Calculate liquidity-to-transaction ratios
-  // ✅ DÜZELTME: reserves parametresi optional, kontrol ediyoruz
-  const liquidityUSD = reserves?.tvlUSD || 0;
+  // ✅ DÜZELTME: liquidityUSD zaten yukarıda tanımlanmış (satır 1053), tekrar tanımlamaya gerek yok
   const largeBuyRatio = highValueBuyers.length > 0 && liquidityUSD > 0
     ? highValueBuyers.reduce((sum, w) => sum + w.largestBuy, 0) / liquidityUSD * 100
     : 0;
