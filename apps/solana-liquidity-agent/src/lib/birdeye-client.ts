@@ -154,22 +154,38 @@ export class BirdeyeClient {
       const targetLimit = Math.min(limit, MAX_TOTAL_SWAPS);
 
       // Strategy: Try multiple endpoints in order
-      // ✅ PRIORITY: Use token mint first (more reliable, especially for Pump.fun)
-      // 1. Token v2 endpoint: /defi/txs/token (if tokenMint provided)
-      // 2. Pair v2 endpoint: /defi/txs/pair (fallback if no tokenMint)
+      // ✅ DÜZELTME: Pair endpoint'i önce dene (daha verimli - direkt pool'a özel swap'lar)
+      // Eğer pair endpoint 404 verirse, token endpoint'e geç
+      // 1. Pair v2 endpoint: /defi/txs/pair (önce dene - daha verimli)
+      // 2. Token v2 endpoint: /defi/txs/token (fallback - tüm token swap'larını çekip filtrele)
       // ❌ REMOVED: SEEK_BY_TIME endpoint (requires before_time/after_time params)
-      let endpointStrategy: 'pair_v2' | 'token_v2' = tokenMint ? 'token_v2' : 'pair_v2';
+      let endpointStrategy: 'pair_v2' | 'token_v2' = 'pair_v2'; // Önce pair endpoint'i dene
       let lastError: any = null;
+      let pairEndpointFailed = false; // Pair endpoint başarısız oldu mu?
       
       // ✅ Offset limit: Birdeye API supports up to 10,000 offset
       // Token endpoint supports up to 10,000 offset (200 pages * 50 per page)
+      // ✅ DÜZELTME: Offset limit kontrolünü daha akıllı yap - token endpoint'te filtreleme yapıldığı için
+      // daha fazla offset gerekebilir. Maksimum offset'e ulaştığımızda dur, ama hedef swap sayısına
+      // ulaşmaya çalış.
       const MAX_OFFSET = 10000; // Maximum supported by Birdeye API
+      let consecutiveEmptyBatches = 0; // Boş batch sayacı
+      const MAX_EMPTY_BATCHES = 3; // 3 boş batch sonra dur
 
       while (allSwaps.length < targetLimit) {
         // ✅ Check offset limit before making request
+        // ✅ DÜZELTME: Offset limit kontrolü - token endpoint'te filtreleme yapıldığı için
+        // daha fazla offset gerekebilir, ama API limiti 10000. Eğer hedef swap sayısına ulaşmadıysak
+        // ve offset limit'e ulaştıysak, uyarı verip dur.
         if (offset >= MAX_OFFSET) {
           console.log(`[BirdeyeClient] ⚠️ Offset limit reached (${MAX_OFFSET}), stopping pagination`);
           console.log(`[BirdeyeClient] ✅ Collected ${allSwaps.length} swaps (target was ${targetLimit})`);
+          if (allSwaps.length < targetLimit) {
+            console.log(`[BirdeyeClient] ⚠️ WARNING: Only collected ${allSwaps.length}/${targetLimit} swaps`);
+            console.log(`[BirdeyeClient] ℹ️ Reason: Token endpoint filters by pool ID, so we need to fetch more total swaps to reach target`);
+            console.log(`[BirdeyeClient] ℹ️ Birdeye API offset limit is ${MAX_OFFSET}, cannot fetch more`);
+            console.log(`[BirdeyeClient] ℹ️ This pool may have fewer than ${targetLimit} swaps, or swaps are spread across higher offsets`);
+          }
           break;
         }
         
@@ -213,12 +229,15 @@ export class BirdeyeClient {
             continue; // Retry
           }
           
-          // If pair endpoint fails and we have tokenMint, try token endpoint
+          // ✅ DÜZELTME: If pair endpoint fails and we have tokenMint, try token endpoint
           if (endpointStrategy === 'pair_v2' && tokenMint && (response.status === 404 || response.status === 400)) {
             console.warn(`[BirdeyeClient] ⚠️ PAIR v2 endpoint failed (${response.status}), trying TOKEN v2 endpoint...`);
+            console.warn(`[BirdeyeClient] ℹ️ Note: Token endpoint will filter by pool ID, so more offset may be needed to reach target`);
             endpointStrategy = 'token_v2';
+            pairEndpointFailed = true;
             lastError = new Error(`Pair endpoint failed: ${response.status}`);
             offset = 0; // Reset offset for new endpoint
+            allSwaps.length = 0; // Clear collected swaps (start fresh with token endpoint)
             continue; // Retry with token endpoint
           }
           
@@ -412,6 +431,20 @@ export class BirdeyeClient {
           const batchUsdVolume = parsedSwaps.reduce((sum, s) => sum + (s.amountInUsd || s.amountOutUsd || 0), 0);
           console.log(`[BirdeyeClient]    - Swaps with USD data: ${batchWithUsd.length}/${parsedSwaps.length}`);
           console.log(`[BirdeyeClient]    - Batch USD volume: $${batchUsdVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+        }
+
+        // ✅ DÜZELTME: Token endpoint'te filtreleme yapıldığı için boş batch kontrolü ekle
+        // Eğer hedef pool'dan swap gelmiyorsa, birkaç boş batch sonra dur
+        if (parsedSwaps.length === 0) {
+          consecutiveEmptyBatches++;
+          console.log(`[BirdeyeClient] ⚠️ No swaps from target pool in this batch (${consecutiveEmptyBatches}/${MAX_EMPTY_BATCHES} consecutive empty batches)`);
+          if (consecutiveEmptyBatches >= MAX_EMPTY_BATCHES) {
+            console.log(`[BirdeyeClient] ⚠️ ${MAX_EMPTY_BATCHES} consecutive empty batches - stopping pagination`);
+            console.log(`[BirdeyeClient] ℹ️ This may mean we've reached all available swaps for this pool, or need to continue with higher offset`);
+            break;
+          }
+        } else {
+          consecutiveEmptyBatches = 0; // Reset counter if we got swaps
         }
 
         // Check if we should continue pagination
@@ -652,10 +685,22 @@ export class BirdeyeClient {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText}`);
+        console.error(`[BirdeyeClient] ❌ Token metadata API error: ${response.status} ${response.statusText}`);
+        console.error(`[BirdeyeClient] ❌ Error response: ${errorText.substring(0, 500)}`);
+        throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
       }
 
-      const data = await response.json();
+      // ✅ DÜZELTME: Response'u text olarak oku, sonra parse et (JSON parse hatası için)
+      const responseText = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError: any) {
+        console.error(`[BirdeyeClient] ❌ Failed to parse JSON response for token metadata`);
+        console.error(`[BirdeyeClient] ❌ Response text (first 500 chars): ${responseText.substring(0, 500)}`);
+        console.error(`[BirdeyeClient] ❌ Parse error: ${parseError.message}`);
+        throw new Error(`Failed to parse JSON: ${parseError.message}`);
+      }
       
       // Parse Birdeye token data to our format
       const tokenData = data.data || data;

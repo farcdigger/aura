@@ -905,12 +905,119 @@ export function analyzeTransactions(
     ...highValueSellers.map(w => w.address)
   ]).size;
   
+  // ✅ YENİ: Taze kan girişi - İlk kez görülen wallet'ları tespit et
+  const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+  const seenWallets = new Set<string>();
+  let newWalletTxCount = 0;
+  sortedTxs.forEach(tx => {
+    if (!seenWallets.has(tx.wallet)) {
+      seenWallets.add(tx.wallet);
+      newWalletTxCount++;
+    }
+  });
+  const newWalletRatio = totalCount > 0 ? (newWalletTxCount / totalCount) * 100 : 0;
+  
+  // ✅ YENİ: Manipülasyon tespiti - Aynı anda yüksek miktarda alım yapıp aynı anda satış yapan cüzdanlar
+  // Time window: 5 dakika içinde hem büyük alım hem büyük satış yapan cüzdanlar
+  const TIME_WINDOW_MS = 5 * 60 * 1000; // 5 dakika
+  const manipulationWallets = new Set<string>();
+  
+  walletMap.forEach((wallet, address) => {
+    const walletTxs = transactions
+      .filter(tx => tx.wallet === address)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Her alım için, 5 dakika içinde büyük satış var mı kontrol et
+    walletTxs.forEach(tx => {
+      if (tx.direction === 'buy' && (tx.amountInUsd || tx.amountOutUsd || 0) > avgVolumeUSD * 3) {
+        const buyTime = tx.timestamp;
+        const sellsInWindow = walletTxs.filter(sellTx => 
+          sellTx.direction === 'sell' &&
+          sellTx.timestamp > buyTime &&
+          sellTx.timestamp <= buyTime + TIME_WINDOW_MS &&
+          (sellTx.amountInUsd || sellTx.amountOutUsd || 0) > avgVolumeUSD * 3
+        );
+        
+        if (sellsInWindow.length > 0) {
+          manipulationWallets.add(address);
+        }
+      }
+    });
+  });
+  
+  const manipulationWalletsCount = manipulationWallets.size;
+  const manipulationRatio = walletMap.size > 0 ? (manipulationWalletsCount / walletMap.size) * 100 : 0;
+  
+  // ✅ YENİ: FOMO/Panik tespiti - İşlem hızı ve fiyat hareketi analizi
+  // Son %20 işlemi analiz et (recent activity)
+  const recentThreshold = sortedTxs.length > 0 
+    ? sortedTxs[Math.floor(sortedTxs.length * 0.8)].timestamp 
+    : 0;
+  const recentTxs = transactions.filter(tx => tx.timestamp >= recentThreshold);
+  const olderTxs = transactions.filter(tx => tx.timestamp < recentThreshold);
+  
+  // İşlem hızı (transactions per hour)
+  const recentTimeSpan = recentTxs.length > 0 
+    ? (Math.max(...recentTxs.map(tx => tx.timestamp)) - Math.min(...recentTxs.map(tx => tx.timestamp))) / (1000 * 60 * 60)
+    : 1;
+  const olderTimeSpan = olderTxs.length > 0
+    ? (Math.max(...olderTxs.map(tx => tx.timestamp)) - Math.min(...olderTxs.map(tx => tx.timestamp))) / (1000 * 60 * 60)
+    : 1;
+  
+  const recentVelocity = recentTimeSpan > 0 ? recentTxs.length / recentTimeSpan : 0;
+  const olderVelocity = olderTimeSpan > 0 ? olderTxs.length / olderTimeSpan : 0;
+  const velocitySpike = olderVelocity > 0 ? recentVelocity / olderVelocity : 1;
+  
+  // Hacim artışı
+  const recentBuyVolume = recentTxs
+    .filter(tx => tx.direction === 'buy')
+    .reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+  const recentSellVolume = recentTxs
+    .filter(tx => tx.direction === 'sell')
+    .reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+  const olderBuyVolume = olderTxs
+    .filter(tx => tx.direction === 'buy')
+    .reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+  const olderSellVolume = olderTxs
+    .filter(tx => tx.direction === 'sell')
+    .reduce((sum, tx) => sum + (tx.amountInUsd || tx.amountOutUsd || 0), 0);
+  
+  const buyVolumeSpike = olderBuyVolume > 0 ? recentBuyVolume / olderBuyVolume : 1;
+  const sellVolumeSpike = olderSellVolume > 0 ? recentSellVolume / olderSellVolume : 1;
+  
+  // Fiyat hareketi tahmini (basit: buy/sell ratio değişimi)
+  const recentBuyRatio = recentTxs.length > 0 
+    ? recentTxs.filter(tx => tx.direction === 'buy').length / recentTxs.length 
+    : 0.5;
+  const olderBuyRatio = olderTxs.length > 0
+    ? olderTxs.filter(tx => tx.direction === 'buy').length / olderTxs.length
+    : 0.5;
+  const priceRise = (recentBuyRatio - olderBuyRatio) * 100; // Pozitif = fiyat artışı
+  const priceDrop = (olderBuyRatio - recentBuyRatio) * 100; // Pozitif = fiyat düşüşü
+  
+  const panicSellIndicators = {
+    velocitySpike,
+    priceDrop: priceDrop > 0 ? priceDrop : 0,
+    sellVolumeSpike,
+  };
+  
+  const fomoBuyIndicators = {
+    velocitySpike,
+    priceRise: priceRise > 0 ? priceRise : 0,
+    buyVolumeSpike,
+  };
+  
   const walletStats = {
     diamondHandsCount,
     reEntryCount,
     diamondHandsRatio: highValueBuyers.length > 0 ? (diamondHandsCount / highValueBuyers.length) * 100 : 0,
     reEntryRatio: highValueSellers.length > 0 ? (reEntryCount / highValueSellers.length) * 100 : 0,
     totalHighValueWallets,
+    newWalletRatio,
+    manipulationWallets: manipulationWalletsCount,
+    manipulationRatio,
+    panicSellIndicators,
+    fomoBuyIndicators,
   };
 
   // Calculate liquidity-to-transaction ratios

@@ -219,6 +219,19 @@ export interface TransactionSummary {
     diamondHandsRatio: number; // Diamond hands oranı (%)
     reEntryRatio: number; // Re-entry oranı (%)
     totalHighValueWallets: number; // Toplam yüksek değerli cüzdan sayısı
+    newWalletRatio: number; // Yeni cüzdan oranı (%)
+    manipulationWallets: number; // Aynı anda alım-satım yapan manipülasyon cüzdanları
+    manipulationRatio: number; // Manipülasyon cüzdan oranı (%)
+    panicSellIndicators?: {
+      velocitySpike: number; // İşlem hızı artışı (x katı)
+      priceDrop: number; // Fiyat düşüşü (%)
+      sellVolumeSpike: number; // Satış hacmi artışı (x katı)
+    };
+    fomoBuyIndicators?: {
+      velocitySpike: number; // İşlem hızı artışı (x katı)
+      priceRise: number; // Fiyat artışı (%)
+      buyVolumeSpike: number; // Alım hacmi artışı (x katı)
+    };
   };
   
   topWallets: WalletActivity[];

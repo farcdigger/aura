@@ -70,15 +70,18 @@ export function buildAnalysisPrompt(params: {
   const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
   
   // Calculate liquidity-to-market-cap ratio
+  // ✅ DÜZELTME: Market cap hesaplaması - memecoinler için daha gerçekçi oran (TVL × 7)
+  // Memecoinlerde genellikle likidite/market cap oranı %10-20 arası, yani market cap = TVL × 5-10
   const tvlUSD = reserves?.tvlUSD || 0;
-  const estimatedMarketCap = tvlUSD > 0 ? tvlUSD * 3.5 : 0; // Conservative estimate
+  const estimatedMarketCap = tvlUSD > 0 ? tvlUSD * 7 : 0; // Memecoinler için daha gerçekçi: TVL × 7
   const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (tvlUSD / estimatedMarketCap) * 100 : 0;
   
   // Calculate wallet diversity metrics
   const uniqueWallets = transactions.uniqueWallets;
   const avgTradesPerWallet = uniqueWallets > 0 ? totalTransactions / uniqueWallets : 0;
-  // 'txCount' types.ts içinde tanımlı olmalı
-  const newWalletRatio = transactions.topWallets.filter(w => w.txCount <= 2).length / Math.max(uniqueWallets, 1) * 100;
+  // ✅ DÜZELTME: Taze kan girişi - tüm wallet'lar üzerinden hesapla (topWallets değil)
+  // İlk kez görülen wallet'ları tespit et (transaction-parser'dan gelen veriyi kullan)
+  const newWalletRatio = transactions.walletStats?.newWalletRatio || 0;
   
   // Calculate time-based metrics
   const timeRangeDays = transactions.timeRange 
@@ -246,7 +249,7 @@ ${hasActiveLiquidity ? '✅ **LP supply and reserves indicate active liquidity**
 
 ### Liquidity Health:
 - **Pool TVL:** $${tvlUSD.toLocaleString()}
-- **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()} (rough estimate: TVL × 3.5 for memecoins)
+- **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()} (rough estimate: TVL × 7 for memecoins)
 - **Liquidity-to-Market Cap Ratio:** ${liquidityToMarketCapRatio.toFixed(1)}%
 - **Key Insight:** For memecoins, 20-30% liquidity ratio is HEALTHY. Below 10% = risky. Above 50% = unusual but could be good.
 
@@ -305,6 +308,7 @@ You are an EXPERT DATA ANALYST and FORENSIC INVESTIGATOR with UNLIMITED CREATIVI
 
 ## 📊 POOL INFORMATION
 
+**Token:** ${tokenA.symbol} / ${tokenB.symbol} (${tokenA.name} / ${tokenB.name})
 **Pool Address:** \`${poolId}\`
 
 ### Token A: ${tokenA.name} (${tokenA.symbol})
@@ -384,12 +388,19 @@ ${suspiciousPatternsText}
 **🔬 ADVANCED FORENSIC PATTERNS DETECTED:**
 The system has performed deep forensic analysis and detected the following advanced patterns:
 
-1. **MAFYA KÜMESİ (Cluster Analysis):** Synchronized wallet activity - multiple wallets trading in the same second indicates coordinated bot activity
+1. **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes) - ${transactions.walletStats?.manipulationRatio.toFixed(1) || 0}% of all wallets. **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No manipulation patterns detected - normal trading activity."
 2. **KÂR BASINCI (Profit Pressure):** Calculated holder cost basis to determine profit/loss pressure - shows when holders might take profits
 3. **YEMLEME & TUZAK (Bait Watch):** High transaction count but no price movement - micro-transactions trying to manipulate trending lists
 4. **DIAMOND HANDS & SMART MONEY:** Early buyers who haven't sold - shows long-term conviction
-5. **FOMO vs. PANIK (Velocity Sentiment):** Transaction velocity acceleration - detects panic selling or FOMO buying
-6. **TAZE KAN GİRİŞİ (New Wallet Flow):** Unique new wallets entering - shows if token is going viral or stuck in closed loop
+5. **FOMO vs. PANIK (Velocity Sentiment):** 
+   ${transactions.walletStats?.fomoBuyIndicators ? `
+   - **FOMO Indicators:** Transaction velocity increased ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x, buy volume spiked ${transactions.walletStats.fomoBuyIndicators.buyVolumeSpike.toFixed(1)}x, estimated price rise ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%
+   ` : ''}
+   ${transactions.walletStats?.panicSellIndicators ? `
+   - **Panic Indicators:** Transaction velocity increased ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x, sell volume spiked ${transactions.walletStats.panicSellIndicators.sellVolumeSpike.toFixed(1)}x, estimated price drop ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%
+   ` : ''}
+   **REQUIRED:** Explain what these numbers mean - if velocity spiked 3x but price only moved 2%, that's manipulation. If velocity and price both spiked, that's genuine FOMO/panic.
+6. **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** If this is 0% or very low (<5%), explain why (maybe all transactions are from existing wallets, or the pool is new).
 
 **IMPORTANT:** These patterns are calculated from actual transaction data. Use them to provide deep insights that go beyond surface-level observations.
 
@@ -402,6 +413,8 @@ The system has performed deep forensic analysis and detected the following advan
 Write your report in this exact format:
 
 ### 1. RISK SCORE (Required - First Line)
+**Token:** ${tokenA.symbol} / ${tokenB.symbol}
+
 Give a number from 0-100:
 - **0-20:** Very Safe (You can probably trust this)
 - **21-40:** Mostly Safe (Small concerns, but probably okay)
@@ -459,12 +472,20 @@ Write this section in simple language. Explain each point like you're talking to
 #### 🚨 Are People Cheating? (BALANCED ANALYSIS REQUIRED)
 
 **⚠️ RISK PATTERNS (Report these, but also explain if they're normal for memecoins):**
-- **MAFYA KÜMESİ (Cluster Analysis):** Are multiple wallets trading in the same second? This indicates coordinated bot activity. Check the detected patterns above.
+- **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing wash trading (buying and selling large amounts within 5 minutes). **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No wash trading detected - normal trading patterns." Do NOT report bot activity as manipulation - we're looking for simultaneous buy-sell patterns, not just bot activity.
 - **YEMLEME & TUZAK (Bait Watch):** Are there many transactions but no price movement? This suggests micro-transactions trying to manipulate trending lists. Check detected patterns.
-- **TAZE KAN GİRİŞİ (New Wallet Flow):** ${newWalletRatio.toFixed(1)}% are new wallets. **CRITICAL:** Analyze if they're:
-  - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
-  - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
-- **FOMO vs. PANIK (Velocity Sentiment):** Is transaction velocity spiking while price moves opposite direction? This indicates panic selling or FOMO buying. Check detected patterns.
+- **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade. **CRITICAL:** 
+  - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is very low (<5%), explain: "Most transactions are from existing wallets - this could mean the pool is new, or there's limited new investor interest."
+  - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is high (>30%), analyze if they're:
+    - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
+    - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
+- **FOMO vs. PANIK (Velocity Sentiment):** 
+  ${transactions.walletStats?.fomoBuyIndicators ? `
+  - **FOMO Analysis:** Transaction velocity increased ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x, buy volume ${transactions.walletStats.fomoBuyIndicators.buyVolumeSpike.toFixed(1)}x, price rise ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%. **Explain:** If velocity spiked ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x but price only moved ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%, that's manipulation. If both spiked together, that's genuine FOMO.
+  ` : ''}
+  ${transactions.walletStats?.panicSellIndicators ? `
+  - **Panic Analysis:** Transaction velocity increased ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x, sell volume ${transactions.walletStats.panicSellIndicators.sellVolumeSpike.toFixed(1)}x, price drop ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%. **Explain:** If velocity spiked ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x but price only dropped ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%, that's manipulation. If both spiked together, that's genuine panic selling.
+  ` : ''}
 
 **✅ POSITIVE PATTERNS (ALWAYS report these if present):**
 - **DIAMOND HANDS:** Are early buyers still holding? This shows long-term conviction. Check detected patterns.
