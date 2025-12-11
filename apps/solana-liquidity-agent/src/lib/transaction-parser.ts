@@ -245,7 +245,8 @@ function calculateBalanceChange(
  * @returns TransactionSummary with buy/sell counts, wallet activity, and suspicious patterns
  */
 export function analyzeTransactions(
-  transactions: ParsedSwap[]
+  transactions: ParsedSwap[],
+  reserves?: { tvlUSD?: number }
 ): TransactionSummary {
   const walletMap = new Map<string, {
     address: string;
@@ -890,11 +891,12 @@ export function analyzeTransactions(
   highValueSellers.sort((a, b) => b.totalSellVolume - a.totalSellVolume);
 
   // Calculate liquidity-to-transaction ratios
-  const liquidityUSD = reserves.tvlUSD || 0;
-  const largeBuyRatio = highValueBuyers.length > 0 
+  // ✅ DÜZELTME: reserves parametresi optional, kontrol ediyoruz
+  const liquidityUSD = reserves?.tvlUSD || 0;
+  const largeBuyRatio = highValueBuyers.length > 0 && liquidityUSD > 0
     ? highValueBuyers.reduce((sum, w) => sum + w.largestBuy, 0) / liquidityUSD * 100
     : 0;
-  const largeSellRatio = highValueSellers.length > 0
+  const largeSellRatio = highValueSellers.length > 0 && liquidityUSD > 0
     ? highValueSellers.reduce((sum, w) => sum + w.largestSell, 0) / liquidityUSD * 100
     : 0;
 

@@ -180,7 +180,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
     console.log(`📊 [Job ${job.id}] Swaps Fetched: ${swaps.length}`);
     
     const { analyzeTransactions } = await import('./lib/transaction-parser');
-    const transactions = analyzeTransactions(swaps);
+    // ✅ DÜZELTME: reserves parametresini analyzeTransactions'a geçiyoruz
+    const transactions = analyzeTransactions(swaps, finalReserves);
     
     console.log(`📊 [Job ${job.id}] Analysis: ${transactions.buyCount} Buys / ${transactions.sellCount} Sells`);
     
