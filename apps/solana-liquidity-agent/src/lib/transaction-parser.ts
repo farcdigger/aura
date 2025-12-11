@@ -308,15 +308,15 @@ export function analyzeTransactions(
 
   // Calculate total USD volume for avgVolumeUSD (needed for pattern detection)
   // ✅ DÜZELTME: Buy ve sell volume'ü ayrı ayrı hesapla
-  const buyUsdVolume = transactions
+  const buyVolumeUSD = transactions
     .filter(tx => tx.direction === 'buy' && tx.amountInUsd !== undefined)
     .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
   
-  const sellUsdVolume = transactions
+  const sellVolumeUSD = transactions
     .filter(tx => tx.direction === 'sell' && tx.amountInUsd !== undefined)
     .reduce((sum, tx) => sum + (tx.amountInUsd || 0), 0);
   
-  const totalUsdVolume = buyUsdVolume + sellUsdVolume;
+  const totalUsdVolume = buyVolumeUSD + sellVolumeUSD;
   const avgVolumeUSD = totalUsdVolume > 0 && transactions.length > 0 
     ? totalUsdVolume / transactions.length 
     : 0;
