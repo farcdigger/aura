@@ -948,6 +948,34 @@ export function analyzeTransactions(
   const manipulationWalletsCount = manipulationWallets.size;
   const manipulationRatio = walletMap.size > 0 ? (manipulationWalletsCount / walletMap.size) * 100 : 0;
   
+  // ✅ YENİ: Wash trading yapan cüzdanların toplam hacmi ve fiyat etkisi
+  let manipulationTotalVolume = 0;
+  let manipulationBuyVolume = 0;
+  let manipulationSellVolume = 0;
+  const manipulationWalletAddresses: string[] = [];
+  
+  if (manipulationWallets.size > 0) {
+    manipulationWallets.forEach(address => {
+      manipulationWalletAddresses.push(address);
+      const walletTxs = transactions.filter(tx => tx.wallet === address);
+      
+      walletTxs.forEach(tx => {
+        const txVolume = tx.amountInUsd || tx.amountOutUsd || 0;
+        manipulationTotalVolume += txVolume;
+        
+        if (tx.direction === 'buy') {
+          manipulationBuyVolume += txVolume;
+        } else if (tx.direction === 'sell') {
+          manipulationSellVolume += txVolume;
+        }
+      });
+    });
+  }
+  
+  const manipulationVolumePercent = totalUsdVolume > 0 ? (manipulationTotalVolume / totalUsdVolume) * 100 : 0;
+  const manipulationBuyVolumePercent = buyVolumeUSD > 0 ? (manipulationBuyVolume / buyVolumeUSD) * 100 : 0;
+  const manipulationSellVolumePercent = sellVolumeUSD > 0 ? (manipulationSellVolume / sellVolumeUSD) * 100 : 0;
+  
   // ✅ YENİ: FOMO/Panik tespiti - İşlem hızı ve fiyat hareketi analizi
   // Son %20 işlemi analiz et (recent activity)
   const recentThreshold = sortedTxs.length > 0 
@@ -1016,6 +1044,13 @@ export function analyzeTransactions(
     newWalletRatio,
     manipulationWallets: manipulationWalletsCount,
     manipulationRatio,
+    manipulationTotalVolume,
+    manipulationVolumePercent,
+    manipulationBuyVolume,
+    manipulationBuyVolumePercent,
+    manipulationSellVolume,
+    manipulationSellVolumePercent,
+    manipulationWalletAddresses,
     panicSellIndicators,
     fomoBuyIndicators,
   };

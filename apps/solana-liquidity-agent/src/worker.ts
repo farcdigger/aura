@@ -160,10 +160,29 @@ async function processAnalysis(job: Job<QueueJobData>) {
     // 3. TOKEN METADATA
     // ==================================================================================
     console.log(`🪙 [Job ${job.id}] Fetching token metadata...`);
-    const [tokenA, tokenB] = await Promise.all([
+    let [tokenA, tokenB] = await Promise.all([
       birdeyeClient.getTokenMetadata(finalReserves.tokenAMint),
       birdeyeClient.getTokenMetadata(finalReserves.tokenBMint),
     ]);
+    
+    // ✅ DÜZELTME: Eğer token metadata UNKNOWN ise, DexScreener'dan gelen bilgileri kullan
+    if (tokenA.symbol === 'UNKNOWN' && finalReserves.tokenASymbol) {
+      tokenA = {
+        ...tokenA,
+        symbol: finalReserves.tokenASymbol,
+        name: finalReserves.tokenASymbol, // DexScreener'dan name gelmiyor, symbol kullan
+      };
+      console.log(`✅ [Job ${job.id}] Using DexScreener data for Token A: ${tokenA.symbol}`);
+    }
+    if (tokenB.symbol === 'UNKNOWN' && finalReserves.tokenBSymbol) {
+      tokenB = {
+        ...tokenB,
+        symbol: finalReserves.tokenBSymbol,
+        name: finalReserves.tokenBSymbol, // DexScreener'dan name gelmiyor, symbol kullan
+      };
+      console.log(`✅ [Job ${job.id}] Using DexScreener data for Token B: ${tokenB.symbol}`);
+    }
+    
     await job.updateProgress(40);
     
     // ==================================================================================

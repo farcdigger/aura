@@ -410,6 +410,27 @@ The system has performed deep forensic analysis and detected the following advan
 
 **CRITICAL: You must provide BALANCED analysis - not just risks, but also opportunities and normal behaviors for memecoins!**
 
+**🎯 MEMECOIN CONTEXT - CRITICAL FOR RISK ASSESSMENT:**
+Memecoins have DIFFERENT normal behaviors than established tokens. When assessing risk, consider:
+- **Bots are NORMAL:** Many memecoins have bot activity - this is expected, not necessarily risky
+- **Low volume trades are NORMAL:** Small retail traders ($5-50 trades) are typical for memecoins
+- **High volatility is NORMAL:** Memecoins are inherently volatile - don't penalize for normal volatility
+- **Wash trading <5% of volume:** If wash trading is less than 5% of total volume, it's likely not significant enough to manipulate price meaningfully
+- **New wallets:** 10-30% new wallet ratio is NORMAL for growing memecoins
+
+**RISK SCORING GUIDELINES:**
+- **0-40 (Low Risk):** Normal memecoin behavior, healthy liquidity, no major red flags
+- **41-60 (Medium Risk):** Some concerns but within normal memecoin parameters
+- **61-80 (High Risk):** Significant red flags beyond normal memecoin behavior (e.g., >10% wash trading, very low liquidity, suspicious patterns)
+- **81-100 (Very High Risk):** Major red flags - potential scam, rug pull, or severe manipulation
+
+**DO NOT penalize for:**
+- Bot activity (unless it's coordinated manipulation)
+- Small transaction sizes (normal for retail)
+- Moderate volatility (expected for memecoins)
+- New wallet activity (could be organic growth)
+- Wash trading <5% of volume (likely not significant)
+
 Write your report in this exact format:
 
 ### 1. RISK SCORE (Required - First Line)
@@ -460,8 +481,8 @@ Write this section in simple language. Explain each point like you're talking to
   - Both high = Strong organic interest
   - Both low = Low activity, high risk
 - **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For memecoins, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
-- **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? Mention specific wallet addresses and their behavior.
-- **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? Mention specific wallet addresses.
+- **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "3Twiy4pPsPt7Ptge7ghXPtqK3ww4WN5XnoiZhz2Txjeh" not "3Twiy4pP...".
+- **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "BvyEhJjPiFbHQFAvNe3eTdHbyFPcScTAKSNwxEcjatSm" not "BvyEhJjP...".
 - **Wallet Behavior Statistics:** 
   ${transactions.walletStats ? `
   - **Diamond Hands (Holding):** ${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} high-value buyers are still holding (${transactions.walletStats.diamondHandsRatio.toFixed(1)}% diamond hands ratio)
@@ -473,6 +494,14 @@ Write this section in simple language. Explain each point like you're talking to
 
 **⚠️ RISK PATTERNS (Report these, but also explain if they're normal for memecoins):**
 - **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing wash trading (buying and selling large amounts within 5 minutes). **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No wash trading detected - normal trading patterns." Do NOT report bot activity as manipulation - we're looking for simultaneous buy-sell patterns, not just bot activity.
+  ${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
+  **Wash Trading Analysis:**
+  - Total wash trading volume: $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
+  - Wash trading buy volume: $${(transactions.walletStats.manipulationBuyVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}% of total buy volume)
+  - Wash trading sell volume: $${(transactions.walletStats.manipulationSellVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}% of total sell volume)
+  - Manipulation wallet addresses: ${(transactions.walletStats.manipulationWalletAddresses || []).slice(0, 10).join(', ')}${(transactions.walletStats.manipulationWalletAddresses || []).length > 10 ? ` (and ${(transactions.walletStats.manipulationWalletAddresses || []).length - 10} more)` : ''}
+  **REQUIRED:** Explain what these numbers mean - if wash trading represents X% of volume, how does this affect price? If buy volume is higher than sell volume in wash trading, what does this suggest?
+  ` : ''}
 - **YEMLEME & TUZAK (Bait Watch):** Are there many transactions but no price movement? This suggests micro-transactions trying to manipulate trending lists. Check detected patterns.
 - **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade. **CRITICAL:** 
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is very low (<5%), explain: "Most transactions are from existing wallets - this could mean the pool is new, or there's limited new investor interest."

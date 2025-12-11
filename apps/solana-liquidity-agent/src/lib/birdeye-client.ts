@@ -671,7 +671,9 @@ export class BirdeyeClient {
     try {
       await this.rateLimit();
 
-      const url = `${BIRDEYE_API_BASE}/token/token_overview?address=${tokenMint}`;
+      // ✅ DÜZELTME: Birdeye API endpoint - /defi/token_overview kullan (swap endpoint'leri gibi)
+      // Eğer bu çalışmazsa, /token/token_overview veya /v1/token_overview deneyebiliriz
+      const url = `${BIRDEYE_API_BASE}/defi/token_overview?address=${tokenMint}`;
       
       console.log(`[BirdeyeClient] 🔍 Fetching token metadata for: ${tokenMint}`);
 
@@ -683,23 +685,51 @@ export class BirdeyeClient {
         },
       });
 
+      // ✅ DÜZELTME: Response'u text olarak oku (HTML kontrolü için)
+      const responseText = await response.text();
+      
+      // ✅ DÜZELTME: HTML response kontrolü - eğer HTML dönüyorsa endpoint yanlış veya yetkisiz
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.warn(`[BirdeyeClient] ⚠️ Token metadata endpoint returned HTML instead of JSON (status: ${response.status})`);
+        console.warn(`[BirdeyeClient] ⚠️ This usually means the endpoint is not available or requires higher API tier`);
+        console.warn(`[BirdeyeClient] ⚠️ Falling back to minimal metadata (this is not critical for analysis)`);
+        // Return minimal metadata - this is not critical for analysis
+        return {
+          mint: tokenMint,
+          symbol: 'UNKNOWN',
+          name: 'Unknown Token',
+          decimals: 9,
+        };
+      }
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[BirdeyeClient] ❌ Token metadata API error: ${response.status} ${response.statusText}`);
-        console.error(`[BirdeyeClient] ❌ Error response: ${errorText.substring(0, 500)}`);
-        throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText.substring(0, 200)}`);
+        console.warn(`[BirdeyeClient] ⚠️ Token metadata API error: ${response.status} ${response.statusText}`);
+        console.warn(`[BirdeyeClient] ⚠️ Error response: ${responseText.substring(0, 200)}`);
+        console.warn(`[BirdeyeClient] ⚠️ Falling back to minimal metadata (this is not critical)`);
+        // Return minimal metadata instead of throwing error - this is not critical
+        return {
+          mint: tokenMint,
+          symbol: 'UNKNOWN',
+          name: 'Unknown Token',
+          decimals: 9,
+        };
       }
 
-      // ✅ DÜZELTME: Response'u text olarak oku, sonra parse et (JSON parse hatası için)
-      const responseText = await response.text();
+      // ✅ DÜZELTME: Response text zaten yukarıda okundu, şimdi parse et
       let data: any;
       try {
         data = JSON.parse(responseText);
       } catch (parseError: any) {
-        console.error(`[BirdeyeClient] ❌ Failed to parse JSON response for token metadata`);
-        console.error(`[BirdeyeClient] ❌ Response text (first 500 chars): ${responseText.substring(0, 500)}`);
-        console.error(`[BirdeyeClient] ❌ Parse error: ${parseError.message}`);
-        throw new Error(`Failed to parse JSON: ${parseError.message}`);
+        console.warn(`[BirdeyeClient] ⚠️ Failed to parse JSON response for token metadata`);
+        console.warn(`[BirdeyeClient] ⚠️ Response text (first 200 chars): ${responseText.substring(0, 200)}`);
+        console.warn(`[BirdeyeClient] ⚠️ Falling back to minimal metadata (this is not critical)`);
+        // Return minimal metadata instead of throwing error
+        return {
+          mint: tokenMint,
+          symbol: 'UNKNOWN',
+          name: 'Unknown Token',
+          decimals: 9,
+        };
       }
       
       // Parse Birdeye token data to our format

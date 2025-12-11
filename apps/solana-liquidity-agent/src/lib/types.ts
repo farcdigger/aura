@@ -222,6 +222,13 @@ export interface TransactionSummary {
     newWalletRatio: number; // Yeni cüzdan oranı (%)
     manipulationWallets: number; // Aynı anda alım-satım yapan manipülasyon cüzdanları
     manipulationRatio: number; // Manipülasyon cüzdan oranı (%)
+    manipulationTotalVolume?: number; // Wash trading yapan cüzdanların toplam hacmi (USD)
+    manipulationVolumePercent?: number; // Toplam hacme göre manipülasyon hacmi (%)
+    manipulationBuyVolume?: number; // Manipülasyon alım hacmi (USD)
+    manipulationBuyVolumePercent?: number; // Toplam alım hacmine göre manipülasyon alım hacmi (%)
+    manipulationSellVolume?: number; // Manipülasyon satış hacmi (USD)
+    manipulationSellVolumePercent?: number; // Toplam satış hacmine göre manipülasyon satış hacmi (%)
+    manipulationWalletAddresses?: string[]; // Manipülasyon yapan cüzdan adresleri
     panicSellIndicators?: {
       velocitySpike: number; // İşlem hızı artışı (x katı)
       priceDrop: number; // Fiyat düşüşü (%)
