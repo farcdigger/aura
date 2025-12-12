@@ -404,9 +404,9 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
               <p className="text-4xl font-bold text-green-600 dark:text-green-400 mb-4">
                 🎉 You Won!
               </p>
-              <p className="text-xl mb-2">Free Analysis Ticket Earned!</p>
+              <p className="text-xl mb-2">0.001 USDC'ye Rapor Çıkartma Hakkı Kazandınız!</p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                You can now use it for your next analysis
+                Bir sonraki analizde sadece 0.001 USDC ödeyerek rapor alabilirsiniz
               </p>
               <button
                 onClick={resetGame}
@@ -425,7 +425,7 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
         <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
           <li>• Click targets as they appear (0.5s each)</li>
           <li>• Targets get smaller each round</li>
-          <li>• Hit all {status.targetsToWin} targets to win a free analysis ticket</li>
+          <li>• Hit all {status.targetsToWin} targets to win 0.001 USDC'ye rapor çıkartma hakkı</li>
           <li>• Entry cost: {status.cost.toLocaleString()} credits</li>
           <li>• Entry reward: +{status.pointsReward} points</li>
         </ul>

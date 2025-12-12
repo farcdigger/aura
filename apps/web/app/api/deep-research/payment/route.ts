@@ -393,6 +393,27 @@ export async function POST(request: NextRequest) {
       // Continue anyway - queue check is not critical
     }
 
+    // Consume free ticket if used (0.001 USDC payment)
+    if (hasFreeTicket && parseFloat(paymentAmountUSDC) === 0.001) {
+      console.log("🎫 [Payment] Consuming free ticket...");
+      try {
+        const consumeResponse = await fetch(`${agentUrl}/api/free-ticket`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userWallet: normalizedWalletAddress }),
+        });
+        
+        if (consumeResponse.ok) {
+          console.log("✅ Free ticket consumed after payment");
+        } else {
+          console.warn("⚠️ Failed to consume free ticket, but continuing...");
+        }
+      } catch (ticketError: any) {
+        console.warn("⚠️ Error consuming free ticket:", ticketError.message);
+        // Continue anyway - ticket consumption is not critical
+      }
+    }
+
     // Queue analysis job
     console.log("🚀 Queuing analysis job...");
 

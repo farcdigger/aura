@@ -95,11 +95,12 @@ async function getPricing(userWallet: string): Promise<PricingInfo> {
   // Check for free ticket first
   const hasFreeTicket = await checkFreeTicketStatus(userWallet);
   if (hasFreeTicket) {
+    // Free ticket: charge 0.001 USDC (x402 doesn't accept $0)
     return {
-      isFree: true,
-      freeReason: "free_ticket",
-      priceUSDC: 0,
-      hasNFT: false, // Not relevant when free
+      isFree: false, // Not free, but very cheap (0.001 USDC)
+      freeReason: "free_ticket", // Still mark as free ticket for tracking
+      priceUSDC: 0.001, // $0.001 USDC (minimal charge)
+      hasNFT: false, // Not relevant when free ticket
     };
   }
 

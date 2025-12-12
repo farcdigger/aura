@@ -166,9 +166,8 @@ export default function DeepResearchModal({
     setError(null);
 
     // Check if payment is required
-    // Check pricing info for free ticket or free status
-    const isFree = pricingInfo?.pricing?.isFree === true || 
-                   pricingInfo?.pricing?.freeReason === "free_ticket";
+    // Free ticket still requires 0.001 USDC payment (x402 doesn't accept $0)
+    const isFree = pricingInfo?.pricing?.isFree === true;
 
     if (!isFree) {
       setStatus("payment");
@@ -288,6 +287,18 @@ export default function DeepResearchModal({
         {/* Payment Stage */}
         {status === "payment" && (
           <div>
+            {/* Free Ticket Notice */}
+            {pricingInfo?.pricing?.freeReason === "free_ticket" && (
+              <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm font-semibold text-green-900 dark:text-green-200 mb-1">
+                  🎉 0.001 USDC'ye Rapor Çıkartma Hakkı
+                </p>
+                <p className="text-xs text-green-800 dark:text-green-300">
+                  Oyunu kazandığınız için sadece 0.001 USDC ödeyerek rapor alabilirsiniz!
+                </p>
+              </div>
+            )}
+            
             <div className="mb-6 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
               <div className="mb-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Token</p>
