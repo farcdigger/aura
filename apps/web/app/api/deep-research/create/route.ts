@@ -304,27 +304,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4.5. If using free ticket, consume it
-    if (hasFreeTicket && pricing.freeReason === "free_ticket") {
-      console.log("🎫 [Deep Research] Consuming free ticket...");
-      try {
-        const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
-        const consumeResponse = await fetch(`${agentUrl}/api/free-ticket`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userWallet }),
-        });
-        
-        if (consumeResponse.ok) {
-          console.log("✅ Free ticket consumed");
-        } else {
-          console.warn("⚠️ Failed to consume free ticket, but continuing...");
-        }
-      } catch (ticketError: any) {
-        console.warn("⚠️ Error consuming free ticket:", ticketError.message);
-        // Continue anyway - ticket consumption is not critical
-      }
-    }
+    // Note: Free ticket is consumed after payment in payment route
+    // Since free ticket now requires 0.001 USDC payment, it goes through payment flow
 
     // 5. Queue analysis job
     console.log("🚀 [Deep Research] Queuing analysis job...");
