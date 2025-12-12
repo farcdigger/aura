@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import DeepResearchModal from "@/components/DeepResearchModal";
+import SpinWheel from "@/components/SpinWheel";
+import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 // WHITELIST: Only these addresses can access Deep Research
 const WHITELIST_ADDRESSES = [
@@ -20,6 +22,7 @@ export default function DeepResearchPage() {
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [hasNFT, setHasNFT] = useState<boolean | null>(null);
 
   // Check whitelist access
   useEffect(() => {
@@ -40,8 +43,21 @@ export default function DeepResearchPage() {
     if (isConnected && address) {
       fetchPricingInfo();
       fetchAnalysisHistory();
+      checkNFT();
     }
   }, [isConnected, address]);
+
+  // Check NFT ownership
+  const checkNFT = async () => {
+    if (!address) return;
+    try {
+      const nftOwnership = await checkNFTOwnershipClientSide(address);
+      setHasNFT(nftOwnership);
+    } catch (error) {
+      console.error("Error checking NFT:", error);
+      setHasNFT(false);
+    }
+  };
 
   // Fetch analysis history
   const fetchAnalysisHistory = async () => {
@@ -153,10 +169,19 @@ export default function DeepResearchPage() {
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Uncover Hidden Insights
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
             Get comprehensive AI analysis of any Solana token with 10,000+ swap transactions, 
             whale tracking, and market sentiment.
           </p>
+          {/* Solana Network Warning */}
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
+              ⚠️ Important: Solana Network Only
+            </p>
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              This analysis tool only supports tokens on the Solana network. Please enter a Solana token mint address.
+            </p>
+          </div>
         </div>
 
         {/* Token Input Section */}
@@ -247,6 +272,18 @@ export default function DeepResearchPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   This is a shared platform limit across all users. Limit resets every Sunday.
                 </p>
+              </div>
+            )}
+
+            {/* Spin Wheel Section (NFT Owners Only) */}
+            {hasNFT && (
+              <div className="mb-8">
+                <SpinWheel
+                  onFreeAnalysisWon={() => {
+                    // When free analysis is won, show a message
+                    alert("🎉 Congratulations! You won a free analysis! You can now start an analysis without payment.");
+                  }}
+                />
               </div>
             )}
 
