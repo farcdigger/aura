@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import DeepResearchModal from "@/components/DeepResearchModal";
-import SpinWheel from "@/components/SpinWheel";
+import SpeedClickGame from "@/components/SpeedClickGame";
 import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 // WHITELIST: Only these addresses can access Deep Research
@@ -275,13 +275,13 @@ export default function DeepResearchPage() {
               </div>
             )}
 
-            {/* Spin Wheel Section (NFT Owners Only) */}
+            {/* Speed Click Game Section (NFT Owners Only) */}
             {hasNFT && (
               <div className="mb-8">
-                <SpinWheel
-                  onFreeAnalysisWon={() => {
-                    // When free analysis is won, show a message
-                    alert("🎉 Congratulations! You won a free analysis! You can now start an analysis without payment.");
+                <SpeedClickGame
+                  onFreeTicketWon={() => {
+                    // When free ticket is won, show a message
+                    alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
                   }}
                 />
               </div>
