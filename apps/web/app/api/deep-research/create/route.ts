@@ -71,9 +71,38 @@ async function checkNFTOwnership(walletAddress: string): Promise<boolean> {
 }
 
 /**
- * Get pricing info based on trial period and NFT ownership
+ * Check if user has a free ticket
+ */
+async function checkFreeTicketStatus(userWallet: string): Promise<boolean> {
+  try {
+    const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    const ticketResponse = await fetch(`${agentUrl}/api/free-ticket?userWallet=${encodeURIComponent(userWallet)}`);
+    if (ticketResponse.ok) {
+      const ticketData = await ticketResponse.json();
+      return ticketData.hasTicket || false;
+    }
+    return false;
+  } catch (error: any) {
+    console.warn("⚠️ Error checking free ticket:", error.message);
+    return false;
+  }
+}
+
+/**
+ * Get pricing info based on trial period, NFT ownership, and free tickets
  */
 async function getPricing(userWallet: string): Promise<PricingInfo> {
+  // Check for free ticket first
+  const hasFreeTicket = await checkFreeTicketStatus(userWallet);
+  if (hasFreeTicket) {
+    return {
+      isFree: true,
+      freeReason: "free_ticket",
+      priceUSDC: 0,
+      hasNFT: false, // Not relevant when free
+    };
+  }
+
   // Check if we're in trial pricing period
   if (isTrialPricing()) {
     return {

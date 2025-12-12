@@ -14,7 +14,7 @@ interface GameStatus {
   currentBalance: number;
   pointsReward: number;
   targetsToWin: number;
-  timePerTarget: number;
+  timePerTarget: number; // seconds
 }
 
 type GameState = "idle" | "waiting" | "playing" | "targetHit" | "targetMissed" | "won" | "lost";
@@ -27,7 +27,7 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
   const [currentTarget, setCurrentTarget] = useState(0);
   const [targetPosition, setTargetPosition] = useState({ x: 50, y: 50 });
   const [targetSize, setTargetSize] = useState(120); // Start with large target
-  const [timeLeft, setTimeLeft] = useState(0.5);
+  const [timeLeft, setTimeLeft] = useState(0.3);
   const [hits, setHits] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,14 +126,14 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
     const y = margin + Math.random() * (containerRect.height - margin * 2);
     
     setTargetPosition({ x, y });
-    setTimeLeft(0.5);
+    setTimeLeft(0.3);
     setGameState("playing");
 
     // Start countdown timer
     const startTime = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
-      const remaining = 0.5 - elapsed;
+      const remaining = 0.3 - elapsed;
       
       if (remaining <= 0) {
         // Time's up - missed

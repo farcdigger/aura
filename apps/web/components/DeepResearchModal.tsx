@@ -165,15 +165,17 @@ export default function DeepResearchModal({
 
     setError(null);
 
-    // Check if payment is required (now always required, but might be trial pricing)
-    const isFree = false; // Always require payment (even if $0.001 during trial)
+    // Check if payment is required
+    // Check pricing info for free ticket or free status
+    const isFree = pricingInfo?.pricing?.isFree === true || 
+                   pricingInfo?.pricing?.freeReason === "free_ticket";
 
     if (!isFree) {
       setStatus("payment");
       return;
     }
 
-    // Start analysis (free)
+    // Start analysis (free - using free ticket or trial)
     await startAnalysis();
   };
 

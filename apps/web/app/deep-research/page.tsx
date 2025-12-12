@@ -47,6 +47,17 @@ export default function DeepResearchPage() {
     }
   }, [isConnected, address]);
 
+  // Refresh pricing info periodically to check for free tickets
+  useEffect(() => {
+    if (isConnected && address) {
+      const interval = setInterval(() => {
+        fetchPricingInfo();
+      }, 10000); // Refresh every 10 seconds to catch new free tickets
+      
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, address]);
+
   // Check NFT ownership
   const checkNFT = async () => {
     if (!address) return;
