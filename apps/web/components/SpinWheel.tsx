@@ -180,7 +180,7 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
   return (
     <div className="p-6 border border-gray-300 dark:border-gray-700 rounded-lg">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-bold mb-2">🎰 Spin the Wheel</h3>
+        <h3 className="text-xl font-bold mb-2">Spin the Wheel</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Spend {status.cost.toLocaleString()} credits for a chance to win!
         </p>
@@ -195,45 +195,64 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
 
       {/* Wheel Container */}
       <div className="relative mx-auto mb-6" style={{ width: "300px", height: "300px" }}>
-        <div
-          className="relative w-full h-full rounded-full border-4 border-gray-800 dark:border-gray-200 overflow-hidden"
+        <svg
+          width="300"
+          height="300"
+          viewBox="0 0 300 300"
+          className="absolute top-0 left-0"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: spinning ? "transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+            transformOrigin: "center",
           }}
         >
+          <circle cx="150" cy="150" r="150" fill="none" stroke="#000" strokeWidth="4" className="dark:stroke-white" />
           {segments.map((segment, index) => {
-            const angle = (360 / WHEEL_SEGMENTS) * index;
             const segmentAngle = 360 / WHEEL_SEGMENTS;
+            const startAngle = (index * segmentAngle - 90) * (Math.PI / 180);
+            const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180);
+            const radius = 150;
+            
+            const x1 = 150 + radius * Math.cos(startAngle);
+            const y1 = 150 + radius * Math.sin(startAngle);
+            const x2 = 150 + radius * Math.cos(endAngle);
+            const y2 = 150 + radius * Math.sin(endAngle);
+            
+            const largeArc = segmentAngle > 180 ? 1 : 0;
+            
+            // Text position (middle of segment)
+            const textAngle = (startAngle + endAngle) / 2;
+            const textRadius = 100;
+            const textX = 150 + textRadius * Math.cos(textAngle);
+            const textY = 150 + textRadius * Math.sin(textAngle);
             
             return (
-              <div
-                key={index}
-                className="absolute origin-center"
-                style={{
-                  width: "50%",
-                  height: "50%",
-                  transform: `rotate(${angle}deg)`,
-                  transformOrigin: "100% 100%",
-                  clipPath: `polygon(0 0, 100% 0, 100% 100%)`,
-                  backgroundColor: segment.color,
-                }}
-              >
-                <div
-                  className="absolute text-white font-bold text-xs"
+              <g key={index}>
+                <path
+                  d={`M 150 150 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                  fill={segment.color}
+                  stroke="#000"
+                  strokeWidth="2"
+                  className="dark:stroke-white"
+                />
+                <text
+                  x={textX}
+                  y={textY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="white"
+                  fontSize="12"
+                  fontWeight="bold"
                   style={{
-                    top: "10px",
-                    left: "50%",
-                    transform: `translateX(-50%) rotate(${segmentAngle / 2}deg)`,
-                    transformOrigin: "center",
+                    textShadow: "1px 1px 2px rgba(0,0,0,0.8)",
                   }}
                 >
                   {segment.label}
-                </div>
-              </div>
+                </text>
+              </g>
             );
           })}
-        </div>
+        </svg>
         
         {/* Pointer */}
         <div
