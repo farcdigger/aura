@@ -1117,6 +1117,299 @@ export function analyzeTransactions(
     buyVolumeSpike,
   };
   
+  // ============================================================================
+  // ✅ YENİ: 1. SMART MONEY ENTRY PRICE ANALYSIS
+  // ============================================================================
+  let smartMoneyAnalysis: any = undefined;
+  if (transactions.length > 50 && transactions.some(tx => tx.priceToken && tx.priceToken > 0)) {
+    // Get current price (most recent transaction price)
+    const sortedByTime = [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+    const currentPrice = sortedByTime.find(tx => tx.priceToken && tx.priceToken > 0)?.priceToken || 0;
+    
+    if (currentPrice > 0) {
+      // Identify early buyers (first 10% of transactions)
+      const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+      const earlyThresholdIndex = Math.floor(sortedTxs.length * 0.1);
+      const earlyThresholdTime = sortedTxs[earlyThresholdIndex]?.timestamp || sortedTxs[0]?.timestamp;
+      
+      const earlyBuyers = new Map<string, {
+        entryPrices: number[];
+        volumes: number[];
+        totalVolume: number;
+        hasSold: boolean;
+      }>();
+      
+      sortedTxs.forEach(tx => {
+        if (tx.direction === 'buy' && tx.timestamp <= earlyThresholdTime && tx.priceToken && tx.priceToken > 0) {
+          const existing = earlyBuyers.get(tx.wallet) || {
+            entryPrices: [],
+            volumes: [],
+            totalVolume: 0,
+            hasSold: false,
+          };
+          existing.entryPrices.push(tx.priceToken);
+          const txVolume = tx.amountInUsd || tx.amountOutUsd || 0;
+          existing.volumes.push(txVolume);
+          existing.totalVolume += txVolume;
+          earlyBuyers.set(tx.wallet, existing);
+        } else if (tx.direction === 'sell' && earlyBuyers.has(tx.wallet)) {
+          const existing = earlyBuyers.get(tx.wallet)!;
+          existing.hasSold = true;
+        }
+      });
+      
+      if (earlyBuyers.size > 0) {
+        // Calculate weighted average entry price for each early buyer
+        let totalEntryPrice = 0;
+        let totalVolume = 0;
+        let stillHoldingCount = 0;
+        let stillHoldingVolume = 0;
+        
+        earlyBuyers.forEach((buyer, address) => {
+          // Weighted average entry price
+          let weightedPrice = 0;
+          let totalWeight = 0;
+          buyer.entryPrices.forEach((price, idx) => {
+            const weight = buyer.volumes[idx] || 0;
+            weightedPrice += price * weight;
+            totalWeight += weight;
+          });
+          const avgEntryPrice = totalWeight > 0 ? weightedPrice / totalWeight : 0;
+          
+          if (avgEntryPrice > 0) {
+            totalEntryPrice += avgEntryPrice * buyer.totalVolume;
+            totalVolume += buyer.totalVolume;
+            
+            if (!buyer.hasSold) {
+              stillHoldingCount++;
+              stillHoldingVolume += buyer.totalVolume;
+            }
+          }
+        });
+        
+        const avgEntryPrice = totalVolume > 0 ? totalEntryPrice / totalVolume : 0;
+        const profitLossPercent = avgEntryPrice > 0 ? ((currentPrice - avgEntryPrice) / avgEntryPrice) * 100 : 0;
+        const stillHoldingRatio = earlyBuyers.size > 0 ? (stillHoldingCount / earlyBuyers.size) * 100 : 0;
+        
+        smartMoneyAnalysis = {
+          earlyBuyersCount: earlyBuyers.size,
+          earlyBuyersAvgEntryPrice: avgEntryPrice,
+          earlyBuyersCurrentProfitLoss: profitLossPercent,
+          earlyBuyersTotalVolume: totalVolume,
+          earlyBuyersStillHolding: stillHoldingCount,
+          earlyBuyersStillHoldingRatio: stillHoldingRatio,
+        };
+      }
+    }
+  }
+  
+  // ============================================================================
+  // ✅ YENİ: 4. PROFIT/LOSS DISTRIBUTION ANALYSIS
+  // ============================================================================
+  let profitLossDistribution: any = undefined;
+  if (transactions.length > 50 && transactions.some(tx => tx.priceToken && tx.priceToken > 0)) {
+    const sortedByTime = [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+    const currentPrice = sortedByTime.find(tx => tx.priceToken && tx.priceToken > 0)?.priceToken || 0;
+    
+    if (currentPrice > 0) {
+      // Calculate entry price for each wallet (weighted average)
+      const walletEntryPrices = new Map<string, {
+        entryPrices: number[];
+        volumes: number[];
+        totalVolume: number;
+        hasSold: boolean;
+      }>();
+      
+      const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+      sortedTxs.forEach(tx => {
+        if (tx.direction === 'buy' && tx.priceToken && tx.priceToken > 0) {
+          const existing = walletEntryPrices.get(tx.wallet) || {
+            entryPrices: [],
+            volumes: [],
+            totalVolume: 0,
+            hasSold: false,
+          };
+          existing.entryPrices.push(tx.priceToken);
+          const txVolume = tx.amountInUsd || tx.amountOutUsd || 0;
+          existing.volumes.push(txVolume);
+          existing.totalVolume += txVolume;
+          walletEntryPrices.set(tx.wallet, existing);
+        } else if (tx.direction === 'sell' && walletEntryPrices.has(tx.wallet)) {
+          const existing = walletEntryPrices.get(tx.wallet)!;
+          existing.hasSold = true;
+        }
+      });
+      
+      let walletsInProfit = 0;
+      let walletsInLoss = 0;
+      let walletsAtBreakEven = 0;
+      let totalProfitVolume = 0;
+      let totalLossVolume = 0;
+      const profitPercents: number[] = [];
+      const lossPercents: number[] = [];
+      
+      walletEntryPrices.forEach((buyer) => {
+        if (buyer.totalVolume > 0 && buyer.entryPrices.length > 0) {
+          // Calculate weighted average entry price
+          let weightedPrice = 0;
+          let totalWeight = 0;
+          buyer.entryPrices.forEach((price, idx) => {
+            const weight = buyer.volumes[idx] || 0;
+            weightedPrice += price * weight;
+            totalWeight += weight;
+          });
+          const avgEntryPrice = totalWeight > 0 ? weightedPrice / totalWeight : 0;
+          
+          if (avgEntryPrice > 0) {
+            const profitLossPercent = ((currentPrice - avgEntryPrice) / avgEntryPrice) * 100;
+            
+            if (profitLossPercent > 1) {
+              // In profit (>1% threshold)
+              walletsInProfit++;
+              totalProfitVolume += buyer.totalVolume;
+              profitPercents.push(profitLossPercent);
+            } else if (profitLossPercent < -1) {
+              // In loss (<-1% threshold)
+              walletsInLoss++;
+              totalLossVolume += buyer.totalVolume;
+              lossPercents.push(Math.abs(profitLossPercent));
+            } else {
+              // At break-even
+              walletsAtBreakEven++;
+            }
+          }
+        }
+      });
+      
+      const totalWallets = walletEntryPrices.size;
+      const profitLossRatio = totalWallets > 0 ? (walletsInProfit / totalWallets) * 100 : 0;
+      const avgProfitPercent = profitPercents.length > 0 
+        ? profitPercents.reduce((sum, p) => sum + p, 0) / profitPercents.length 
+        : 0;
+      const avgLossPercent = lossPercents.length > 0
+        ? lossPercents.reduce((sum, p) => sum + p, 0) / lossPercents.length
+        : 0;
+      
+      // Determine profit-taking risk
+      let profitTakingRisk: 'low' | 'medium' | 'high' = 'low';
+      if (profitLossRatio > 70 && avgProfitPercent > 50) {
+        profitTakingRisk = 'high'; // Most wallets in profit with high gains
+      } else if (profitLossRatio > 50 && avgProfitPercent > 30) {
+        profitTakingRisk = 'medium';
+      }
+      
+      profitLossDistribution = {
+        walletsInProfit,
+        walletsInLoss,
+        walletsAtBreakEven,
+        profitLossRatio,
+        avgProfitPercent,
+        avgLossPercent,
+        totalProfitVolume,
+        totalLossVolume,
+        profitTakingRisk,
+      };
+    }
+  }
+  
+  // ============================================================================
+  // ✅ YENİ: 8. SUPPORT/RESISTANCE LEVEL DETECTION
+  // ============================================================================
+  let supportResistanceLevels: any = undefined;
+  if (transactions.length > 100 && transactions.some(tx => tx.priceToken && tx.priceToken > 0)) {
+    const sortedByTime = [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+    const currentPrice = sortedByTime.find(tx => tx.priceToken && tx.priceToken > 0)?.priceToken || 0;
+    
+    if (currentPrice > 0) {
+      // Create price histogram (group transactions by price ranges)
+      const priceBins = new Map<number, { count: number; volume: number; prices: number[] }>();
+      const PRICE_BIN_SIZE = currentPrice * 0.02; // 2% price bins
+      
+      transactions.forEach(tx => {
+        if (tx.priceToken && tx.priceToken > 0) {
+          const bin = Math.round(tx.priceToken / PRICE_BIN_SIZE) * PRICE_BIN_SIZE;
+          const existing = priceBins.get(bin) || { count: 0, volume: 0, prices: [] };
+          existing.count++;
+          existing.volume += tx.amountInUsd || tx.amountOutUsd || 0;
+          existing.prices.push(tx.priceToken);
+          priceBins.set(bin, existing);
+        }
+      });
+      
+      // Find support levels (price levels with high transaction count below current price)
+      const supportLevels: Array<{ price: number; transactionCount: number; volume: number; strength: 'weak' | 'moderate' | 'strong' }> = [];
+      const resistanceLevels: Array<{ price: number; transactionCount: number; volume: number; strength: 'weak' | 'moderate' | 'strong' }> = [];
+      
+      // Calculate average transaction count and volume for strength determination
+      const allCounts = Array.from(priceBins.values()).map(b => b.count);
+      const avgCount = allCounts.length > 0 ? allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length : 0;
+      const maxCount = allCounts.length > 0 ? Math.max(...allCounts) : 0;
+      
+      priceBins.forEach((bin, price) => {
+        if (price < currentPrice) {
+          // Support level (below current price)
+          let strength: 'weak' | 'moderate' | 'strong' = 'weak';
+          if (bin.count > avgCount * 1.5 && bin.count > maxCount * 0.3) {
+            strength = 'strong';
+          } else if (bin.count > avgCount * 1.2) {
+            strength = 'moderate';
+          }
+          
+          if (bin.count > avgCount * 1.1) {
+            supportLevels.push({
+              price,
+              transactionCount: bin.count,
+              volume: bin.volume,
+              strength,
+            });
+          }
+        } else if (price > currentPrice) {
+          // Resistance level (above current price)
+          let strength: 'weak' | 'moderate' | 'strong' = 'weak';
+          if (bin.count > avgCount * 1.5 && bin.count > maxCount * 0.3) {
+            strength = 'strong';
+          } else if (bin.count > avgCount * 1.2) {
+            strength = 'moderate';
+          }
+          
+          if (bin.count > avgCount * 1.1) {
+            resistanceLevels.push({
+              price,
+              transactionCount: bin.count,
+              volume: bin.volume,
+              strength,
+            });
+          }
+        }
+      });
+      
+      // Sort by transaction count (descending) and take top 5
+      supportLevels.sort((a, b) => b.transactionCount - a.transactionCount);
+      resistanceLevels.sort((a, b) => b.transactionCount - a.transactionCount);
+      
+      // Find nearest support and resistance
+      const nearestSupport = supportLevels.length > 0 
+        ? supportLevels.reduce((nearest, level) => 
+            level.price > nearest.price ? level : nearest
+          , supportLevels[0])
+        : undefined;
+      
+      const nearestResistance = resistanceLevels.length > 0
+        ? resistanceLevels.reduce((nearest, level) =>
+            level.price < nearest.price ? level : nearest
+          , resistanceLevels[0])
+        : undefined;
+      
+      supportResistanceLevels = {
+        supportLevels: supportLevels.slice(0, 5), // Top 5 support levels
+        resistanceLevels: resistanceLevels.slice(0, 5), // Top 5 resistance levels
+        currentPrice,
+        nearestSupport: nearestSupport?.price,
+        nearestResistance: nearestResistance?.price,
+      };
+    }
+  }
+
   const walletStats = {
     diamondHandsCount,
     reEntryCount,
@@ -1140,6 +1433,9 @@ export function analyzeTransactions(
     reEntryTotalBuyBackVolume,
     panicSellIndicators,
     fomoBuyIndicators,
+    smartMoneyAnalysis, // ✅ YENİ
+    profitLossDistribution, // ✅ YENİ
+    supportResistanceLevels, // ✅ YENİ
   };
 
   // Calculate liquidity-to-transaction ratios

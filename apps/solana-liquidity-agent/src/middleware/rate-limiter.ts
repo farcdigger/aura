@@ -92,11 +92,56 @@ export function calculateEstimatedWaitTime(queuePosition: number): {
 }
 
 /**
+ * IP-based rate limiting (prevent URL spam)
+ */
+async function checkIPRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
+  const key = `ip_rate_limit:${ip}`;
+  const maxRequestsPerMinute = 5; // Max 5 requests per minute per IP
+  
+  try {
+    const count = await redis.incr(key);
+    
+    // Set TTL to 60 seconds if first request
+    if (count === 1) {
+      await redis.expire(key, 60);
+    }
+    
+    const remaining = Math.max(0, maxRequestsPerMinute - count);
+    return {
+      allowed: count <= maxRequestsPerMinute,
+      remaining,
+    };
+  } catch (error: any) {
+    console.error('[RateLimiter] IP rate limit error:', error.message);
+    // Fail-open: allow request if Redis fails
+    return { allowed: true, remaining: maxRequestsPerMinute };
+  }
+}
+
+/**
  * Rate limiter middleware for analysis endpoint
  */
 export function analysisRateLimiter(queue: Queue) {
   return async (c: Context, next: Next) => {
     try {
+      // 0. IP-based rate limiting (prevent URL spam)
+      const clientIP = c.req.header('cf-connecting-ip') || 
+                      c.req.header('x-forwarded-for')?.split(',')[0] || 
+                      c.req.header('x-real-ip') || 
+                      'unknown';
+      
+      const ipRateLimit = await checkIPRateLimit(clientIP);
+      if (!ipRateLimit.allowed) {
+        return c.json({
+          error: 'rate_limit_exceeded',
+          message: 'Çok fazla istek gönderdiniz. Lütfen bir dakika bekleyin.',
+          details: {
+            remaining: ipRateLimit.remaining,
+            resetIn: '60 seconds',
+          },
+        }, 429);
+      }
+      
       // 1. Get current daily count
       const dailyCount = await getDailyCount();
       const dailyRemaining = DAILY_ANALYSIS_LIMIT - dailyCount;

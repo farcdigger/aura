@@ -261,9 +261,112 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Could not determine payer address" }, { status: 400 });
     }
 
+    // Check weekly limit and queue status BEFORE queuing (to avoid charging for unavailable service)
+    console.log("📊 Checking weekly limit and queue status...");
+    const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    
+    let limitData: any = null;
+    try {
+      const limitResponse = await fetch(`${agentUrl}/api/weekly-limit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userWallet: walletAddress }),
+      });
+
+      if (limitResponse.ok) {
+        limitData = await limitResponse.json();
+        if (!limitData.allowed || limitData.remaining <= 0) {
+          // Weekly limit reached AFTER payment - issue free ticket
+          console.warn("⚠️ Weekly limit reached after payment - issuing free ticket");
+          
+          // Issue free ticket via agent API
+          try {
+            await fetch(`${agentUrl}/api/free-ticket`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userWallet: normalizedWalletAddress,
+                reason: "weekly_limit_reached_after_payment",
+                metadata: {
+                  transactionHash: settlement.transaction,
+                  tokenMint,
+                  timestamp: new Date().toISOString(),
+                },
+              }),
+            });
+          } catch (ticketError) {
+            console.error("❌ Failed to issue free ticket:", ticketError);
+          }
+          
+          return NextResponse.json(
+            {
+              error: "Weekly limit reached",
+              limitInfo: {
+                current: limitData.current,
+                limit: limitData.limit,
+                remaining: 0,
+              },
+              freeTicket: true,
+              freeTicketReason: "weekly_limit_reached_after_payment",
+              transaction: settlement.transaction,
+            },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (limitError: any) {
+      console.error("❌ Error checking weekly limit:", limitError.message);
+      // Continue anyway - limit check is not critical at this point
+    }
+
+    // Check queue status (to avoid charging if queue is full)
+    try {
+      const queueStatusResponse = await fetch(`${agentUrl}/system-status`);
+      if (queueStatusResponse.ok) {
+        const queueStatus = await queueStatusResponse.json();
+        const queueSize = (queueStatus.waiting || 0) + (queueStatus.active || 0);
+        if (queueSize >= 5) {
+          // Queue is full AFTER payment - issue free ticket
+          console.warn("⚠️ Queue is full after payment - issuing free ticket");
+          
+          // Issue free ticket via agent API
+          try {
+            await fetch(`${agentUrl}/api/free-ticket`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userWallet: normalizedWalletAddress,
+                reason: "queue_full_after_payment",
+                metadata: {
+                  transactionHash: settlement.transaction,
+                  tokenMint,
+                  timestamp: new Date().toISOString(),
+                },
+              }),
+            });
+          } catch (ticketError) {
+            console.error("❌ Failed to issue free ticket:", ticketError);
+          }
+          
+          return NextResponse.json(
+            {
+              error: "Queue is full",
+              message: "Analysis queue is currently full. A free ticket has been issued for your next attempt.",
+              freeTicket: true,
+              freeTicketReason: "queue_full_after_payment",
+              transaction: settlement.transaction,
+            },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (queueError: any) {
+      console.error("❌ Error checking queue status:", queueError.message);
+      // Continue anyway - queue check is not critical
+    }
+
     // Queue analysis job
     console.log("🚀 Queuing analysis job...");
-    const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
 
     try {
       // Normalize wallet address to lowercase for consistent storage
@@ -283,7 +386,39 @@ export async function POST(request: NextRequest) {
 
       if (!analysisResponse.ok) {
         const errorData = await analysisResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to queue analysis");
+        // Payment succeeded but analysis failed - issue free ticket
+        console.error("❌ Analysis failed after payment:", errorData.error);
+        
+        // Issue free ticket via agent API
+        try {
+          await fetch(`${agentUrl}/api/free-ticket`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userWallet: normalizedWalletAddress,
+              reason: "analysis_failed_after_payment",
+              metadata: {
+                transactionHash: settlement.transaction,
+                errorMessage: errorData.error || "Failed to queue analysis",
+                tokenMint,
+                timestamp: new Date().toISOString(),
+              },
+            }),
+          });
+        } catch (ticketError) {
+          console.error("❌ Failed to issue free ticket:", ticketError);
+        }
+        
+        return NextResponse.json(
+          {
+            error: "Analysis failed to start",
+            message: errorData.error || "Failed to queue analysis",
+            transaction: settlement.transaction,
+            freeTicket: true,
+            freeTicketReason: "analysis_failed_after_payment",
+          },
+          { status: 500 }
+        );
       }
 
       const analysisData = await analysisResponse.json();

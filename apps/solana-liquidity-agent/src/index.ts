@@ -124,16 +124,61 @@ const analyzeHandlerFn = async (c: any) => {
     }
     
     // ====================================================================
+    // FREE TICKET CHECK (before weekly limit check)
+    // ====================================================================
+    const { checkFreeTicket, useFreeTicket } = await import('./lib/free-tickets');
+    const freeTicket = input.userWallet ? await checkFreeTicket(input.userWallet) : null;
+    const hasFreeTicket = !!freeTicket;
+    
+    // ====================================================================
+    // WEEKLY LIMIT CHECK (before queuing)
+    // ====================================================================
+    const limitStatus = await getWeeklyLimitStatus();
+    if (limitStatus.remaining <= 0 && !hasFreeTicket) {
+      return c.json({
+        error: 'Weekly limit reached',
+        limitInfo: {
+          current: limitStatus.current,
+          limit: limitStatus.limit,
+          remaining: 0,
+          resetsAt: limitStatus.resetsAt,
+        },
+      }, 429);
+    }
+    
+    // If user has free ticket, use it
+    if (hasFreeTicket && input.userWallet) {
+      await useFreeTicket(input.userWallet);
+      console.log(`🎫 Free ticket used by ${input.userWallet.substring(0, 10)}... (reason: ${freeTicket.reason})`);
+    }
+    
+    // ====================================================================
     // QUEUE JOB
     // ====================================================================
     
-    const job = await addAnalysisJob({
-      poolId: poolId,
-      userId: input.userId,
-      userWallet: input.userWallet, // For user-specific tracking
-      tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
-      options: input.options,
-    });
+    let job;
+    try {
+      job = await addAnalysisJob({
+        poolId: poolId,
+        userId: input.userId,
+        userWallet: input.userWallet, // For user-specific tracking
+        tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
+        options: input.options,
+      });
+    } catch (queueError: any) {
+      if (queueError.message && queueError.message.includes('Queue is full')) {
+        return c.json({
+          error: 'Queue is full',
+          message: queueError.message,
+          limitInfo: {
+            current: limitStatus.current,
+            limit: limitStatus.limit,
+            remaining: limitStatus.remaining,
+          },
+        }, 429);
+      }
+      throw queueError;
+    }
     
     console.log(`📥 New analysis job queued: ${job.id} for pool ${poolId}`);
     
@@ -176,6 +221,14 @@ const analyzeHandlerFn = async (c: any) => {
         error: 'Validation error',
         details: error.issues,
       }, 400);
+    }
+    
+    // Check if it's a queue full error
+    if (error.message && error.message.includes('Queue is full')) {
+      return c.json({
+        error: 'Queue is full',
+        message: error.message,
+      }, 429);
     }
     
     return c.json({
@@ -366,6 +419,71 @@ app.post('/api/weekly-limit', async (c) => {
     
   } catch (error: any) {
     console.error('❌ /api/weekly-limit error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/free-ticket
+ * Issue a free ticket to a user (for failed analyses after payment)
+ */
+app.post('/api/free-ticket', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userWallet, reason, metadata } = body;
+    
+    if (!userWallet || !reason) {
+      return c.json({
+        error: 'userWallet and reason are required',
+      }, 400);
+    }
+    
+    console.log(`🎫 Issuing free ticket to wallet: ${userWallet.substring(0, 10)}... (reason: ${reason})`);
+    
+    const { issueFreeTicket } = await import('./lib/free-tickets');
+    await issueFreeTicket(userWallet, reason, metadata);
+    
+    return c.json({
+      success: true,
+      message: 'Free ticket issued successfully',
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/free-ticket error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /api/free-ticket
+ * Check if user has a free ticket
+ */
+app.get('/api/free-ticket', async (c) => {
+  try {
+    const userWallet = c.req.query('userWallet');
+    
+    if (!userWallet) {
+      return c.json({
+        error: 'userWallet query parameter is required',
+      }, 400);
+    }
+    
+    const { checkFreeTicket } = await import('./lib/free-tickets');
+    const ticket = await checkFreeTicket(userWallet);
+    
+    return c.json({
+      hasTicket: !!ticket,
+      ticket: ticket || null,
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/free-ticket error:', error.message);
     return c.json({
       error: 'Internal server error',
       message: error.message,

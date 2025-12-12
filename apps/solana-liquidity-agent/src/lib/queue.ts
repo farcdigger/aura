@@ -63,13 +63,24 @@ export const queue = analysisQueue;
 // QUEUE OPERATIONS
 // =============================================================================
 
+const MAX_QUEUE_SIZE = 5; // Maximum number of jobs in queue (waiting + active)
+
 /**
  * Add analysis job to queue
  * @param data Job data (poolId, userId, options)
  * @returns Job instance
+ * @throws Error if queue is full (max 5 jobs)
  */
 export async function addAnalysisJob(data: QueueJobData) {
   try {
+    // Check queue size before adding
+    const stats = await getQueueStats();
+    const currentQueueSize = stats.waiting + stats.active;
+    
+    if (currentQueueSize >= MAX_QUEUE_SIZE) {
+      throw new Error(`Queue is full. Maximum ${MAX_QUEUE_SIZE} jobs allowed (currently ${currentQueueSize}). Please try again later.`);
+    }
+
     const jobData: QueueJobData = {
       ...data,
       requestedAt: data.requestedAt || new Date().toISOString(),
@@ -85,6 +96,7 @@ export async function addAnalysisJob(data: QueueJobData) {
     );
 
     console.log(`[Queue] ✅ Job added: ${job.id} (Pool: ${jobData.poolId})`);
+    console.log(`[Queue] 📊 Queue status: ${currentQueueSize + 1}/${MAX_QUEUE_SIZE} (waiting: ${stats.waiting + 1}, active: ${stats.active})`);
 
     return job;
 
@@ -445,5 +457,5 @@ export async function closeQueue(): Promise<void> {
 // EXPORTS
 // =============================================================================
 
-export { QUEUE_NAME, WORKER_CONCURRENCY };
+export { QUEUE_NAME, WORKER_CONCURRENCY, MAX_QUEUE_SIZE };
 

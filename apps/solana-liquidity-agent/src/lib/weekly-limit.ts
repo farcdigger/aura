@@ -148,7 +148,7 @@ function getISOWeek(date: Date): number {
 }
 
 /**
- * Haftanın son gününü al (Pazar gece yarısı)
+ * Haftanın son gününü al (Pazar UTC 21:00)
  */
 function getWeekEnd(date: Date): Date {
   const weekEnd = new Date(date);
@@ -158,8 +158,8 @@ function getWeekEnd(date: Date): Date {
   const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   weekEnd.setDate(weekEnd.getDate() + daysUntilSunday);
   
-  // Gece yarısına ayarla
-  weekEnd.setHours(23, 59, 59, 999);
+  // UTC 21:00'a ayarla (Pazar gecesi)
+  weekEnd.setUTCHours(21, 0, 0, 0);
   
   return weekEnd;
 }

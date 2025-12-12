@@ -206,11 +206,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check weekly limit
+    // 2. Check for free ticket first
+    console.log("🎫 [Deep Research] Checking for free ticket...");
+    let hasFreeTicket = false;
+    try {
+      const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+      const ticketResponse = await fetch(`${agentUrl}/api/free-ticket?userWallet=${encodeURIComponent(userWallet)}`);
+      if (ticketResponse.ok) {
+        const ticketData = await ticketResponse.json();
+        hasFreeTicket = ticketData.hasTicket || false;
+        if (hasFreeTicket) {
+          console.log(`✅ Free ticket found for ${userWallet.substring(0, 10)}...`);
+        }
+      }
+    } catch (ticketError: any) {
+      console.warn("⚠️ Error checking free ticket:", ticketError.message);
+      // Continue anyway - free ticket check is not critical
+    }
+
+    // 3. Check weekly limit (skip if free ticket exists)
     console.log("📊 [Deep Research] Checking weekly limit...");
     const limitStatus = await checkWeeklyLimit(userWallet);
 
-    if (!limitStatus.allowed) {
+    if (!limitStatus.allowed && !hasFreeTicket) {
       return NextResponse.json(
         {
           error: "Weekly limit reached",

@@ -244,6 +244,45 @@ export interface TransactionSummary {
       priceRise: number; // Fiyat artışı (%)
       buyVolumeSpike: number; // Alım hacmi artışı (x katı)
     };
+    // ✅ YENİ: Smart Money Entry Price Analysis
+    smartMoneyAnalysis?: {
+      earlyBuyersCount: number; // İlk %10 işlemde alım yapan cüzdan sayısı
+      earlyBuyersAvgEntryPrice: number; // Erken girenlerin ortalama entry price
+      earlyBuyersCurrentProfitLoss: number; // Erken girenlerin kar/zarar durumu (%)
+      earlyBuyersTotalVolume: number; // Erken girenlerin toplam hacmi (USD)
+      earlyBuyersStillHolding: number; // Erken girenlerden hala tutanların sayısı
+      earlyBuyersStillHoldingRatio: number; // Erken girenlerden hala tutanların oranı (%)
+    };
+    // ✅ YENİ: Profit/Loss Distribution Analysis
+    profitLossDistribution?: {
+      walletsInProfit: number; // Kar'da olan cüzdan sayısı
+      walletsInLoss: number; // Zarar'da olan cüzdan sayısı
+      walletsAtBreakEven: number; // Başabaş olan cüzdan sayısı
+      profitLossRatio: number; // Kar'da olanların oranı (%)
+      avgProfitPercent: number; // Ortalama kar oranı (%)
+      avgLossPercent: number; // Ortalama zarar oranı (%)
+      totalProfitVolume: number; // Kar'da olan cüzdanların toplam hacmi (USD)
+      totalLossVolume: number; // Zarar'da olan cüzdanların toplam hacmi (USD)
+      profitTakingRisk: 'low' | 'medium' | 'high'; // Profit-taking risk seviyesi
+    };
+    // ✅ YENİ: Support/Resistance Level Detection
+    supportResistanceLevels?: {
+      supportLevels: Array<{
+        price: number; // Support seviyesi (USD)
+        transactionCount: number; // Bu seviyede yapılan işlem sayısı
+        volume: number; // Bu seviyede yapılan toplam hacim (USD)
+        strength: 'weak' | 'moderate' | 'strong'; // Support gücü
+      }>;
+      resistanceLevels: Array<{
+        price: number; // Resistance seviyesi (USD)
+        transactionCount: number; // Bu seviyede yapılan işlem sayısı
+        volume: number; // Bu seviyede yapılan toplam hacim (USD)
+        strength: 'weak' | 'moderate' | 'strong'; // Resistance gücü
+      }>;
+      currentPrice: number; // Mevcut fiyat (USD)
+      nearestSupport?: number; // En yakın support seviyesi
+      nearestResistance?: number; // En yakın resistance seviyesi
+    };
   };
   
   topWallets: WalletActivity[];

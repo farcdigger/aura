@@ -57,8 +57,16 @@ export default function DeepResearchModal({
               setStatus("error");
               clearInterval(interval);
             } else {
-              // Update progress (estimate based on time)
-              setProgress(Math.min(95, progress + 5));
+              // Use actual progress from job if available, otherwise estimate
+              if (data.progress !== undefined && typeof data.progress === 'number') {
+                setProgress(data.progress);
+              } else {
+                // Estimate based on time (2 minutes = 120 seconds, poll every 2 seconds = 60 polls)
+                // Start at 10%, reach 95% after 2 minutes
+                const elapsedPolls = Math.floor((Date.now() - (jobId ? parseInt(jobId.split('-').pop() || '0') : Date.now())) / 2000);
+                const estimatedProgress = Math.min(95, 10 + (elapsedPolls * 1.4)); // ~1.4% per poll
+                setProgress(estimatedProgress);
+              }
             }
           }
         } catch (err) {
@@ -246,7 +254,7 @@ export default function DeepResearchModal({
             
             <p className="text-lg font-semibold mb-2">Analyzing token...</p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              This may take 30-60 seconds
+              This may take up to 2 minutes
             </p>
 
             {/* Progress Bar */}
@@ -283,17 +291,32 @@ export default function DeepResearchModal({
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold">Analysis Complete</p>
                 {analysisResult?.riskScore !== undefined && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Risk Score:</span>
-                    <span className={`font-bold text-lg ${
-                      analysisResult.riskScore <= 20 ? 'text-green-600' :
-                      analysisResult.riskScore <= 40 ? 'text-yellow-600' :
-                      analysisResult.riskScore <= 60 ? 'text-orange-600' :
-                      analysisResult.riskScore <= 80 ? 'text-red-600' :
-                      'text-red-800'
-                    }`}>
-                      {analysisResult.riskScore}/100
-                    </span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Risk Score:</span>
+                      <span className={`font-bold text-lg ${
+                        analysisResult.riskScore <= 20 ? 'text-green-600' :
+                        analysisResult.riskScore <= 40 ? 'text-yellow-600' :
+                        analysisResult.riskScore <= 60 ? 'text-orange-600' :
+                        analysisResult.riskScore <= 80 ? 'text-red-600' :
+                        'text-red-800'
+                      }`}>
+                        {analysisResult.riskScore}/100
+                      </span>
+                    </div>
+                    {/* Risk Score Bar */}
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-500 ${
+                          analysisResult.riskScore <= 20 ? 'bg-green-500' :
+                          analysisResult.riskScore <= 40 ? 'bg-yellow-500' :
+                          analysisResult.riskScore <= 60 ? 'bg-orange-500' :
+                          analysisResult.riskScore <= 80 ? 'bg-red-500' :
+                          'bg-red-700'
+                        }`}
+                        style={{ width: `${analysisResult.riskScore}%` }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

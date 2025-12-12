@@ -410,26 +410,26 @@ The system has performed deep forensic analysis and detected the following advan
 
 **CRITICAL: You must provide BALANCED analysis - not just risks, but also opportunities and normal behaviors for memecoins!**
 
-**🎯 MEMECOIN CONTEXT - CRITICAL FOR RISK ASSESSMENT:**
-Memecoins have DIFFERENT normal behaviors than established tokens. When assessing risk, consider:
-- **Bots are NORMAL:** Many memecoins have bot activity - this is expected, not necessarily risky
-- **Low volume trades are NORMAL:** Small retail traders ($5-50 trades) are typical for memecoins
-- **High volatility is NORMAL:** Memecoins are inherently volatile - don't penalize for normal volatility
+**🎯 TOKEN CONTEXT - CRITICAL FOR RISK ASSESSMENT:**
+Tokens have different normal behaviors depending on their type. When assessing risk, consider:
+- **Bots are NORMAL:** Many tokens have bot activity - this is expected, not necessarily risky
+- **Low volume trades are NORMAL:** Small retail traders ($5-50 trades) are typical for many tokens
+- **High volatility is NORMAL:** Many tokens are inherently volatile - don't penalize for normal volatility
 - **Wash trading <5% of volume:** If wash trading is less than 5% of total volume, it's likely not significant enough to manipulate price meaningfully
-- **New wallets:** 10-30% new wallet ratio is NORMAL for growing memecoins
+- **New wallets:** 10-30% new wallet ratio is NORMAL for growing tokens
 
-**RISK SCORING GUIDELINES (MEMECOIN CONTEXT):**
-- **0-40 (Low Risk):** Normal memecoin behavior, healthy liquidity (>15% liquidity-to-market cap ratio), no major red flags, wash trading <5% of volume
-- **41-60 (Medium Risk):** Some concerns but within normal memecoin parameters (e.g., 5-10% wash trading, moderate liquidity 10-15%, some bot activity)
-- **61-80 (High Risk):** Significant red flags beyond normal memecoin behavior (e.g., >10% wash trading, very low liquidity <10%, coordinated manipulation patterns, suspicious wallet behavior)
+**RISK SCORING GUIDELINES:**
+- **0-40 (Low Risk):** Normal token behavior, healthy liquidity (>15% liquidity-to-market cap ratio), no major red flags, wash trading <5% of volume
+- **41-60 (Medium Risk):** Some concerns but within normal parameters (e.g., 5-10% wash trading, moderate liquidity 10-15%, some bot activity)
+- **61-80 (High Risk):** Significant red flags beyond normal behavior (e.g., >10% wash trading, very low liquidity <10%, coordinated manipulation patterns, suspicious wallet behavior)
 - **81-100 (Very High Risk):** Major red flags - potential scam, rug pull, or severe manipulation (>20% wash trading, extremely low liquidity, clear rug pull signs)
 
-**CRITICAL:** A memecoin with 7-8% wash trading, 14% liquidity ratio, and normal bot activity should score 50-65, NOT 81! Only score 81+ if there are SEVERE red flags beyond normal memecoin behavior.
+**CRITICAL:** A token with 7-8% wash trading, 14% liquidity ratio, and normal bot activity should score 50-65, NOT 81! Only score 81+ if there are SEVERE red flags beyond normal behavior.
 
 **DO NOT penalize for:**
 - Bot activity (unless it's coordinated manipulation)
 - Small transaction sizes (normal for retail)
-- Moderate volatility (expected for memecoins)
+- Moderate volatility (expected for many tokens)
 - New wallet activity (could be organic growth)
 - Wash trading <5% of volume (likely not significant)
 
@@ -447,7 +447,7 @@ Risk Score: [NUMBER from 0-100]
 - **61-80:** Dangerous (Lots of red flags)
 - **81-100:** Very Dangerous (Strong scam/rug pull signs)
 
-**IMPORTANT:** For new memecoins, many "suspicious" patterns are NORMAL:
+**IMPORTANT:** For new tokens, many "suspicious" patterns are NORMAL:
 - Low transaction sizes ($5-50) = normal retail activity
 - Many new wallets = could be viral growth, not just bots
 - High sell ratio = normal profit-taking after pump
@@ -466,7 +466,7 @@ Write this section in simple language. Explain each point like you're talking to
 
 #### 💰 Is There Enough Money in the Pool?
 - **Calculate liquidity-to-market-cap ratio** (provided in Advanced Metrics)
-- For memecoins: 20-30% liquidity ratio is HEALTHY, not "low"
+- For tokens: 20-30% liquidity ratio is HEALTHY, not "low"
 - Below 10% = risky, above 50% = unusual
 - Can you easily buy/sell without losing money on price changes?
 - Explain: "There's $X in the pool with estimated $Y market cap, which is a ${liquidityToMarketCapRatio.toFixed(1)}% ratio. This means..."
@@ -482,11 +482,11 @@ Write this section in simple language. Explain each point like you're talking to
   - Transaction count: ${buyRatio.toFixed(1)}% buys vs ${sellRatio.toFixed(1)}% sells
   - USD volume: ${buyVolumeRatio.toFixed(1)}% buy volume vs ${(100 - buyVolumeRatio).toFixed(1)}% sell volume
 - **CRITICAL:** Do these ratios match? If not, explain WHY:
-  - More buy COUNT but less buy VOLUME = small retail traders (NORMAL for memecoins, could be FOMO or organic growth)
+  - More buy COUNT but less buy VOLUME = small retail traders (NORMAL for tokens, could be FOMO or organic growth)
   - Less buy COUNT but more buy VOLUME = whale accumulation (could be bullish OR manipulation - analyze further)
   - Both high = Strong organic interest
   - Both low = Low activity, high risk
-- **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For memecoins, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
+- **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For tokens, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
 - **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "3Twiy4pPsPt7Ptge7ghXPtqK3ww4WN5XnoiZhz2Txjeh" not "3Twiy4pP...".
 - **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "BvyEhJjPiFbHQFAvNe3eTdHbyFPcScTAKSNwxEcjatSm" not "BvyEhJjP...".
 - **Wallet Behavior Statistics:** 
@@ -498,46 +498,167 @@ Write this section in simple language. Explain each point like you're talking to
   - **Total High-Value Wallets:** ${transactions.walletStats.totalHighValueWallets} unique wallets with significant trading activity
   ` : 'Wallet statistics not available'}
 
-#### 🚨 Are People Cheating? (BALANCED ANALYSIS REQUIRED)
+${transactions.walletStats?.smartMoneyAnalysis ? `
+#### 💎 Smart Money Analysis (Erken Girenler)
+- **Early Buyers:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
+- **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)}
+- **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
+- **Still Holding:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHolding} out of ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} early buyers (${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHoldingRatio.toFixed(1)}%)
+- **Analysis Required:** Explain what this means:
+  - If early buyers are in profit and still holding → Strong conviction, bullish signal
+  - If early buyers are in profit but selling → Profit-taking, potential price pressure
+  - If early buyers are in loss but still holding → Waiting for break-even, potential resistance at entry price
+  - If early buyers are in loss and selling → Weak conviction, bearish signal
+` : ''}
 
-**⚠️ RISK PATTERNS (Report these, but also explain if they're normal for memecoins):**
-- **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing wash trading (buying and selling large amounts within 5 minutes). **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No wash trading detected - normal trading patterns." Do NOT report bot activity as manipulation - we're looking for simultaneous buy-sell patterns, not just bot activity.
-  ${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
-  **Wash Trading Analysis (MAFYA KÜMESİ):**
-  - **Wash Trading Wallets:** ${transactions.walletStats.manipulationWallets} wallets detected
-  - **Total wash trading volume:** $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
-  - **Wash trading buy volume:** $${(transactions.walletStats.manipulationBuyVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}% of total buy volume)
-  - **Wash trading sell volume:** $${(transactions.walletStats.manipulationSellVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}% of total sell volume)
-  - **Estimated price impact from wash trading buys:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0).toFixed(2)}% (estimated upward pressure)
-  - **Estimated price impact from wash trading sells:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0).toFixed(2)}% (estimated downward pressure)
-  - **Net price manipulation effect:** ${((transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0) - (transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0)).toFixed(2)}% (positive = upward manipulation, negative = downward manipulation)
-  - **Manipulation wallet addresses:** ${(transactions.walletStats.manipulationWalletAddresses || []).slice(0, 10).join(', ')}${(transactions.walletStats.manipulationWalletAddresses || []).length > 10 ? ` (and ${(transactions.walletStats.manipulationWalletAddresses || []).length - 10} more)` : ''}
-  **REQUIRED DEEP ANALYSIS:**
-  1. **Volume Impact:** If wash trading represents ${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume, how significant is this? (Remember: <5% is typically not significant for memecoins)
-  2. **Price Impact:** The estimated price impact shows ${((transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0) - (transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0)).toFixed(2)}% net manipulation. What does this mean for price discovery?
-  3. **Buy vs Sell:** If wash trading buy volume (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}%) is ${(transactions.walletStats.manipulationBuyVolumePercent || 0) > (transactions.walletStats.manipulationSellVolumePercent || 0) ? 'higher' : 'lower'} than sell volume (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}%), what does this suggest about manipulation strategy?
-  4. **Pattern Analysis:** Are these wallets coordinating? What patterns can you detect from the timing and volumes?
-  ` : ''}
-- **YEMLEME & TUZAK (Bait Watch):** Are there many transactions but no price movement? This suggests micro-transactions trying to manipulate trending lists. Check detected patterns.
-- **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade. **CRITICAL:** 
+${transactions.walletStats?.profitLossDistribution ? `
+#### 📊 Profit/Loss Distribution
+- **Wallets in Profit:** ${transactions.walletStats.profitLossDistribution.walletsInProfit} wallets (${transactions.walletStats.profitLossDistribution.profitLossRatio.toFixed(1)}% of all wallets)
+- **Wallets in Loss:** ${transactions.walletStats.profitLossDistribution.walletsInLoss} wallets
+- **Average Profit:** ${transactions.walletStats.profitLossDistribution.avgProfitPercent.toFixed(1)}% (for profitable wallets)
+- **Average Loss:** ${transactions.walletStats.profitLossDistribution.avgLossPercent.toFixed(1)}% (for losing wallets)
+- **Profit-Taking Risk:** ${transactions.walletStats.profitLossDistribution.profitTakingRisk.toUpperCase()}
+- **Analysis Required:** 
+  - **High risk:** Most wallets in profit with high gains → Potential price correction when they sell
+  - **Medium risk:** Moderate profit-taking possible → Some price pressure expected
+  - **Low risk:** Most wallets at break-even or loss → Price stability, holders waiting for higher prices
+  - Explain what this means for potential price movements
+` : ''}
+
+${transactions.walletStats?.supportResistanceLevels ? `
+#### 📈 Support/Resistance Levels
+- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
+- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below)` : 'Not detected'}
+- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above)` : 'Not detected'}
+- **Top Support Levels:** ${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any) => `$${level.price.toFixed(6)} (${level.strength})`).join(', ')}
+- **Top Resistance Levels:** ${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any) => `$${level.price.toFixed(6)} (${level.strength})`).join(', ')}
+- **Analysis Required:** 
+  - Explain what support/resistance levels mean in simple terms
+  - Strong support → Price likely to bounce at these levels (good entry points)
+  - Strong resistance → Price may struggle to break above (potential exit points)
+  - Distance to nearest support → Downside risk assessment
+  - Distance to nearest resistance → Upside potential assessment
+` : ''}
+
+${transactions.walletStats?.smartMoneyAnalysis ? `
+#### 💎 Smart Money Analysis (Erken Girenler)
+- **Early Buyers Count:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
+- **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)} (weighted average)
+- **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
+- **Early Buyers Total Volume:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersTotalVolume.toLocaleString()}
+- **Still Holding:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHolding} out of ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} early buyers (${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHoldingRatio.toFixed(1)}%)
+- **Analysis Required:** 
+  - If early buyers are in profit and still holding → Strong conviction signal
+  - If early buyers are in profit but selling → Profit-taking, potential price pressure
+  - If early buyers are in loss but still holding → Waiting for break-even, potential resistance level
+  - If early buyers are in loss and selling → Weak conviction, bearish signal
+` : ''}
+
+${transactions.walletStats?.profitLossDistribution ? `
+#### 📊 Profit/Loss Distribution Analysis
+- **Wallets in Profit:** ${transactions.walletStats.profitLossDistribution.walletsInProfit} wallets (${transactions.walletStats.profitLossDistribution.profitLossRatio.toFixed(1)}% of all wallets)
+- **Wallets in Loss:** ${transactions.walletStats.profitLossDistribution.walletsInLoss} wallets
+- **Wallets at Break-Even:** ${transactions.walletStats.profitLossDistribution.walletsAtBreakEven} wallets
+- **Average Profit:** ${transactions.walletStats.profitLossDistribution.avgProfitPercent.toFixed(1)}% (for wallets in profit)
+- **Average Loss:** ${transactions.walletStats.profitLossDistribution.avgLossPercent.toFixed(1)}% (for wallets in loss)
+- **Profit Volume:** $${transactions.walletStats.profitLossDistribution.totalProfitVolume.toLocaleString()} (${transactions.walletStats.profitLossDistribution.totalProfitVolume > 0 && transactions.walletStats.profitLossDistribution.totalLossVolume > 0 ? ((transactions.walletStats.profitLossDistribution.totalProfitVolume / (transactions.walletStats.profitLossDistribution.totalProfitVolume + transactions.walletStats.profitLossDistribution.totalLossVolume)) * 100).toFixed(1) : '0'}% of total volume)
+- **Loss Volume:** $${transactions.walletStats.profitLossDistribution.totalLossVolume.toLocaleString()}
+- **Profit-Taking Risk:** ${transactions.walletStats.profitLossDistribution.profitTakingRisk.toUpperCase()} 
+  - **Low:** Most wallets at break-even or loss, low selling pressure
+  - **Medium:** Moderate number of profitable wallets, some profit-taking possible
+  - **High:** Most wallets in profit with high gains, significant profit-taking risk
+- **Analysis Required:** 
+  - High profit-taking risk → Potential price correction when profitable wallets sell
+  - Low profit-taking risk → Price stability, holders waiting for higher prices
+  - Many wallets at break-even → Potential resistance at current price level
+` : ''}
+
+${transactions.walletStats?.supportResistanceLevels ? `
+#### 📈 Support/Resistance Levels
+- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
+- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below current)` : 'Not detected'}
+- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above current)` : 'Not detected'}
+- **Top Support Levels:**
+${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} support)`).join('\n')}
+- **Top Resistance Levels:**
+${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} resistance)`).join('\n')}
+- **Analysis Required:**
+  - Strong support levels → Price likely to bounce at these levels
+  - Strong resistance levels → Price may struggle to break above these levels
+  - Distance to nearest support → Downside risk assessment
+  - Distance to nearest resistance → Upside potential assessment
+  - Use these levels to identify entry/exit points and risk management
+` : ''}
+
+#### 🆕 New Wallet Activity (TAZE KAN GİRİŞİ)
+- **New Wallet Flow:** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** 
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is very low (<5%), explain: "Most transactions are from existing wallets - this could mean the pool is new, or there's limited new investor interest."
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is high (>30%), analyze if they're:
-    - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
-    - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
-- **FOMO vs. PANIK (Velocity Sentiment):** 
-  ${transactions.walletStats?.fomoBuyIndicators ? `
-  - **FOMO Analysis:** Transaction velocity increased ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x, buy volume ${transactions.walletStats.fomoBuyIndicators.buyVolumeSpike.toFixed(1)}x, price rise ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%. **Explain:** If velocity spiked ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x but price only moved ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%, that's manipulation. If both spiked together, that's genuine FOMO.
-  ` : ''}
-  ${transactions.walletStats?.panicSellIndicators ? `
-  - **Panic Analysis:** Transaction velocity increased ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x, sell volume ${transactions.walletStats.panicSellIndicators.sellVolumeSpike.toFixed(1)}x, price drop ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%. **Explain:** If velocity spiked ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x but price only dropped ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%, that's manipulation. If both spiked together, that's genuine panic selling.
-  ` : ''}
+  - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
+  - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
 
-**✅ POSITIVE PATTERNS (ALWAYS report these if present):**
-- **DIAMOND HANDS:** Are early buyers still holding? This shows long-term conviction. Check detected patterns.
-- **WHALE ACCUMULATION:** Are high-value buyers holding (not selling after buy)? This is BULLISH.
-- **RE-ENTRY PATTERNS:** Are high-value sellers re-entering (buying after sell)? This shows accumulation strategy, not exit.
-- **ORGANIC GROWTH:** Are new wallets showing varied transaction patterns (different sizes, times)? This suggests real investors, not bots.
-- **BALANCED TRADING:** Are buy/sell ratios reasonable (not extreme)? This shows healthy market.
+${transactions.walletStats?.smartMoneyAnalysis ? `
+#### 💎 Smart Money Analysis (Erken Girenler)
+- **Early Buyers Count:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
+- **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)} (weighted average)
+- **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
+- **Early Buyers Total Volume:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersTotalVolume.toLocaleString()}
+- **Still Holding:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHolding} out of ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} early buyers (${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHoldingRatio.toFixed(1)}%)
+- **Analysis Required:** 
+  - If early buyers are in profit and still holding → Strong conviction signal
+  - If early buyers are in profit but selling → Profit-taking, potential price pressure
+  - If early buyers are in loss but still holding → Waiting for break-even, potential resistance level
+  - If early buyers are in loss and selling → Weak conviction, bearish signal
+` : ''}
+
+${transactions.walletStats?.profitLossDistribution ? `
+#### 📊 Profit/Loss Distribution Analysis
+- **Wallets in Profit:** ${transactions.walletStats.profitLossDistribution.walletsInProfit} wallets (${transactions.walletStats.profitLossDistribution.profitLossRatio.toFixed(1)}% of all wallets)
+- **Wallets in Loss:** ${transactions.walletStats.profitLossDistribution.walletsInLoss} wallets
+- **Wallets at Break-Even:** ${transactions.walletStats.profitLossDistribution.walletsAtBreakEven} wallets
+- **Average Profit:** ${transactions.walletStats.profitLossDistribution.avgProfitPercent.toFixed(1)}% (for wallets in profit)
+- **Average Loss:** ${transactions.walletStats.profitLossDistribution.avgLossPercent.toFixed(1)}% (for wallets in loss)
+- **Profit Volume:** $${transactions.walletStats.profitLossDistribution.totalProfitVolume.toLocaleString()} (${transactions.walletStats.profitLossDistribution.totalProfitVolume > 0 && transactions.walletStats.profitLossDistribution.totalLossVolume > 0 ? ((transactions.walletStats.profitLossDistribution.totalProfitVolume / (transactions.walletStats.profitLossDistribution.totalProfitVolume + transactions.walletStats.profitLossDistribution.totalLossVolume)) * 100).toFixed(1) : '0'}% of total volume)
+- **Loss Volume:** $${transactions.walletStats.profitLossDistribution.totalLossVolume.toLocaleString()}
+- **Profit-Taking Risk:** ${transactions.walletStats.profitLossDistribution.profitTakingRisk.toUpperCase()} 
+  - **Low:** Most wallets at break-even or loss, low selling pressure
+  - **Medium:** Moderate number of profitable wallets, some profit-taking possible
+  - **High:** Most wallets in profit with high gains, significant profit-taking risk
+- **Analysis Required:** 
+  - High profit-taking risk → Potential price correction when profitable wallets sell
+  - Low profit-taking risk → Price stability, holders waiting for higher prices
+  - Many wallets at break-even → Potential resistance at current price level
+` : ''}
+
+${transactions.walletStats?.supportResistanceLevels ? `
+#### 📈 Support/Resistance Levels
+- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
+- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below current)` : 'Not detected'}
+- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above current)` : 'Not detected'}
+- **Top Support Levels:**
+${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} support)`).join('\n')}
+- **Top Resistance Levels:**
+${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} resistance)`).join('\n')}
+- **Analysis Required:**
+  - Strong support levels → Price likely to bounce at these levels
+  - Strong resistance levels → Price may struggle to break above these levels
+  - Distance to nearest support → Downside risk assessment
+  - Distance to nearest resistance → Upside potential assessment
+  - Use these levels to identify entry/exit points and risk management
+` : ''}
+
+#### 🚨 Manipulation Detection (MAFYA KÜMESİ)
+${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
+- **Wash Trading Detected:** ${transactions.walletStats.manipulationWallets} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes)
+- **Total wash trading volume:** $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
+- **Wash trading buy volume:** $${(transactions.walletStats.manipulationBuyVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationBuyVolumePercent || 0).toFixed(1)}% of total buy volume)
+- **Wash trading sell volume:** $${(transactions.walletStats.manipulationSellVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationSellVolumePercent || 0).toFixed(1)}% of total sell volume)
+- **Estimated price impact from wash trading buys:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0).toFixed(2)}% (estimated upward pressure)
+- **Estimated price impact from wash trading sells:** ${(transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0).toFixed(2)}% (estimated downward pressure)
+- **Net price manipulation effect:** ${((transactions.walletStats.estimatedPriceImpactFromManipulationBuy || 0) - (transactions.walletStats.estimatedPriceImpactFromManipulationSell || 0)).toFixed(2)}% (positive = upward manipulation, negative = downward manipulation)
+- **Manipulation wallet addresses:** ${(transactions.walletStats.manipulationWalletAddresses || []).slice(0, 10).join(', ')}${(transactions.walletStats.manipulationWalletAddresses || []).length > 10 ? ` (and ${(transactions.walletStats.manipulationWalletAddresses || []).length - 10} more)` : ''}
+- **Analysis Required:** Explain the significance of this wash trading volume. If it's <5% of total volume, it's likely not significant. If it's >10%, it could be manipulating price discovery.
+` : '- **No wash trading detected** - normal trading patterns observed.'}
 
 **🔍 WALLET-SPECIFIC ANALYSIS (REQUIRED):**
 - **Mention specific wallet addresses** from HIGH-VALUE BUYERS and HIGH-VALUE SELLERS sections
@@ -552,37 +673,6 @@ Write this section in simple language. Explain each point like you're talking to
   - **Analysis Required:** A high diamond hands ratio (${transactions.walletStats.diamondHandsRatio.toFixed(1)}%) indicates strong conviction. A high re-entry ratio (${transactions.walletStats.reEntryRatio.toFixed(1)}%) suggests accumulation strategies rather than exits. Explain what these numbers mean for this token.
   ` : 'Wallet statistics not available - analyze wallet behavior from HIGH-VALUE BUYERS and SELLERS sections'}
 
-### 4. 🎯 KEY INSIGHTS (The Most Important Things)
-
-**BALANCE IS CRITICAL:** List 10-15 findings, mixing risks AND opportunities. Don't just report risks!
-
-**Examples of BALANCED insights:**
-- **POSITIVE:** "✅ DIAMOND HANDS: Erken giren Alpha cüzdanların 70%'i hala içeride - projeye inanç tam"
-- **POSITIVE:** "🔄 RE-ENTRY: Yüksek değerli satış yapan 3 cüzdan tekrar alım yaptı - accumulation stratejisi"
-- **POSITIVE:** "🆕 TAZE KAN: Son alıcıların 85%'i yeni cüzdanlar - proje virale gidiyor (organik büyüme)"
-- **POSITIVE:** "🐋 WHALE ACCUMULATION: Wallet [ADDRESS] $50K+ alım yaptı ve hala tutuyor - bullish signal"
-- **NEUTRAL/INFO:** "💡 INTERESTING: 80% buy count ama 60% buy volume = küçük retail trader'lar (memecoin için normal)"
-- **RISK:** "⚠️ MAFYA KÜMESİ: 8 cüzdan aynı saniyede senkronize hareket ediyor - koordineli bot aktivitesi"
-- **RISK:** "🚨 PANIK SATIŞI: İşlem hızı 5x arttı + Fiyat düştü = Şelale düşüşü başlıyor"
-- **RISK:** "⚠️ SUSPICIOUS WALLET: Wallet [ADDRESS] yüksek değerli satış yaptı ve çıktı - takip edilmeli"
-
-**REQUIRED:** Include at least 3-5 wallet-specific insights with addresses!
-
-### 5. ⚠️ WARNINGS (If There Are Any)
-
-If there are serious problems, list them clearly:
-- "DO NOT invest more than you can afford to lose"
-- "This pool has very little money - you might lose 20%+ on every trade"
-- "We detected fake trading activity - the price might be manipulated"
-- "Wallet [ADDRESS] shows suspicious behavior - monitor this wallet"
-
-### 6. 💡 WHAT SHOULD YOU DO?
-
-Give clear, BALANCED advice:
-- Should people trade this token? (Yes/No/Maybe, and why - consider both risks AND opportunities)
-- What are the POSITIVE signals to watch for?
-- What are the RISK signals to watch for?
-- What questions should they ask before investing?
 
 ---
 
