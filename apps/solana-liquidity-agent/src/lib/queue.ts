@@ -135,11 +135,20 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse | n
 
     const status = statusMap[state] || 'waiting';
 
+    // Extract recordId from returnvalue if available
+    const result = status === 'completed' ? returnvalue : undefined;
+    const recordId = result && typeof result === 'object' && 'recordId' in result 
+      ? result.recordId 
+      : undefined;
+    
     const response: JobStatusResponse = {
       jobId,
       status,
       progress,
-      result: status === 'completed' ? returnvalue : undefined,
+      result: result ? {
+        ...(typeof result === 'object' ? result : {}),
+        recordId, // Ensure recordId is included
+      } : undefined,
       error: status === 'failed' ? failedReason : undefined,
       metadata: {
         attempts: job.attemptsMade,

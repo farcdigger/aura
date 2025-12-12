@@ -492,6 +492,79 @@ app.get('/api/free-ticket', async (c) => {
 });
 
 /**
+ * POST /api/save-analysis
+ * Save analysis for user (manual save after viewing)
+ */
+app.post('/api/save-analysis', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userWallet, analysisId } = body;
+    
+    if (!userWallet || !analysisId) {
+      return c.json({
+        error: 'userWallet and analysisId are required',
+      }, 400);
+    }
+    
+    console.log(`💾 Saving analysis ${analysisId} for user ${userWallet.substring(0, 10)}...`);
+    
+    const { saveUserAnalysis } = await import('./lib/supabase');
+    const savedId = await saveUserAnalysis(userWallet, analysisId);
+    
+    if (!savedId) {
+      return c.json({
+        error: 'Failed to save analysis',
+        message: 'Analysis not found or save failed',
+      }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      savedId,
+      message: 'Analysis saved successfully',
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/save-analysis error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /api/check-saved
+ * Check if user has saved an analysis
+ */
+app.get('/api/check-saved', async (c) => {
+  try {
+    const userWallet = c.req.query('userWallet');
+    const analysisId = c.req.query('analysisId');
+    
+    if (!userWallet || !analysisId) {
+      return c.json({
+        error: 'userWallet and analysisId query parameters are required',
+      }, 400);
+    }
+    
+    const { hasUserSavedAnalysis } = await import('./lib/supabase');
+    const isSaved = await hasUserSavedAnalysis(userWallet, analysisId);
+    
+    return c.json({
+      isSaved,
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/check-saved error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
  * GET /health
  * Sistem sağlık kontrolü
  */

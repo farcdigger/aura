@@ -685,6 +685,33 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
 5. **Make It Interesting:** Use emojis, bold text, and clear sections to make it easy to read
 6. **No Financial Advice:** Don't tell people to buy or sell - just tell them the risks
 7. **Be Helpful:** Help people understand what the data means for them
+8. **Add Visual Diagrams:** For critical information, add simple ASCII art diagrams or visual representations:
+   - **Support/Resistance Levels:** Use a simple price chart with lines
+   - **Profit/Loss Distribution:** Use a simple bar chart or pie representation
+   - **Wallet Behavior:** Use flow diagrams or comparison tables
+   - **Risk Factors:** Use visual indicators (⚠️, ✅, ❌) and simple charts
+   
+   **Diagram Examples:**
+   - Price levels: Use lines and labels like:
+     \`\`\`
+     Resistance: $0.0015 ──────────────
+     Current:    $0.0012 ──────●
+     Support:    $0.0010 ──────────────
+     \`\`\`
+   - Percentages: Use simple bars like:
+     \`\`\`
+     Profit:  ████████████░░░░ 60%
+     Loss:    ████░░░░░░░░░░░░ 20%
+     Break-even: ████░░░░░░░░░░░░ 20%
+     \`\`\`
+   - Comparisons: Use simple tables or side-by-side indicators
+   
+   **IMPORTANT:** 
+   - Keep diagrams simple and readable
+   - Only add diagrams for critical information (support/resistance, profit distribution, risk factors)
+   - Don't overuse diagrams - they should enhance, not clutter
+   - Use markdown code blocks with \`\`\` for diagrams
+   - Diagrams should be placed right after the relevant section text
 
 ---
 

@@ -32,6 +32,8 @@ export default function DeepResearchModal({
   const [progress, setProgress] = useState(selectedAnalysis ? 100 : 0);
   const [error, setError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any>(selectedAnalysis || null);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const { data: walletClient } = useWalletClient();
 
   // Poll for job status
@@ -48,6 +50,12 @@ export default function DeepResearchModal({
               setStatus("completed");
               setProgress(100);
               clearInterval(interval);
+              
+              // Check if analysis is already saved
+              if (data.result?.recordId && userWallet) {
+                checkIfSaved(data.result.recordId);
+              }
+              
               // Refresh history in background (don't close modal)
               setTimeout(() => {
                 onAnalysisComplete();
@@ -77,6 +85,71 @@ export default function DeepResearchModal({
       return () => clearInterval(interval);
     }
   }, [status, jobId, progress]);
+
+  // Check if analysis is saved
+  const checkIfSaved = async (analysisId: string) => {
+    if (!userWallet || !analysisId) return;
+    
+    try {
+      const response = await fetch(
+        `/api/deep-research/check-saved?userWallet=${encodeURIComponent(userWallet)}&analysisId=${encodeURIComponent(analysisId)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setIsSaved(data.isSaved || false);
+      }
+    } catch (err) {
+      console.error("Error checking saved status:", err);
+    }
+  };
+
+  // Save analysis
+  const handleSaveAnalysis = async () => {
+    if (!userWallet || !analysisResult?.recordId) {
+      setError("Cannot save: missing user wallet or analysis ID");
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/deep-research/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userWallet,
+          analysisId: analysisResult.recordId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save analysis");
+      }
+
+      const data = await response.json();
+      setIsSaved(true);
+      
+      // Refresh history
+      setTimeout(() => {
+        onAnalysisComplete();
+      }, 500);
+      
+    } catch (err: any) {
+      console.error("Error saving analysis:", err);
+      setError(err.message || "Failed to save analysis");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Check if saved when modal opens with selectedAnalysis
+  useEffect(() => {
+    if (selectedAnalysis?.recordId && userWallet) {
+      checkIfSaved(selectedAnalysis.recordId);
+    }
+  }, [selectedAnalysis, userWallet]);
 
   const handleStartAnalysis = async () => {
     if (!tokenMint.trim()) {
@@ -338,12 +411,31 @@ export default function DeepResearchModal({
               </div>
             </div>
 
+            {/* Save Button */}
+            {analysisResult?.recordId && (
+              <div className="mt-4">
+                {isSaved ? (
+                  <div className="w-full px-6 py-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 font-semibold rounded-lg text-center">
+                    ✓ Saved to History
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSaveAnalysis}
+                    disabled={isSaving}
+                    className="w-full px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? "Saving..." : "💾 Save to History"}
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => {
                 onAnalysisComplete();
                 onClose();
               }}
-              className="w-full mt-6 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              className="w-full mt-4 px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
               Done
             </button>

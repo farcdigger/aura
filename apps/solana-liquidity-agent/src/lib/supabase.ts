@@ -211,6 +211,7 @@ export async function getAnalysisById(
  */
 /**
  * Get user analyses by wallet address (for API)
+ * Combines both pool_analyses (with user_wallet) and user_saved_analyses
  * @param userWallet User's wallet address (Ethereum or Solana)
  * @param limit Maximum number of records (default: 20)
  * @param offset Pagination offset (default: 0)
@@ -225,23 +226,157 @@ export async function getUserAnalyses(
     // Normalize wallet address (lowercase) to handle case sensitivity issues
     const normalizedWallet = userWallet.toLowerCase();
     
-    const { data, error } = await supabase
+    // Get analyses from pool_analyses where user_wallet matches
+    const { data: directAnalyses, error: directError } = await supabase
       .from('pool_analyses')
       .select('*')
       .eq('user_wallet', normalizedWallet)
       .order('generated_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .limit(limit * 2); // Get more to account for deduplication
 
-    if (error) {
-      console.error('[Supabase] ❌ Error fetching user analyses:', error.message);
-      return [];
+    if (directError) {
+      console.error('[Supabase] ❌ Error fetching direct analyses:', directError.message);
     }
 
-    return (data as PoolAnalysisRecord[]) || [];
+    // Get saved analyses from user_saved_analyses
+    const { data: savedAnalyses, error: savedError } = await supabase
+      .from('user_saved_analyses')
+      .select(`
+        analysis_id,
+        saved_at,
+        pool_analyses (*)
+      `)
+      .eq('user_wallet', normalizedWallet)
+      .order('saved_at', { ascending: false })
+      .limit(limit * 2);
+
+    if (savedError) {
+      console.error('[Supabase] ❌ Error fetching saved analyses:', savedError.message);
+    }
+
+    // Combine and deduplicate (prefer saved_at over generated_at for sorting)
+    const analysisMap = new Map<string, PoolAnalysisRecord & { sortDate: Date }>();
+    
+    // Add direct analyses
+    if (directAnalyses) {
+      directAnalyses.forEach((analysis: any) => {
+        analysisMap.set(analysis.id, {
+          ...analysis,
+          sortDate: new Date(analysis.generated_at),
+        });
+      });
+    }
+    
+    // Add saved analyses (may override direct if same analysis_id)
+    if (savedAnalyses) {
+      savedAnalyses.forEach((saved: any) => {
+        if (saved.pool_analyses) {
+          analysisMap.set(saved.analysis_id, {
+            ...saved.pool_analyses,
+            sortDate: new Date(saved.saved_at), // Use saved_at for sorting
+          });
+        }
+      });
+    }
+    
+    // Sort by sortDate (descending) and apply pagination
+    const sortedAnalyses = Array.from(analysisMap.values())
+      .sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime())
+      .slice(offset, offset + limit);
+    
+    // Remove sortDate before returning
+    return sortedAnalyses.map(({ sortDate, ...analysis }) => analysis as PoolAnalysisRecord);
 
   } catch (error: any) {
     console.error('[Supabase] ❌ Failed to fetch user analyses:', error.message);
     return [];
+  }
+}
+
+/**
+ * Save analysis for user (manual save after viewing)
+ * @param userWallet User's wallet address
+ * @param analysisId Analysis record ID from pool_analyses
+ * @returns Saved record ID or null
+ */
+export async function saveUserAnalysis(
+  userWallet: string,
+  analysisId: string
+): Promise<string | null> {
+  try {
+    const normalizedWallet = userWallet.toLowerCase().trim();
+    
+    console.log(`[Supabase] Saving analysis ${analysisId} for user ${normalizedWallet.substring(0, 10)}...`);
+    
+    // Check if analysis exists
+    const { data: analysis, error: checkError } = await supabase
+      .from('pool_analyses')
+      .select('id')
+      .eq('id', analysisId)
+      .single();
+    
+    if (checkError || !analysis) {
+      console.error('[Supabase] ❌ Analysis not found:', analysisId);
+      return null;
+    }
+    
+    // Insert or update (upsert) user_saved_analyses
+    const { data, error } = await supabase
+      .from('user_saved_analyses')
+      .upsert({
+        user_wallet: normalizedWallet,
+        analysis_id: analysisId,
+        saved_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_wallet,analysis_id',
+      })
+      .select('id')
+      .single();
+    
+    if (error) {
+      console.error('[Supabase] ❌ Error saving user analysis:', error.message);
+      return null;
+    }
+    
+    console.log(`[Supabase] ✅ Analysis saved for user: ${data.id}`);
+    return data.id;
+    
+  } catch (error: any) {
+    console.error('[Supabase] ❌ Failed to save user analysis:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Check if user has saved an analysis
+ * @param userWallet User's wallet address
+ * @param analysisId Analysis record ID
+ * @returns True if saved, false otherwise
+ */
+export async function hasUserSavedAnalysis(
+  userWallet: string,
+  analysisId: string
+): Promise<boolean> {
+  try {
+    const normalizedWallet = userWallet.toLowerCase().trim();
+    
+    const { data, error } = await supabase
+      .from('user_saved_analyses')
+      .select('id')
+      .eq('user_wallet', normalizedWallet)
+      .eq('analysis_id', analysisId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('[Supabase] ❌ Error checking saved analysis:', error.message);
+      return false;
+    }
+    
+    return !!data;
+    
+  } catch (error: any) {
+    console.error('[Supabase] ❌ Failed to check saved analysis:', error.message);
+    return false;
   }
 }
 
