@@ -291,10 +291,10 @@ export default function DeepResearchModal({
             {pricingInfo?.pricing?.freeReason === "free_ticket" && (
               <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm font-semibold text-green-900 dark:text-green-200 mb-1">
-                  🎉 0.001 USDC'ye Rapor Çıkartma Hakkı
+                  🎉 Report for 0.001 USDC
                 </p>
                 <p className="text-xs text-green-800 dark:text-green-300">
-                  Oyunu kazandığınız için sadece 0.001 USDC ödeyerek rapor alabilirsiniz!
+                  You won the game! Get a report for only 0.001 USDC.
                 </p>
               </div>
             )}

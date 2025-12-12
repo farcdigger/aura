@@ -404,9 +404,9 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
               <p className="text-4xl font-bold text-green-600 dark:text-green-400 mb-4">
                 🎉 You Won!
               </p>
-              <p className="text-xl mb-2">0.001 USDC'ye Rapor Çıkartma Hakkı Kazandınız!</p>
+              <p className="text-xl mb-2">You Won a Report for 0.001 USDC!</p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Bir sonraki analizde sadece 0.001 USDC ödeyerek rapor alabilirsiniz
+                You can now get a report for only 0.001 USDC on your next analysis
               </p>
               <button
                 onClick={resetGame}
@@ -423,9 +423,9 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
       <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
         <p className="text-sm font-semibold mb-2">How to Play:</p>
         <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-          <li>• Click targets as they appear (0.5s each)</li>
+          <li>• Click targets as they appear ({status.timePerTarget}s each)</li>
           <li>• Targets get smaller each round</li>
-          <li>• Hit all {status.targetsToWin} targets to win 0.001 USDC'ye rapor çıkartma hakkı</li>
+          <li>• Hit all {status.targetsToWin} targets to win a report for 0.001 USDC</li>
           <li>• Entry cost: {status.cost.toLocaleString()} credits</li>
           <li>• Entry reward: +{status.pointsReward} points</li>
         </ul>
