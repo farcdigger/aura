@@ -492,6 +492,46 @@ app.get('/api/free-ticket', async (c) => {
 });
 
 /**
+ * DELETE /api/free-ticket
+ * Use/consume a free ticket
+ */
+app.delete('/api/free-ticket', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userWallet } = body;
+    
+    if (!userWallet) {
+      return c.json({
+        error: 'userWallet is required',
+      }, 400);
+    }
+    
+    console.log(`🎫 Consuming free ticket for wallet: ${userWallet.substring(0, 10)}...`);
+    
+    const { useFreeTicket } = await import('./lib/free-tickets');
+    const used = await useFreeTicket(userWallet);
+    
+    if (!used) {
+      return c.json({
+        error: 'No free ticket found or already used',
+      }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      message: 'Free ticket consumed successfully',
+    });
+    
+  } catch (error: any) {
+    console.error('❌ /api/free-ticket DELETE error:', error.message);
+    return c.json({
+      error: 'Internal server error',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
  * POST /api/save-analysis
  * Save analysis for user (manual save after viewing)
  */
