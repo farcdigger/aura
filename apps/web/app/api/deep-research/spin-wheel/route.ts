@@ -16,7 +16,7 @@ import { env } from "@/env.mjs";
 
 const SPIN_COST = 20_000; // Credits required to spin
 const POINTS_REWARD = 10; // Points awarded per spin
-const FREE_ANALYSIS_CHANCE = 0.04; // 4% chance for free analysis
+const FREE_ANALYSIS_CHANCE = 0.08; // 8% chance for free analysis (2/25 segments)
 
 // Credit rewards (96% chance total)
 const CREDIT_REWARDS = [

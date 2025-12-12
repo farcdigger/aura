@@ -18,7 +18,7 @@ interface WheelStatus {
 }
 
 const WHEEL_SEGMENTS = 25; // Total segments on the wheel
-const FREE_ANALYSIS_SEGMENTS = 1; // 1 segment = 4% (1/25)
+const FREE_ANALYSIS_SEGMENTS = 2; // 2 segments = 8% (2/25)
 const CREDIT_SEGMENTS = WHEEL_SEGMENTS - FREE_ANALYSIS_SEGMENTS;
 
 export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
@@ -86,14 +86,37 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
       const baseRotation = 360 * 5; // 5 full rotations
       const segmentAngle = 360 / WHEEL_SEGMENTS;
       
-      // Determine which segment to land on
+      // Determine which segment to land on based on actual reward
       let targetSegment = 0;
       if (data.reward.type === "free_analysis") {
-        // Land on free analysis segment (first segment)
-        targetSegment = 0;
+        // Land on one of the free analysis segments (first 2 segments)
+        targetSegment = Math.floor(Math.random() * FREE_ANALYSIS_SEGMENTS);
       } else {
-        // Land on a random credit segment
-        targetSegment = Math.floor(Math.random() * CREDIT_SEGMENTS) + FREE_ANALYSIS_SEGMENTS;
+        // Find the segment index for the credit reward amount
+        // Segments pattern: FREE(0), FREE(1), then credits: 100(2), 500(3), 1000(4), 10000(5), 100(6), 500(7), ...
+        const creditAmounts = [100, 500, 1000, 10000];
+        const creditIndex = creditAmounts.indexOf(data.reward.amount);
+        
+        if (creditIndex !== -1) {
+          // Find all segments with this credit amount and pick one randomly
+          const matchingSegments: number[] = [];
+          for (let i = FREE_ANALYSIS_SEGMENTS; i < WHEEL_SEGMENTS; i++) {
+            const segCreditIndex = (i - FREE_ANALYSIS_SEGMENTS) % 4;
+            if (segCreditIndex === creditIndex) {
+              matchingSegments.push(i);
+            }
+          }
+          // Pick a random segment from matching ones
+          if (matchingSegments.length > 0) {
+            targetSegment = matchingSegments[Math.floor(Math.random() * matchingSegments.length)];
+          } else {
+            // Fallback: first segment with this credit
+            targetSegment = FREE_ANALYSIS_SEGMENTS + creditIndex;
+          }
+        } else {
+          // Fallback: random credit segment
+          targetSegment = Math.floor(Math.random() * CREDIT_SEGMENTS) + FREE_ANALYSIS_SEGMENTS;
+        }
       }
       
       const targetRotation = baseRotation + (targetSegment * segmentAngle) + (segmentAngle / 2);
@@ -161,19 +184,27 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
   }
 
   // Generate wheel segments
-  const segments: Array<{ label: string; color: string }> = [];
+  const segments: Array<{ label: string; color: string; gradient: string }> = [];
   
-  // Free analysis segment (green)
-  segments.push({ label: "FREE", color: "#10b981" });
+  // Free analysis segments (2 segments with green gradient)
+  segments.push({ label: "FREE", color: "#10b981", gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)" });
+  segments.push({ label: "FREE", color: "#10b981", gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)" });
   
-  // Credit segments (various colors)
-  const creditColors = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b"];
+  // Credit segments (various colors with gradients)
+  const creditColors = [
+    { base: "#3b82f6", gradient: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)" }, // Blue
+    { base: "#8b5cf6", gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)" }, // Purple
+    { base: "#ec4899", gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)" }, // Pink
+    { base: "#f59e0b", gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" }, // Orange
+  ];
+  const creditAmounts = [100, 500, 1000, 10000];
+  
   for (let i = 0; i < CREDIT_SEGMENTS; i++) {
     const creditIndex = i % 4;
-    const creditAmounts = [100, 500, 1000, 10000];
     segments.push({
       label: `${creditAmounts[creditIndex]}`,
-      color: creditColors[creditIndex],
+      color: creditColors[creditIndex].base,
+      gradient: creditColors[creditIndex].gradient,
     });
   }
 
@@ -194,46 +225,86 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
       </div>
 
       {/* Wheel Container */}
-      <div className="relative mx-auto mb-6" style={{ width: "300px", height: "300px" }}>
+      <div className="relative mx-auto mb-6" style={{ width: "350px", height: "350px" }}>
+        {/* Outer glow effect */}
+        <div 
+          className="absolute inset-0 rounded-full blur-xl opacity-30"
+          style={{
+            background: "radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)",
+            transform: "scale(1.1)",
+          }}
+        />
+        
         <svg
-          width="300"
-          height="300"
-          viewBox="0 0 300 300"
-          className="absolute top-0 left-0"
+          width="350"
+          height="350"
+          viewBox="0 0 350 350"
+          className="absolute top-0 left-0 drop-shadow-2xl"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: spinning ? "transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
             transformOrigin: "center",
+            filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.3))",
           }}
         >
-          <circle cx="150" cy="150" r="150" fill="none" stroke="#000" strokeWidth="4" className="dark:stroke-white" />
+          <defs>
+            {segments.map((segment, index) => {
+              const gradientId = `gradient-${index}`;
+              const colors = segment.gradient.match(/#[0-9a-fA-F]{6}/g) || [segment.color, segment.color];
+              return (
+                <linearGradient key={gradientId} id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={colors[0]} stopOpacity="1" />
+                  <stop offset="100%" stopColor={colors[1] || colors[0]} stopOpacity="1" />
+                </linearGradient>
+              );
+            })}
+          </defs>
+          
+          {/* Outer circle with shadow */}
+          <circle cx="175" cy="175" r="170" fill="none" stroke="#1f2937" strokeWidth="6" className="dark:stroke-gray-300" />
+          <circle cx="175" cy="175" r="165" fill="none" stroke="#374151" strokeWidth="2" className="dark:stroke-gray-400" />
+          
           {segments.map((segment, index) => {
             const segmentAngle = 360 / WHEEL_SEGMENTS;
             const startAngle = (index * segmentAngle - 90) * (Math.PI / 180);
             const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180);
-            const radius = 150;
+            const radius = 165;
             
-            const x1 = 150 + radius * Math.cos(startAngle);
-            const y1 = 150 + radius * Math.sin(startAngle);
-            const x2 = 150 + radius * Math.cos(endAngle);
-            const y2 = 150 + radius * Math.sin(endAngle);
+            const x1 = 175 + radius * Math.cos(startAngle);
+            const y1 = 175 + radius * Math.sin(startAngle);
+            const x2 = 175 + radius * Math.cos(endAngle);
+            const y2 = 175 + radius * Math.sin(endAngle);
             
             const largeArc = segmentAngle > 180 ? 1 : 0;
             
             // Text position (middle of segment)
             const textAngle = (startAngle + endAngle) / 2;
-            const textRadius = 100;
-            const textX = 150 + textRadius * Math.cos(textAngle);
-            const textY = 150 + textRadius * Math.sin(textAngle);
+            const textRadius = 110;
+            const textX = 175 + textRadius * Math.cos(textAngle);
+            const textY = 175 + textRadius * Math.sin(textAngle);
             
             return (
               <g key={index}>
                 <path
-                  d={`M 150 150 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                  fill={segment.color}
-                  stroke="#000"
+                  d={`M 175 175 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                  fill={`url(#gradient-${index})`}
+                  stroke="#1f2937"
                   strokeWidth="2"
-                  className="dark:stroke-white"
+                  className="dark:stroke-gray-300"
+                  style={{
+                    filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
+                  }}
+                />
+                {/* Segment divider line */}
+                <line
+                  x1="175"
+                  y1="175"
+                  x2={x1}
+                  y2={y1}
+                  stroke="#1f2937"
+                  strokeWidth="2"
+                  className="dark:stroke-gray-300"
+                  opacity="0.3"
                 />
                 <text
                   x={textX}
@@ -241,10 +312,11 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
-                  fontSize="12"
+                  fontSize="14"
                   fontWeight="bold"
                   style={{
-                    textShadow: "1px 1px 2px rgba(0,0,0,0.8)",
+                    textShadow: "2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)",
+                    filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.9))",
                   }}
                 >
                   {segment.label}
@@ -252,20 +324,35 @@ export default function SpinWheel({ onFreeAnalysisWon }: SpinWheelProps) {
               </g>
             );
           })}
+          
+          {/* Center circle */}
+          <circle cx="175" cy="175" r="30" fill="#1f2937" className="dark:fill-gray-300" />
+          <circle cx="175" cy="175" r="25" fill="#374151" className="dark:fill-gray-400" />
         </svg>
         
-        {/* Pointer */}
-        <div
-          className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2"
-          style={{
-            width: 0,
-            height: 0,
-            borderLeft: "15px solid transparent",
-            borderRight: "15px solid transparent",
-            borderTop: "30px solid #ef4444",
-            zIndex: 10,
-          }}
-        />
+        {/* Pointer with better design */}
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-20">
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "20px solid transparent",
+              borderRight: "20px solid transparent",
+              borderTop: "40px solid #ef4444",
+              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.3))",
+            }}
+          />
+          <div
+            className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "15px solid transparent",
+              borderRight: "15px solid transparent",
+              borderTop: "30px solid #dc2626",
+            }}
+          />
+        </div>
       </div>
 
       {/* Spin Button */}
