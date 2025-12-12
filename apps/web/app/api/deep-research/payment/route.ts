@@ -190,24 +190,16 @@ export async function POST(request: NextRequest) {
       console.warn("⚠️ Error checking free ticket:", ticketError.message);
     }
 
-    // If no payment header, return 402 with payment requirements (unless free ticket exists)
+    // If no payment header, return 402 with payment requirements
     if (!paymentHeader) {
-      // If user has free ticket, they should use /api/deep-research/create endpoint instead
-      if (hasFreeTicket) {
-        return NextResponse.json(
-          {
-            error: "Free ticket detected",
-            message: "You have a free ticket. Please use the create endpoint instead of payment endpoint.",
-            hasFreeTicket: true,
-          },
-          { status: 400 }
-        );
-      }
-
       let paymentAmount: string;
       let hasNFT = false;
       
-      if (isTrialPricing()) {
+      // If user has free ticket, charge 0.001 USDC
+      if (hasFreeTicket) {
+        paymentAmount = "0.001"; // $0.001 USDC for free ticket
+        hasNFT = false; // Not relevant for free ticket
+      } else if (isTrialPricing()) {
         // Trial pricing: $0.001 USDC
         paymentAmount = TRIAL_PRICE;
       } else {
