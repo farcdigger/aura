@@ -252,17 +252,19 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
   }
 
   return (
-    <div className="p-6 border border-gray-300 dark:border-gray-700 rounded-lg">
+    <div className="p-6 border-2 border-cyan-500/30 rounded-lg bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-cyan-900/20 backdrop-blur-sm">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-bold mb-2">🎯 Speed Click Challenge</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,0,255,0.5)]">
+          ⚡ SPEED CLICK CHALLENGE ⚡
+        </h3>
+        <p className="text-sm text-cyan-300 mb-4 font-semibold drop-shadow-[0_0_4px_rgba(0,255,255,0.5)]">
           Hit {status.targetsToWin} targets in {status.timePerTarget}s each!
         </p>
         
         {/* Balance */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Your Credits: <span className="font-bold">{status.currentBalance.toLocaleString()}</span>
+          <p className="text-sm text-pink-300 font-semibold">
+            Your Credits: <span className="font-bold text-cyan-300 drop-shadow-[0_0_4px_rgba(0,255,255,0.5)]">{status.currentBalance.toLocaleString()}</span>
           </p>
         </div>
       </div>
@@ -270,36 +272,64 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
       {/* Game Container */}
       <div 
         ref={containerRef}
-        className="relative mx-auto mb-6 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden"
+        className="relative mx-auto mb-6 rounded-lg overflow-hidden border-2 border-cyan-500/50"
         style={{ 
           width: "100%", 
           height: "400px",
           minHeight: "400px",
           touchAction: "none", // Prevent scrolling on mobile
+          background: "linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 25%, #16213e 50%, #0f3460 75%, #0a0a0a 100%)",
+          position: "relative",
         }}
       >
+        {/* Synthwave Grid Pattern */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `
+              linear-gradient(cyan 1px, transparent 1px),
+              linear-gradient(90deg, cyan 1px, transparent 1px)
+            `,
+            backgroundSize: "40px 40px",
+          }}
+        />
+        
+        {/* Synthwave Sun Effect */}
+        <div 
+          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-96 h-96 opacity-30"
+          style={{
+            background: "radial-gradient(circle, rgba(255,0,255,0.4) 0%, rgba(0,255,255,0.2) 30%, transparent 70%)",
+            filter: "blur(40px)",
+          }}
+        />
         {gameState === "idle" && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="text-center">
-              <p className="text-lg font-semibold mb-4">Ready to play?</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,0,255,0.5)]">
+                READY TO PLAY?
+              </p>
+              <p className="text-sm text-cyan-300 mb-6 font-semibold drop-shadow-[0_0_4px_rgba(0,255,255,0.5)]">
                 Hit {status.targetsToWin} targets in {status.timePerTarget}s each
                 <br />
-                Targets get smaller each round!
+                <span className="text-pink-300">Targets get smaller each round!</span>
               </p>
               <button
                 onClick={startGame}
                 disabled={!status.canPlay || loading}
-                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`px-8 py-4 rounded-lg font-bold text-lg transition-all duration-300 ${
                   status.canPlay && !loading
-                    ? "bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                    : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    ? "bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white hover:shadow-[0_0_20px_rgba(255,0,255,0.6)] hover:scale-105 border-2 border-cyan-300"
+                    : "bg-gray-700 text-gray-400 cursor-not-allowed opacity-50"
                 }`}
+                style={{
+                  textShadow: status.canPlay && !loading ? "0 0 10px rgba(255,255,255,0.8)" : "none",
+                  boxShadow: status.canPlay && !loading ? "0 0 20px rgba(0,255,255,0.4), inset 0 0 20px rgba(255,0,255,0.2)" : "none",
+                }}
               >
-                {loading ? "Starting..." : `Start Game (${status.cost.toLocaleString()} credits)`}
+                {loading ? "STARTING..." : `START GAME (${status.cost.toLocaleString()} CREDITS)`}
               </button>
               {!status.canPlay && (
-                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                <p className="text-sm text-red-400 mt-4 font-semibold drop-shadow-[0_0_4px_rgba(255,0,0,0.5)]">
                   Insufficient credits. You need {status.cost.toLocaleString()} credits.
                 </p>
               )}
@@ -308,10 +338,14 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
         )}
 
         {gameState === "waiting" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="text-center text-white">
-              <p className="text-2xl font-bold mb-2">Get Ready!</p>
-              <p className="text-lg">Target {currentTarget + 1} of {status.targetsToWin}</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10">
+            <div className="text-center">
+              <p className="text-4xl font-bold mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,0,255,0.8)] animate-pulse">
+                GET READY!
+              </p>
+              <p className="text-2xl text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(0,255,255,0.6)]">
+                Target {currentTarget + 1} of {status.targetsToWin}
+              </p>
             </div>
           </div>
         )}
@@ -325,34 +359,59 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
                 e.preventDefault();
                 handleTargetClick();
               }}
-              className="absolute cursor-pointer transition-all duration-100 active:scale-95"
+              className="absolute cursor-pointer transition-all duration-100 active:scale-95 z-10 animate-pulse"
               style={{
                 left: `${targetPosition.x - targetSize / 2}px`,
                 top: `${targetPosition.y - targetSize / 2}px`,
                 width: `${targetSize}px`,
                 height: `${targetSize}px`,
                 borderRadius: "50%",
-                background: "radial-gradient(circle, #ef4444 0%, #dc2626 100%)",
-                border: "4px solid white",
-                boxShadow: "0 0 20px rgba(239, 68, 68, 0.6), 0 4px 12px rgba(0,0,0,0.3)",
-                zIndex: 10,
+                background: "radial-gradient(circle, #ff00ff 0%, #8b00ff 50%, #00ffff 100%)",
+                border: "4px solid #00ffff",
+                boxShadow: `
+                  0 0 30px rgba(255, 0, 255, 0.8),
+                  0 0 60px rgba(0, 255, 255, 0.6),
+                  0 0 90px rgba(139, 0, 255, 0.4),
+                  inset 0 0 20px rgba(255, 255, 255, 0.3)
+                `,
+                animation: "pulse 1s ease-in-out infinite",
               }}
             >
-              <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg">
+              <div 
+                className="absolute inset-0 flex items-center justify-center font-bold text-white"
+                style={{
+                  fontSize: `${Math.max(14, targetSize / 8)}px`,
+                  textShadow: "0 0 10px rgba(0,255,255,0.8), 0 0 20px rgba(255,0,255,0.6)",
+                  fontWeight: "900",
+                  letterSpacing: "2px",
+                }}
+              >
                 CLICK
               </div>
             </div>
 
             {/* Timer */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg">
-              <p className="text-sm font-semibold">
-                Time: {(timeLeft).toFixed(2)}s
+            <div 
+              className="absolute top-4 left-4 px-4 py-2 rounded-lg border-2 border-cyan-500/50 z-10"
+              style={{
+                background: "linear-gradient(135deg, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.2) 100%)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <p className="text-sm font-bold text-cyan-300 drop-shadow-[0_0_6px_rgba(0,255,255,0.8)]">
+                TIME: {(timeLeft).toFixed(2)}s
               </p>
             </div>
 
             {/* Progress */}
-            <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg">
-              <p className="text-sm font-semibold">
+            <div 
+              className="absolute top-4 right-4 px-4 py-2 rounded-lg border-2 border-pink-500/50 z-10"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,0,255,0.2) 0%, rgba(139,0,255,0.2) 100%)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <p className="text-sm font-bold text-pink-300 drop-shadow-[0_0_6px_rgba(255,0,255,0.8)]">
                 {hits} / {status.targetsToWin}
               </p>
             </div>
@@ -360,20 +419,24 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
         )}
 
         {gameState === "targetHit" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-green-500 bg-opacity-20">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-500/20 via-green-500/20 to-pink-500/20 backdrop-blur-sm z-10">
             <div className="text-center">
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400 mb-4">
-                ✓ Hit!
+              <p className="text-5xl font-bold mb-4 bg-gradient-to-r from-cyan-400 via-green-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(0,255,255,0.8)] animate-bounce">
+                ✓ HIT!
               </p>
-              <p className="text-lg mb-4">
+              <p className="text-xl text-cyan-300 mb-6 font-bold drop-shadow-[0_0_8px_rgba(0,255,255,0.6)]">
                 {hits} / {status.targetsToWin} targets hit
               </p>
               {hits < status.targetsToWin && (
                 <button
                   onClick={continueToNextTarget}
-                  className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-200"
+                  className="px-8 py-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-lg font-bold text-lg hover:shadow-[0_0_25px_rgba(0,255,255,0.7)] hover:scale-105 transition-all duration-300 border-2 border-cyan-300"
+                  style={{
+                    textShadow: "0 0 10px rgba(255,255,255,0.8)",
+                    boxShadow: "0 0 20px rgba(0,255,255,0.5), inset 0 0 20px rgba(255,0,255,0.2)",
+                  }}
                 >
-                  Continue to Next Target
+                  CONTINUE TO NEXT TARGET
                 </button>
               )}
             </div>
@@ -381,39 +444,49 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
         )}
 
         {gameState === "targetMissed" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-20">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-500/20 via-orange-500/20 to-pink-500/20 backdrop-blur-sm z-10">
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400 mb-4">
-                ✗ Time's Up!
+              <p className="text-5xl font-bold mb-4 bg-gradient-to-r from-red-400 via-orange-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,0,0,0.8)]">
+                ✗ TIME'S UP!
               </p>
-              <p className="text-lg mb-4">
+              <p className="text-xl text-red-300 mb-6 font-bold drop-shadow-[0_0_8px_rgba(255,0,0,0.6)]">
                 You hit {hits} / {status.targetsToWin} targets
               </p>
               <button
                 onClick={resetGame}
-                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-200"
+                className="px-8 py-4 bg-gradient-to-r from-red-500 via-orange-500 to-pink-500 text-white rounded-lg font-bold text-lg hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] hover:scale-105 transition-all duration-300 border-2 border-red-300"
+                style={{
+                  textShadow: "0 0 10px rgba(255,255,255,0.8)",
+                  boxShadow: "0 0 20px rgba(255,0,0,0.5), inset 0 0 20px rgba(255,100,0,0.2)",
+                }}
               >
-                Try Again
+                TRY AGAIN
               </button>
             </div>
           </div>
         )}
 
         {gameState === "won" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-green-500 bg-opacity-30">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-500/30 via-cyan-500/30 to-pink-500/30 backdrop-blur-sm z-10">
             <div className="text-center">
-              <p className="text-4xl font-bold text-green-600 dark:text-green-400 mb-4">
-                🎉 You Won!
+              <p className="text-6xl font-bold mb-4 bg-gradient-to-r from-green-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(0,255,255,0.9)] animate-pulse">
+                🎉 YOU WON! 🎉
               </p>
-              <p className="text-xl mb-2">You Won a Report for 0.001 USDC!</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-2xl mb-2 text-cyan-300 font-bold drop-shadow-[0_0_10px_rgba(0,255,255,0.7)]">
+                You Won a Report for 0.001 USDC!
+              </p>
+              <p className="text-sm text-pink-300 mb-6 font-semibold drop-shadow-[0_0_6px_rgba(255,0,255,0.6)]">
                 You can now get a report for only 0.001 USDC on your next analysis
               </p>
               <button
                 onClick={resetGame}
-                className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-200"
+                className="px-8 py-4 bg-gradient-to-r from-green-500 via-cyan-500 to-pink-500 text-white rounded-lg font-bold text-lg hover:shadow-[0_0_30px_rgba(0,255,255,0.8)] hover:scale-105 transition-all duration-300 border-2 border-cyan-300"
+                style={{
+                  textShadow: "0 0 10px rgba(255,255,255,0.8)",
+                  boxShadow: "0 0 25px rgba(0,255,255,0.6), inset 0 0 25px rgba(255,0,255,0.3)",
+                }}
               >
-                Play Again
+                PLAY AGAIN
               </button>
             </div>
           </div>
@@ -421,14 +494,29 @@ export default function SpeedClickGame({ onFreeTicketWon }: SpeedClickGameProps)
       </div>
 
       {/* Game Info */}
-      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-sm font-semibold mb-2">How to Play:</p>
-        <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-          <li>• Click targets as they appear ({status.timePerTarget}s each)</li>
-          <li>• Targets get smaller each round</li>
-          <li>• Hit all {status.targetsToWin} targets to win a report for 0.001 USDC</li>
-          <li>• Entry cost: {status.cost.toLocaleString()} credits</li>
-          <li>• Entry reward: +{status.pointsReward} points</li>
+      <div className="mt-6 pt-6 border-t-2 border-cyan-500/30">
+        <p className="text-sm font-bold mb-3 text-cyan-300 drop-shadow-[0_0_6px_rgba(0,255,255,0.6)]">HOW TO PLAY:</p>
+        <ul className="text-xs text-pink-300 space-y-2 font-semibold">
+          <li className="flex items-center gap-2">
+            <span className="text-cyan-400">▶</span>
+            Click targets as they appear ({status.timePerTarget}s each)
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-cyan-400">▶</span>
+            Targets get smaller each round
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-cyan-400">▶</span>
+            Hit all {status.targetsToWin} targets to win a report for 0.001 USDC
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-cyan-400">▶</span>
+            Entry cost: <span className="text-cyan-300 font-bold">{status.cost.toLocaleString()}</span> credits
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-cyan-400">▶</span>
+            Entry reward: <span className="text-pink-300 font-bold">+{status.pointsReward}</span> points
+          </li>
         </ul>
       </div>
     </div>
