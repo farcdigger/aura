@@ -195,9 +195,9 @@ export async function POST(request: NextRequest) {
       let paymentAmount: string;
       let hasNFT = false;
       
-      // If user has free ticket, charge 0.001 USDC
+      // If user has free ticket, charge 0.001 USDC (1000 in 6 decimals)
       if (hasFreeTicket) {
-        paymentAmount = "0.001"; // $0.001 USDC for free ticket
+        paymentAmount = TRIAL_PRICE; // $0.001 USDC (1000 microUSDC) for free ticket
         hasNFT = false; // Not relevant for free ticket
       } else if (isTrialPricing()) {
         // Trial pricing: $0.001 USDC
@@ -242,11 +242,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payment header" }, { status: 400 });
     }
 
-    // Determine payment amount based on trial period and NFT ownership
+    // Determine payment amount based on free ticket, trial period, and NFT ownership
     let paymentAmountUSDC: string;
     let hasNFT = false;
     
-    if (isTrialPricing()) {
+    // Check for free ticket again (in case it was issued after initial check)
+    if (hasFreeTicket) {
+      // Free ticket: charge 0.001 USDC (1000 microUSDC)
+      paymentAmountUSDC = TRIAL_PRICE;
+      hasNFT = false; // Not relevant for free ticket
+    } else if (isTrialPricing()) {
       // Trial pricing: $0.001 USDC
       paymentAmountUSDC = TRIAL_PRICE;
     } else {

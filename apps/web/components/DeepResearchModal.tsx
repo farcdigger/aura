@@ -36,6 +36,22 @@ export default function DeepResearchModal({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const { data: walletClient } = useWalletClient();
 
+  // Prevent page unload during processing
+  useEffect(() => {
+    if (status === "processing") {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = "Analysis is in progress. Are you sure you want to leave? Your payment will not be refunded.";
+        return e.returnValue;
+      };
+
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      return () => {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+    }
+  }, [status]);
+
   // Poll for job status
   useEffect(() => {
     if (status === "processing" && jobId) {
@@ -274,14 +290,17 @@ export default function DeepResearchModal({
             {status === "completed" && "Analysis Complete"}
             {status === "error" && "Error"}
           </h3>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {/* Hide close button during processing to prevent accidental closure */}
+          {status !== "processing" && (
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Payment Stage */}
@@ -339,9 +358,19 @@ export default function DeepResearchModal({
             </div>
             
             <p className="text-lg font-semibold mb-2">Analyzing token...</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               This may take up to 2 minutes
             </p>
+            
+            {/* Warning about closing */}
+            <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg max-w-md mx-auto">
+              <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 mb-1">
+                ⚠️ Do not close this window
+              </p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                Analysis is in progress. Closing this window will not refund your payment.
+              </p>
+            </div>
 
             {/* Progress Bar */}
             <div className="max-w-md mx-auto">
