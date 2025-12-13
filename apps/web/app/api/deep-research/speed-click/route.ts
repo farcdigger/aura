@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
       currentBalance,
       pointsReward: POINTS_REWARD,
       targetsToWin: TARGETS_TO_WIN,
-      timePerTarget: 0.3, // seconds
+      timePerTarget: 0.4, // seconds
     });
 
   } catch (error: any) {
