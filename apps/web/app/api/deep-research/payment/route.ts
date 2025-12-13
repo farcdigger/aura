@@ -390,8 +390,8 @@ export async function POST(request: NextRequest) {
       // Continue anyway - queue check is not critical
     }
 
-    // Consume free ticket if used (0.001 USDC payment)
-    if (hasFreeTicket && parseFloat(paymentAmountUSDC) === 0.001) {
+    // Consume free ticket if used (0.001 USDC payment = TRIAL_PRICE)
+    if (hasFreeTicket && paymentAmountUSDC === TRIAL_PRICE) {
       console.log("🎫 [Payment] Consuming free ticket...");
       try {
         const consumeResponse = await fetch(`${agentUrl}/api/free-ticket`, {
