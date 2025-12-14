@@ -141,7 +141,7 @@ export default function FrogJumpLeaderboard() {
           {/* Refresh Button */}
           <div className="mt-3 flex justify-end">
             <button
-              onClick={fetchLeaderboard}
+              onClick={() => fetchLeaderboard(true)}
               disabled={loading}
               className="px-4 py-1 text-xs font-bold transition-all"
               style={{
