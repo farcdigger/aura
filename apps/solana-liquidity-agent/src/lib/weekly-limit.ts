@@ -106,7 +106,7 @@ export async function getWeeklyLimitStatus(): Promise<{
     
     const remaining = Math.max(0, WEEKLY_LIMIT - current);
     
-    // Calculate next reset time (Sunday UTC 21:00)
+    // Calculate next reset time (Sunday UTC 22:00)
     const weekEnd = getWeekEnd(now);
     const resetsAt = weekEnd.toISOString();
     const resetsIn = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
@@ -166,9 +166,11 @@ function getISOWeek(date: Date): number {
 }
 
 /**
- * Haftanın son gününü al (Pazar UTC 21:00)
+ * Haftanın son gününü al (Pazar UTC 22:00)
+ * Eğer reset zamanı geçmişse, bir sonraki haftanın reset zamanına git
  */
 function getWeekEnd(date: Date): Date {
+  const now = new Date(date);
   const weekEnd = new Date(date);
   
   // Pazar'a git
@@ -176,8 +178,13 @@ function getWeekEnd(date: Date): Date {
   const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   weekEnd.setDate(weekEnd.getDate() + daysUntilSunday);
   
-  // UTC 21:00'a ayarla (Pazar gecesi)
-  weekEnd.setUTCHours(21, 0, 0, 0);
+  // UTC 22:00'a ayarla (Pazar gecesi)
+  weekEnd.setUTCHours(22, 0, 0, 0);
+  
+  // Eğer reset zamanı geçmişse, bir sonraki haftanın reset zamanına git
+  if (weekEnd.getTime() <= now.getTime()) {
+    weekEnd.setDate(weekEnd.getDate() + 7);
+  }
   
   return weekEnd;
 }
