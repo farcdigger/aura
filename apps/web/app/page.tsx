@@ -1226,8 +1226,8 @@ function HomePageContent() {
             {/* Right: User Info & Buttons */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 w-full sm:w-auto justify-end">
               <ThemeToggle />
-              {/* Deep Research - WHITELIST ONLY */}
-              {address && address.toLowerCase() === "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d" && (
+              {/* Deep Research */}
+              {address && (
                 <Link
                   href="/deep-research"
                   className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-purple-600/30 bg-purple-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-purple-900 shadow-sm backdrop-blur transition-all hover:bg-purple-100 dark:border-purple-400/30 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30 sm:text-sm whitespace-nowrap"
@@ -1386,8 +1386,8 @@ function HomePageContent() {
                 </svg>
                 <span>Create Avatar</span>
               </button>
-              {/* Deep Research - WHITELIST ONLY */}
-              {address && address.toLowerCase() === "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d" && (
+              {/* Deep Research */}
+              {address && (
                 <Link
                   href="/deep-research"
                   className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-purple-900 dark:text-purple-300 font-semibold"
