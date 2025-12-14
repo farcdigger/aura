@@ -29,17 +29,39 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
   resetsAt: string; // ISO string
 }> {
   try {
-    // Haftalık key: YYYY-Www (ISO week format)
     const now = new Date();
-    const weekKey = getISOWeekKey(now);
-    const key = `weekly-reports:${weekKey}`;
+    
+    // Calculate next reset time to check if we're in a new week
+    const weekEnd = getWeekEnd(now);
+    const resetsIn = Math.floor((weekEnd.getTime() - now.getTime()) / 1000);
+    
+    // If reset time has passed (resetsIn > 6 days), we're in a new week
+    // In this case, we need to use the current week's key (which should be new)
+    // But first, check if we need to clean up old week's key
+    const currentWeekKey = getISOWeekKey(now);
+    const key = `weekly-reports:${currentWeekKey}`;
+    
+    // Check if this is a new week (old key expired or reset time passed)
+    const existingTtl = await redis.ttl(key);
+    
+    // If key doesn't exist or TTL is invalid, or reset time has passed, start fresh
+    if (existingTtl <= 0 || resetsIn > 6 * 24 * 3600) {
+      // New week - ensure we start from 0
+      // Delete old key if it exists (shouldn't happen but safety check)
+      if (existingTtl > 0) {
+        await redis.del(key);
+      }
+      // Set new key with proper TTL
+      const newTtl = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
+      await redis.setex(key, newTtl, '0'); // Start at 0
+      console.log(`[WeeklyLimit] New week detected, starting fresh. TTL: ${newTtl}s`);
+    }
     
     // Mevcut sayıyı artır
     const current = await redis.incr(key);
     
-    // İlk kez set ediliyorsa TTL ayarla (haftanın sonuna kadar)
+    // İlk kez set ediliyorsa (current === 1) TTL ayarla (haftanın sonuna kadar)
     if (current === 1) {
-      const weekEnd = getWeekEnd(now);
       const ttl = Math.floor((weekEnd.getTime() - now.getTime()) / 1000);
       await redis.expire(key, ttl);
     }
@@ -48,9 +70,9 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
     
     // Reset zamanı
     const ttl = await redis.ttl(key);
-    const resetsAt = new Date(Date.now() + ttl * 1000).toISOString();
+    const resetsAt = weekEnd.toISOString();
     
-    console.log(`[WeeklyLimit] ${current}/${WEEKLY_LIMIT} reports used this week`);
+    console.log(`[WeeklyLimit] ${current}/${WEEKLY_LIMIT} reports used this week (key: ${currentWeekKey}, TTL: ${ttl}s)`);
     if (!allowed) {
       console.warn(`[WeeklyLimit] ⚠️ WEEKLY LIMIT REACHED! Current: ${current}, Limit: ${WEEKLY_LIMIT}`);
     }
@@ -59,7 +81,7 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
       allowed,
       current,
       limit: WEEKLY_LIMIT,
-      resetsIn: ttl,
+      resetsIn: ttl > 0 ? ttl : resetsIn,
       resetsAt,
     };
   } catch (error: any) {
@@ -122,13 +144,22 @@ export async function getWeeklyLimitStatus(): Promise<{
       current = 0;
     }
     
-    // Additional check: If reset time has passed (resetsIn > 6 days), we might be using old week's key
-    // In this case, force reset to 0
+    // Additional check: If reset time has passed (resetsIn > 6 days), we're in a new week
+    // In this case, the current week's key should be used (which should be 0 or new)
     if (resetsIn > 6 * 24 * 3600) {
       // More than 6 days until reset means we're looking at next week's reset
-      // This means current week's reset has passed, so reset to 0
-      console.log(`[WeeklyLimit] Reset time has passed (resetsIn: ${resetsIn}s), forcing reset to 0`);
-      current = 0;
+      // This means current week's reset has passed, so we should be using new week's key
+      // If old key still exists, it means we're reading wrong week - force to 0
+      if (ttl > 0 && ttl < 7 * 24 * 3600) {
+        // Old week's key still exists with valid TTL - this shouldn't happen but handle it
+        console.log(`[WeeklyLimit] Reset time has passed but old key exists (TTL: ${ttl}s), using 0 for new week`);
+        current = 0;
+      } else {
+        // New week's key should be used - if it doesn't exist, it's 0
+        if (ttl === -2) {
+          current = 0;
+        }
+      }
     }
     
     const remaining = Math.max(0, WEEKLY_LIMIT - current);
