@@ -38,14 +38,18 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   const frogYRef = useRef(300); // Ground level
   const frogJumpingRef = useRef(false);
   const frogJumpVelocityRef = useRef(0);
+  const canDoubleJumpRef = useRef(false); // Can double jump in air
   const obstaclesRef = useRef<Array<{ x: number; width: number; height: number }>>([]);
   const cloudsRef = useRef<Array<{ x: number; y: number; size: number }>>([]);
+  const bonusPointsRef = useRef<Array<{ x: number; y: number; size: number }>>([]); // +2 bonus points in air
   const lastObstacleTimeRef = useRef(0);
   const gameStartTimeRef = useRef(0);
   const nextObstacleIntervalRef = useRef(2500); // Random interval
+  const consecutiveObstaclesRef = useRef(0); // Track consecutive obstacles for bonus
 
   const GRAVITY = 0.7; // Slightly reduced gravity
   const JUMP_STRENGTH = -14; // Slightly reduced jump strength
+  const DOUBLE_JUMP_STRENGTH = -7; // Half jump strength for double jump
   const GROUND_Y = 300;
   const FROG_SIZE = 20;
   const OBSTACLE_WIDTH = 30;
@@ -102,6 +106,24 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
       ctx.arc(cloud.x + cloud.size * 1.2, cloud.y, cloud.size * 0.7, 0, Math.PI * 2);
       ctx.fill();
+    });
+
+    // Draw bonus points (+2)
+    bonusPointsRef.current.forEach((bonus) => {
+      ctx.fillStyle = "#FFD700"; // Gold color
+      ctx.beginPath();
+      ctx.arc(bonus.x, bonus.y, bonus.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#FFA500";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw +2 text
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 12px 'MS Sans Serif', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("+2", bonus.x, bonus.y);
     });
 
     // Draw ground with grass
@@ -206,20 +228,69 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
         frogYRef.current = GROUND_Y;
         frogJumpingRef.current = false;
         frogJumpVelocityRef.current = 0;
+        canDoubleJumpRef.current = false; // Reset double jump on ground
       }
     }
 
-    // Spawn obstacles with random intervals
+    // Update bonus points
+    bonusPointsRef.current = bonusPointsRef.current.map((bonus) => ({
+      ...bonus,
+      x: bonus.x - (3 * gameSpeed), // Move left with obstacles
+    })).filter((bonus) => {
+      // Check collision with frog
+      const frogX = 50;
+      const frogY = frogYRef.current;
+      const distance = Math.sqrt(
+        Math.pow(bonus.x - (frogX + FROG_SIZE / 2), 2) + 
+        Math.pow(bonus.y - (frogY + FROG_SIZE / 2), 2)
+      );
+      
+      if (distance < bonus.size + FROG_SIZE / 2) {
+        // Collected bonus point!
+        setScore((prev) => prev + 2);
+        return false;
+      }
+      
+      return bonus.x + bonus.size > 0; // Keep if on screen
+    });
+
+    // Spawn obstacles with random intervals and bonus patterns
     if (now - lastObstacleTimeRef.current > nextObstacleIntervalRef.current / gameSpeed) {
-      obstaclesRef.current.push({
-        x: CANVAS_WIDTH,
-        width: OBSTACLE_WIDTH,
-        height: OBSTACLE_HEIGHT,
-      });
+      // Decide if we should spawn consecutive obstacles (bonus pattern)
+      const shouldSpawnConsecutive = Math.random() < 0.15; // 15% chance
+      const consecutiveCount = shouldSpawnConsecutive 
+        ? (gameSpeed > 2 ? (Math.random() < 0.5 ? 2 : 3) : 2) // 2 or 3 obstacles based on speed
+        : 1;
+      
+      const gapBetweenConsecutive = 80; // Small gap between consecutive obstacles
+      
+      for (let i = 0; i < consecutiveCount; i++) {
+        obstaclesRef.current.push({
+          x: CANVAS_WIDTH + (i * (OBSTACLE_WIDTH + gapBetweenConsecutive)),
+          width: OBSTACLE_WIDTH,
+          height: OBSTACLE_HEIGHT,
+        });
+      }
+      
       lastObstacleTimeRef.current = now;
-      // Random interval for next obstacle
-      nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
-        Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
+      
+      // Random interval for next obstacle (longer if we just spawned consecutive)
+      if (shouldSpawnConsecutive) {
+        nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
+          Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
+      } else {
+        nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
+          Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
+      }
+      
+      // Spawn bonus point (+2) occasionally (20% chance, in air)
+      if (Math.random() < 0.2) {
+        bonusPointsRef.current.push({
+          x: CANVAS_WIDTH + 100,
+          y: 150 + Math.random() * 100, // Random height in air
+          size: 15,
+        });
+      }
     }
 
     // Spawn clouds
@@ -242,7 +313,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       ...obstacle,
       x: obstacle.x - (3 * gameSpeed), // Slower movement
     })).filter((obstacle) => {
-      // Remove off-screen obstacles and increment score
+      // Remove off-screen obstacles and increment score (1 point per obstacle)
       if (obstacle.x + obstacle.width < 0) {
         setScore((prev) => prev + 1);
         return false;
@@ -311,10 +382,18 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   // Jump handler
   const jump = useCallback(() => {
     if (gameState !== "playing") return;
-    if (frogJumpingRef.current) return; // Can't jump while already jumping
-
-    frogJumpingRef.current = true;
-    frogJumpVelocityRef.current = JUMP_STRENGTH;
+    
+    // Ground jump
+    if (!frogJumpingRef.current || frogYRef.current >= GROUND_Y - 1) {
+      frogJumpingRef.current = true;
+      frogJumpVelocityRef.current = JUMP_STRENGTH;
+      canDoubleJumpRef.current = true; // Enable double jump
+    } 
+    // Double jump (in air)
+    else if (canDoubleJumpRef.current && frogJumpingRef.current) {
+      frogJumpVelocityRef.current = DOUBLE_JUMP_STRENGTH; // Half jump strength
+      canDoubleJumpRef.current = false; // Can only double jump once
+    }
   }, [gameState]);
 
   // Handle click/touch
@@ -359,8 +438,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       frogYRef.current = GROUND_Y;
       frogJumpingRef.current = false;
       frogJumpVelocityRef.current = 0;
+      canDoubleJumpRef.current = false;
       obstaclesRef.current = [];
       cloudsRef.current = [];
+      bonusPointsRef.current = [];
+      consecutiveObstaclesRef.current = 0;
       lastObstacleTimeRef.current = Date.now();
       gameStartTimeRef.current = Date.now();
       nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
@@ -418,8 +500,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     frogYRef.current = GROUND_Y;
     frogJumpingRef.current = false;
     frogJumpVelocityRef.current = 0;
+    canDoubleJumpRef.current = false;
     obstaclesRef.current = [];
     cloudsRef.current = [];
+    bonusPointsRef.current = [];
+    consecutiveObstaclesRef.current = 0;
     lastObstacleTimeRef.current = 0;
     gameStartTimeRef.current = 0;
     nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
@@ -515,14 +600,14 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
         <div className="p-2 sm:p-3" style={{ background: '#c0c0c0' }}>
           <div className="text-center mb-2 sm:mb-3">
             <p className="text-xs sm:text-sm mb-2 font-bold" style={{ color: '#000' }}>
-              Jump over obstacles! Reach {status?.scoreForTicket || 500} total score to win a report for 0.001 USDC!
+              Jump over obstacles! Reach {status?.scoreForTicket || 1000} total score to redeem a report for 0.001 USDC!
             </p>
             {totalScore > 0 && (
               <div className="mb-2 space-y-2">
                 <div className="p-2 border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300" style={{ background: '#fff', display: 'inline-block' }}>
-                  <p className="text-xs font-bold" style={{ color: '#000' }}>
-                    Total Score: <span className="text-blue-600">{totalScore}</span> / {(status?.scoreForTicket || 500)}
-                  </p>
+                <p className="text-xs font-bold" style={{ color: '#000' }}>
+                  Total Score: <span className="text-blue-600">{totalScore}</span> / {(status?.scoreForTicket || 1000)}
+                </p>
                 </div>
                 {totalScore >= (status?.scoreForTicket || 500) && (
                   <button
@@ -560,7 +645,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
                       }
                     }}
                   >
-                    {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 500} Points for 0.001 USDC Ticket`}
+                    {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 1000} Points for 0.001 USDC Ticket`}
                   </button>
                 )}
               </div>
@@ -611,18 +696,18 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
                     Final Score: {score}
                   </p>
                   <p className="text-xs mb-2 font-bold" style={{ color: '#000' }}>
-                    Total Score: {totalScore} / {(status?.scoreForTicket || 500)}
+                    Total Score: {totalScore} / {(status?.scoreForTicket || 1000)}
                   </p>
-                  {totalScore >= (status?.scoreForTicket || 500) ? (
+                  {totalScore >= (status?.scoreForTicket || 1000) ? (
                     <p className="text-xs mb-2" style={{ color: '#008000' }}>
                       🎉 You can redeem a report for 0.001 USDC!
                     </p>
                   ) : (
                     <p className="text-xs mb-4" style={{ color: '#000' }}>
-                      Reach {(status?.scoreForTicket || 500)} total score to redeem a report for 0.001 USDC!
+                      Reach {(status?.scoreForTicket || 1000)} total score to redeem a report for 0.001 USDC!
                     </p>
                   )}
-                  {totalScore >= (status?.scoreForTicket || 500) && (
+                  {totalScore >= (status?.scoreForTicket || 1000) && (
                     <button
                       onClick={redeemTicket}
                       disabled={redeeming}
@@ -658,7 +743,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
                         }
                       }}
                     >
-                      {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 500} Points for Ticket`}
+                      {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 1000} Points for Ticket`}
                     </button>
                   )}
                   <button
@@ -758,9 +843,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
           <div className="p-2 border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600" style={{ background: '#fff' }}>
             <p className="text-xs font-bold mb-2" style={{ color: '#000' }}>How to Play:</p>
             <ul className="text-xs space-y-1" style={{ color: '#000', fontFamily: 'MS Sans Serif, sans-serif' }}>
-              <li>• Click or tap to make the frog jump</li>
+              <li>• Click or tap to jump - double tap in air for double jump!</li>
+              <li>• Collect +2 bonus points in the air for extra score</li>
+              <li>• Sometimes 2-3 obstacles come together (bonus pattern)</li>
               <li>• Avoid obstacles - game gets faster over time</li>
-              <li>• Reach {(status?.scoreForTicket || 500)} total score to win a report for 0.001 USDC</li>
+              <li>• Reach {(status?.scoreForTicket || 1000)} total score to redeem a report for 0.001 USDC</li>
               <li>• Entry cost: <span className="font-bold">{status?.cost.toLocaleString() || 0}</span> credits</li>
               <li>• Entry reward: <span className="font-bold">+{status?.pointsReward || 10}</span> points</li>
             </ul>

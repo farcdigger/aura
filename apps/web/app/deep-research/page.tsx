@@ -7,12 +7,6 @@ import DeepResearchModal from "@/components/DeepResearchModal";
 import GameMenu from "@/components/GameMenu";
 import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
-// WHITELIST: Only these addresses can access Deep Research
-const WHITELIST_ADDRESSES = [
-  "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d", // Admin wallet
-  "0x104b5768fe505c400dd98f447665cb5c6fca388a", // Test wallet
-];
-
 export default function DeepResearchPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
@@ -24,23 +18,6 @@ export default function DeepResearchPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [hasNFT, setHasNFT] = useState<boolean | null>(null);
-
-  // Check whitelist access
-  useEffect(() => {
-    if (isConnected && address) {
-      const normalizedAddress = address.toLowerCase();
-      const isWhitelisted = WHITELIST_ADDRESSES.some(
-        (whitelisted) => whitelisted.toLowerCase() === normalizedAddress
-      );
-
-      if (!isWhitelisted) {
-        console.log("❌ Access denied: Not in whitelist", { address, normalizedAddress, whitelist: WHITELIST_ADDRESSES });
-        router.push("/"); // Redirect to home
-      } else {
-        console.log("✅ Access granted: User is whitelisted", { address, normalizedAddress });
-      }
-    }
-  }, [isConnected, address, router]);
 
   // Fetch pricing info when wallet connects
   useEffect(() => {
@@ -121,26 +98,6 @@ export default function DeepResearchPage() {
     }
   };
 
-  // Check if user is whitelisted
-  const isWhitelisted = address
-    ? WHITELIST_ADDRESSES.some(
-        (whitelisted) => whitelisted.toLowerCase() === address.toLowerCase()
-      )
-    : false;
-
-  // Don't render anything if not whitelisted
-  if (isConnected && !isWhitelisted) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            This page is currently in private beta.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const handleStartAnalysis = () => {
     if (!tokenMint.trim()) {

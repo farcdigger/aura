@@ -16,7 +16,7 @@ import { supabaseClient } from "@/lib/db-supabase";
 
 const GAME_COST = 20_000; // Credits required to play
 const POINTS_REWARD = 10; // Points awarded on entry
-const SCORE_FOR_TICKET = 500; // Score needed to win free ticket
+const SCORE_FOR_TICKET = 1000; // Score needed to redeem free ticket
 
 /**
  * POST /api/deep-research/frog-jump

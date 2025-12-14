@@ -8,7 +8,7 @@ import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 import { env } from "@/env.mjs";
 import { supabaseClient } from "@/lib/db-supabase";
 
-const SCORE_FOR_TICKET = 500; // Score needed to redeem ticket
+const SCORE_FOR_TICKET = 1000; // Score needed to redeem ticket
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Deduct 500 points and update total score
+    // 4. Deduct 1000 points and update total score
     const newTotalScore = totalScore - SCORE_FOR_TICKET;
     try {
       if (supabaseClient) {

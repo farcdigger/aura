@@ -21,9 +21,9 @@ const RECIPIENT_ADDRESS = "0xDA9097c5672928a16C42889cD4b07d9a766827ee"; // Same 
 const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const NETWORK = "base";
 
-// Trial pricing period (3 days: Dec 7-9, 2025)
-const TRIAL_PRICING_START = new Date("2025-12-07T00:00:00Z");
-const TRIAL_PRICING_END = new Date("2025-12-10T00:00:00Z");
+// Trial pricing period (4 days: Dec 14-17, 2025)
+const TRIAL_PRICING_START = new Date("2025-12-14T00:00:00Z");
+const TRIAL_PRICING_END = new Date("2025-12-18T00:00:00Z");
 const TRIAL_PRICE = "1000"; // $0.001 USDC (tests payment system)
 
 // Regular pricing (USDC with 6 decimals)
