@@ -361,34 +361,10 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
     }
   }, [gameState, gameSpeed, draw]);
 
-  // Start game loop when playing and prevent scroll
+  // Start game loop when playing
   useEffect(() => {
     if (gameState === "playing") {
       gameLoopRef.current = requestAnimationFrame(gameLoop);
-      
-      // Prevent scroll while playing
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalWidth = document.body.style.width;
-      const originalHeight = document.body.style.height;
-      
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      document.body.style.height = "100%";
-      
-      return () => {
-        // Restore scroll when game stops
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.width = originalWidth;
-        document.body.style.height = originalHeight;
-        
-        if (gameLoopRef.current !== null) {
-          cancelAnimationFrame(gameLoopRef.current);
-          gameLoopRef.current = null;
-        }
-      };
     } else {
       if (gameLoopRef.current !== null) {
         cancelAnimationFrame(gameLoopRef.current);

@@ -40,39 +40,14 @@ export default function SpeedClickGame({ onFreeTicketWon, onGameStateChange }: S
     }
   }, [isConnected, address]);
 
-  // Prevent scroll while playing and cleanup timer on unmount
+  // Cleanup timer on unmount
   useEffect(() => {
-    if (gameState === "playing" || gameState === "waiting") {
-      // Prevent scroll while playing
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalWidth = document.body.style.width;
-      const originalHeight = document.body.style.height;
-      
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      document.body.style.height = "100%";
-      
-      return () => {
-        // Restore scroll when game stops
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.width = originalWidth;
-        document.body.style.height = originalHeight;
-        
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      };
-    }
-    
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [gameState]);
+  }, []);
 
   const fetchStatus = async () => {
     if (!address) return;
