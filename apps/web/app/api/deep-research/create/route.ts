@@ -138,13 +138,18 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
     const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
     console.log(`🔗 Checking weekly limit at: ${agentUrl}/api/weekly-limit`);
     
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(`${agentUrl}/api/weekly-limit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userWallet }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     console.log(`📊 Weekly limit API response: ${response.status} ${response.ok ? 'OK' : 'FAILED'}`);
 
