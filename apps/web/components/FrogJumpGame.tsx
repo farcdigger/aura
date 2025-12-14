@@ -14,6 +14,7 @@ interface GameStatus {
   currentBalance: number;
   pointsReward: number;
   scoreForTicket: number;
+  totalScore?: number;
 }
 
 type GameState = "idle" | "playing" | "gameOver";
@@ -24,7 +25,8 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   const [loading, setLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>("idle");
   const [score, setScore] = useState(0);
-  const [gameSpeed, setGameSpeed] = useState(2);
+  const [gameSpeed, setGameSpeed] = useState(1.2); // Slower starting speed
+  const [totalScore, setTotalScore] = useState(0);
   
   // Game canvas refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,16 +38,19 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   const frogJumpingRef = useRef(false);
   const frogJumpVelocityRef = useRef(0);
   const obstaclesRef = useRef<Array<{ x: number; width: number; height: number }>>([]);
+  const cloudsRef = useRef<Array<{ x: number; y: number; size: number }>>([]);
   const lastObstacleTimeRef = useRef(0);
   const gameStartTimeRef = useRef(0);
+  const nextObstacleIntervalRef = useRef(2500); // Random interval
 
-  const GRAVITY = 0.8;
-  const JUMP_STRENGTH = -15;
+  const GRAVITY = 0.7; // Slightly reduced gravity
+  const JUMP_STRENGTH = -14; // Slightly reduced jump strength
   const GROUND_Y = 300;
   const FROG_SIZE = 20;
   const OBSTACLE_WIDTH = 30;
   const OBSTACLE_HEIGHT = 50;
-  const OBSTACLE_SPAWN_INTERVAL = 2000; // ms
+  const MIN_OBSTACLE_INTERVAL = 2000; // ms - minimum time between obstacles
+  const MAX_OBSTACLE_INTERVAL = 4000; // ms - maximum time between obstacles
   const CANVAS_WIDTH = 600;
   const CANVAS_HEIGHT = 400;
 
@@ -60,6 +65,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       if (response.ok) {
         const data = await response.json();
         setStatus(data);
+        setTotalScore(data.totalScore || 0);
       }
     } catch (error) {
       console.error("Error fetching game status:", error);
@@ -80,18 +86,48 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = "#008080"; // Windows teal
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Clear canvas - Sky gradient
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    skyGradient.addColorStop(0, "#87CEEB"); // Sky blue
+    skyGradient.addColorStop(1, "#E0F6FF"); // Light blue
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, GROUND_Y + FROG_SIZE);
 
-    // Draw ground
-    ctx.fillStyle = "#654321"; // Brown
+    // Draw clouds
+    ctx.fillStyle = "#FFFFFF";
+    cloudsRef.current.forEach((cloud) => {
+      ctx.beginPath();
+      ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+      ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+      ctx.arc(cloud.x + cloud.size * 1.2, cloud.y, cloud.size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Draw ground with grass
+    ctx.fillStyle = "#8B7355"; // Brown ground
     ctx.fillRect(0, GROUND_Y + FROG_SIZE, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y - FROG_SIZE);
+    
+    // Draw grass line
+    ctx.fillStyle = "#228B22"; // Forest green
+    ctx.fillRect(0, GROUND_Y + FROG_SIZE - 2, CANVAS_WIDTH, 2);
 
-    // Draw obstacles
-    ctx.fillStyle = "#000000"; // Black
+    // Draw obstacles (cactus style)
     obstaclesRef.current.forEach((obstacle) => {
-      ctx.fillRect(obstacle.x, GROUND_Y + FROG_SIZE - obstacle.height, obstacle.width, obstacle.height);
+      const x = obstacle.x;
+      const y = GROUND_Y + FROG_SIZE - obstacle.height;
+      
+      // Main body
+      ctx.fillStyle = "#2D5016"; // Dark green
+      ctx.fillRect(x + 10, y, 10, obstacle.height);
+      
+      // Left arm
+      ctx.fillRect(x, y + obstacle.height * 0.3, 8, 8);
+      
+      // Right arm
+      ctx.fillRect(x + 22, y + obstacle.height * 0.5, 8, 8);
+      
+      // Top
+      ctx.fillRect(x + 8, y - 5, 14, 8);
     });
 
     // Draw frog (black pixel art)
@@ -122,11 +158,35 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       }
     }
 
-    // Draw score
+    // Draw score and total score
     ctx.fillStyle = "#000000";
-    ctx.font = "16px 'MS Sans Serif', sans-serif";
-    ctx.fillText(`Score: ${score}`, 10, 30);
-  }, [score]);
+    ctx.font = "bold 16px 'MS Sans Serif', sans-serif";
+    ctx.fillText(`Score: ${score}`, 10, 25);
+    ctx.font = "14px 'MS Sans Serif', sans-serif";
+    ctx.fillText(`Total: ${totalScore} / ${status?.scoreForTicket || 500}`, 10, 45);
+    
+    // Progress bar for total score
+    if (status?.scoreForTicket) {
+      const progress = Math.min(totalScore / status.scoreForTicket, 1);
+      const barWidth = 200;
+      const barHeight = 8;
+      const barX = 10;
+      const barY = 55;
+      
+      // Background
+      ctx.fillStyle = "#CCCCCC";
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+      
+      // Progress
+      ctx.fillStyle = progress >= 1 ? "#00AA00" : "#0066CC";
+      ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+      
+      // Border
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
+    }
+  }, [score, totalScore, status]);
 
   // Game loop
   const gameLoop = useCallback(() => {
@@ -148,20 +208,38 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       }
     }
 
-    // Spawn obstacles
-    if (now - lastObstacleTimeRef.current > OBSTACLE_SPAWN_INTERVAL / gameSpeed) {
+    // Spawn obstacles with random intervals
+    if (now - lastObstacleTimeRef.current > nextObstacleIntervalRef.current / gameSpeed) {
       obstaclesRef.current.push({
         x: CANVAS_WIDTH,
         width: OBSTACLE_WIDTH,
         height: OBSTACLE_HEIGHT,
       });
       lastObstacleTimeRef.current = now;
+      // Random interval for next obstacle
+      nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
+        Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
     }
 
-    // Update obstacles
+    // Spawn clouds
+    if (Math.random() < 0.002) { // Low probability
+      cloudsRef.current.push({
+        x: CANVAS_WIDTH,
+        y: 50 + Math.random() * 150,
+        size: 20 + Math.random() * 30,
+      });
+    }
+
+    // Update clouds
+    cloudsRef.current = cloudsRef.current.map((cloud) => ({
+      ...cloud,
+      x: cloud.x - (1 * gameSpeed), // Slow cloud movement
+    })).filter((cloud) => cloud.x + cloud.size * 2 > 0);
+
+    // Update obstacles - slower movement
     obstaclesRef.current = obstaclesRef.current.map((obstacle) => ({
       ...obstacle,
-      x: obstacle.x - (5 * gameSpeed), // Move left
+      x: obstacle.x - (3 * gameSpeed), // Slower movement
     })).filter((obstacle) => {
       // Remove off-screen obstacles and increment score
       if (obstacle.x + obstacle.width < 0) {
@@ -195,9 +273,9 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       }
     }
 
-    // Increase speed over time
-    const newSpeed = 2 + Math.floor(deltaTime / 10000); // Increase every 10 seconds
-    if (newSpeed !== gameSpeed) {
+    // Increase speed over time - slower progression
+    const newSpeed = 1.2 + Math.floor(deltaTime / 20000) * 0.3; // Increase every 20 seconds by 0.3
+    if (Math.abs(newSpeed - gameSpeed) > 0.1) {
       setGameSpeed(newSpeed);
     }
 
@@ -276,13 +354,16 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
 
       // Reset game state
       setScore(0);
-      setGameSpeed(2);
+      setGameSpeed(1.2);
       frogYRef.current = GROUND_Y;
       frogJumpingRef.current = false;
       frogJumpVelocityRef.current = 0;
       obstaclesRef.current = [];
+      cloudsRef.current = [];
       lastObstacleTimeRef.current = Date.now();
       gameStartTimeRef.current = Date.now();
+      nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
+        Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
       
       setGameState("playing");
       setLoading(false);
@@ -319,9 +400,12 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
 
       if (response.ok) {
         const data = await response.json();
+        setTotalScore(data.totalScore || totalScore);
         if (data.wonTicket && onFreeTicketWon) {
           onFreeTicketWon();
         }
+        // Refresh status to get updated totalScore
+        fetchStatus();
       }
     } catch (error) {
       console.error("Error ending game:", error);
@@ -332,13 +416,16 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   const resetGame = () => {
     setGameState("idle");
     setScore(0);
-    setGameSpeed(2);
+    setGameSpeed(1.2);
     frogYRef.current = GROUND_Y;
     frogJumpingRef.current = false;
     frogJumpVelocityRef.current = 0;
     obstaclesRef.current = [];
+    cloudsRef.current = [];
     lastObstacleTimeRef.current = 0;
     gameStartTimeRef.current = 0;
+    nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
+      Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
   };
 
   // Draw on mount and when score changes
@@ -370,9 +457,9 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   }
 
   return (
-    <div className="p-2" style={{ fontFamily: 'MS Sans Serif, sans-serif' }}>
+    <div className="p-1 sm:p-2" style={{ fontFamily: 'MS Sans Serif, sans-serif' }}>
       {/* Windows XP Style Window */}
-      <div className="border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600 shadow-lg" style={{ background: '#c0c0c0' }}>
+      <div className="border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600 shadow-lg w-full" style={{ background: '#c0c0c0' }}>
         {/* Window Title Bar */}
         <div className="flex items-center justify-between px-1 py-0.5" style={{ 
           background: 'linear-gradient(to bottom, #0054e3 0%, #0066ff 50%, #0054e3 100%)',
@@ -390,11 +477,18 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
         </div>
 
         {/* Window Content */}
-        <div className="p-3" style={{ background: '#c0c0c0' }}>
-          <div className="text-center mb-3">
-            <p className="text-sm mb-2 font-bold" style={{ color: '#000' }}>
-              Jump over obstacles! Score {status?.scoreForTicket || 500}+ to win a report for 0.001 USDC!
+        <div className="p-2 sm:p-3" style={{ background: '#c0c0c0' }}>
+          <div className="text-center mb-2 sm:mb-3">
+            <p className="text-xs sm:text-sm mb-2 font-bold" style={{ color: '#000' }}>
+              Jump over obstacles! Reach {status?.scoreForTicket || 500} total score to win a report for 0.001 USDC!
             </p>
+            {totalScore > 0 && (
+              <div className="mb-2 p-2 border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300" style={{ background: '#fff', display: 'inline-block' }}>
+                <p className="text-xs font-bold" style={{ color: '#000' }}>
+                  Total Score: <span className="text-blue-600">{totalScore}</span> / {(status?.scoreForTicket || 500)}
+                </p>
+              </div>
+            )}
             
             {/* Balance */}
             <div className="mb-3 p-2 border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300" style={{ background: '#fff', display: 'inline-block' }}>
@@ -406,15 +500,16 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
 
           {/* Game Canvas */}
           <div 
-            className="relative mx-auto mb-3 overflow-hidden border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300 cursor-pointer"
+            className="relative mx-auto mb-2 sm:mb-3 overflow-hidden border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300 cursor-pointer"
             onClick={handleClick}
             onTouchStart={(e) => {
               e.preventDefault();
               handleClick();
             }}
             style={{ 
-              width: `${CANVAS_WIDTH}px`,
-              height: `${CANVAS_HEIGHT}px`,
+              width: "100%",
+              maxWidth: `${CANVAS_WIDTH}px`,
+              aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
               touchAction: "none",
             }}
           >
@@ -422,7 +517,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
               ref={canvasRef}
               width={CANVAS_WIDTH}
               height={CANVAS_HEIGHT}
-              style={{ display: 'block' }}
+              style={{ 
+                display: 'block',
+                width: '100%',
+                height: '100%',
+              }}
             />
             
             {/* Game Over Overlay */}
@@ -435,13 +534,16 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
                   <p className="text-sm mb-2 font-bold" style={{ color: '#000' }}>
                     Final Score: {score}
                   </p>
-                  {score >= (status?.scoreForTicket || 500) ? (
+                  <p className="text-xs mb-2 font-bold" style={{ color: '#000' }}>
+                    Total Score: {totalScore} / {(status?.scoreForTicket || 500)}
+                  </p>
+                  {totalScore >= (status?.scoreForTicket || 500) ? (
                     <p className="text-xs mb-4" style={{ color: '#008000' }}>
                       🎉 You won a report for 0.001 USDC!
                     </p>
                   ) : (
                     <p className="text-xs mb-4" style={{ color: '#000' }}>
-                      Score {(status?.scoreForTicket || 500)}+ to win a report for 0.001 USDC!
+                      Reach {(status?.scoreForTicket || 500)} total score to win a report for 0.001 USDC!
                     </p>
                   )}
                   <button
@@ -543,7 +645,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
             <ul className="text-xs space-y-1" style={{ color: '#000', fontFamily: 'MS Sans Serif, sans-serif' }}>
               <li>• Click or tap to make the frog jump</li>
               <li>• Avoid obstacles - game gets faster over time</li>
-              <li>• Score {(status?.scoreForTicket || 500)}+ to win a report for 0.001 USDC</li>
+              <li>• Reach {(status?.scoreForTicket || 500)} total score to win a report for 0.001 USDC</li>
               <li>• Entry cost: <span className="font-bold">{status?.cost.toLocaleString() || 0}</span> credits</li>
               <li>• Entry reward: <span className="font-bold">+{status?.pointsReward || 10}</span> points</li>
             </ul>

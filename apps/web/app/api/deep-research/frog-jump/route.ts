@@ -135,37 +135,43 @@ export async function POST(request: NextRequest) {
         score,
       });
 
-      // Save score to leaderboard
+      // Save score to leaderboard and update total score
+      let totalScore = 0;
       try {
         if (supabaseClient) {
           // Check if user already has a score
           const { data: existingScore } = await (supabaseClient as any)
             .from("frog_jump_leaderboard")
-            .select("id, score")
+            .select("id, score, total_score")
             .eq("wallet_address", normalizedAddress)
             .single();
 
           if (existingScore) {
-            // Update if new score is higher
-            if (score > existingScore.score) {
-              await (supabaseClient as any)
-                .from("frog_jump_leaderboard")
-                .update({ 
-                  score,
-                  updated_at: new Date().toISOString()
-                })
-                .eq("wallet_address", normalizedAddress);
-              console.log("✅ Updated leaderboard score:", score);
-            }
+            // Update best score if new score is higher
+            const newBestScore = score > existingScore.score ? score : existingScore.score;
+            // Add current game score to total
+            totalScore = (existingScore.total_score || 0) + score;
+            
+            await (supabaseClient as any)
+              .from("frog_jump_leaderboard")
+              .update({ 
+                score: newBestScore,
+                total_score: totalScore,
+                updated_at: new Date().toISOString()
+              })
+              .eq("wallet_address", normalizedAddress);
+            console.log("✅ Updated leaderboard score:", { best: newBestScore, total: totalScore });
           } else {
             // Insert new score
+            totalScore = score;
             await (supabaseClient as any)
               .from("frog_jump_leaderboard")
               .insert({
                 wallet_address: normalizedAddress,
                 score,
+                total_score: totalScore,
               });
-            console.log("✅ Added new leaderboard score:", score);
+            console.log("✅ Added new leaderboard score:", { best: score, total: totalScore });
           }
         }
       } catch (error: any) {
@@ -173,9 +179,9 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if leaderboard save fails
       }
 
-      // Check if user won a free ticket (score >= 500)
+      // Check if user won a free ticket (total_score >= 500)
       let wonTicket = false;
-      if (score >= SCORE_FOR_TICKET) {
+      if (totalScore >= SCORE_FOR_TICKET) {
         console.log("🎉 [Frog Jump] User won a free ticket!");
         wonTicket = true;
 
@@ -210,10 +216,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         score,
+        totalScore,
         wonTicket,
         message: wonTicket 
-          ? `Congratulations! You scored ${score} and won a free analysis ticket!`
-          : `Game over! Your score: ${score}. Score ${SCORE_FOR_TICKET}+ to win a free ticket!`,
+          ? `Congratulations! Your total score is ${totalScore} and you won a free analysis ticket!`
+          : `Game over! Your score: ${score}. Total: ${totalScore}. Reach ${SCORE_FOR_TICKET} total score to win a free ticket!`,
       });
 
     } else {
@@ -318,6 +325,7 @@ export async function GET(request: NextRequest) {
     // Get credit balance
     const { isMockMode } = await import("@/env.mjs");
     let currentBalance = 0;
+    let totalScore = 0;
 
     if (isMockMode) {
       const { getMockTokenBalances } = await import("@/lib/chat-tokens-mock");
@@ -336,6 +344,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Get total score
+    try {
+      if (supabaseClient) {
+        const { data: scoreData } = await (supabaseClient as any)
+          .from("frog_jump_leaderboard")
+          .select("total_score")
+          .eq("wallet_address", normalizedAddress)
+          .single();
+        
+        if (scoreData) {
+          totalScore = Number(scoreData.total_score) || 0;
+        }
+      }
+    } catch (error) {
+      // Ignore error, totalScore stays 0
+    }
+
     const canPlay = currentBalance >= GAME_COST;
 
     return NextResponse.json({
@@ -345,6 +370,7 @@ export async function GET(request: NextRequest) {
       currentBalance,
       pointsReward: POINTS_REWARD,
       scoreForTicket: SCORE_FOR_TICKET,
+      totalScore,
     });
 
   } catch (error: any) {

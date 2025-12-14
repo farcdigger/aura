@@ -143,9 +143,9 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
 
   // Main Menu
   return (
-    <div className="p-2" style={{ fontFamily: 'MS Sans Serif, sans-serif' }}>
+    <div className="p-1 sm:p-2" style={{ fontFamily: 'MS Sans Serif, sans-serif' }}>
       {/* Windows XP Style Window */}
-      <div className="border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600 shadow-lg" style={{ background: '#c0c0c0' }}>
+      <div className="border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600 shadow-lg w-full" style={{ background: '#c0c0c0' }}>
         {/* Window Title Bar */}
         <div className="flex items-center justify-between px-1 py-0.5" style={{ 
           background: 'linear-gradient(to bottom, #0054e3 0%, #0066ff 50%, #0054e3 100%)',
@@ -163,14 +163,14 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
         </div>
 
         {/* Window Content */}
-        <div className="p-4" style={{ background: '#c0c0c0' }}>
-          <h2 className="text-lg font-bold mb-4 text-center" style={{ color: '#000' }}>Select a Game</h2>
+        <div className="p-2 sm:p-4" style={{ background: '#c0c0c0' }}>
+          <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 text-center" style={{ color: '#000' }}>Select a Game</h2>
           
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* Speed Click Game */}
             <button
               onClick={() => setSelectedGame("speed-click")}
-              className="w-full p-4 text-left transition-all"
+              className="w-full p-3 sm:p-4 text-left transition-all"
               style={{
                 fontFamily: 'MS Sans Serif, sans-serif',
                 background: '#c0c0c0',
@@ -205,10 +205,10 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
                 e.currentTarget.style.boxShadow = 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff';
               }}
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎯</span>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xl sm:text-2xl">🎯</span>
                 <div>
-                  <div className="font-bold text-sm">Speed Click Challenge</div>
+                  <div className="font-bold text-xs sm:text-sm">Speed Click Challenge</div>
                   <div className="text-xs" style={{ color: '#666' }}>
                     Hit 7 targets in 0.4s each • Win a report for 0.001 USDC
                   </div>
@@ -219,7 +219,7 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
             {/* Frog Jump Game */}
             <button
               onClick={() => setSelectedGame("frog-jump")}
-              className="w-full p-4 text-left transition-all"
+              className="w-full p-3 sm:p-4 text-left transition-all"
               style={{
                 fontFamily: 'MS Sans Serif, sans-serif',
                 background: '#c0c0c0',
@@ -268,7 +268,7 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
             {/* Leaderboard */}
             <button
               onClick={() => setSelectedGame("leaderboard")}
-              className="w-full p-4 text-left transition-all"
+              className="w-full p-3 sm:p-4 text-left transition-all"
               style={{
                 fontFamily: 'MS Sans Serif, sans-serif',
                 background: '#c0c0c0',
@@ -316,9 +316,9 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
           </div>
 
           {/* Info */}
-          <div className="mt-4 p-3 border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600" style={{ background: '#fff' }}>
+          <div className="mt-3 sm:mt-4 p-2 sm:p-3 border-2 border-t-gray-300 border-l-gray-300 border-r-gray-600 border-b-gray-600" style={{ background: '#fff' }}>
             <p className="text-xs font-bold mb-1" style={{ color: '#000' }}>Game Info:</p>
-            <ul className="text-xs space-y-1" style={{ color: '#000' }}>
+            <ul className="text-xs space-y-0.5 sm:space-y-1" style={{ color: '#000' }}>
               <li>• Entry cost: <span className="font-bold">20,000 credits</span> per game</li>
               <li>• Entry reward: <span className="font-bold">+10 points</span> per game</li>
               <li>• Win condition: Complete game objectives to earn a report for 0.001 USDC</li>

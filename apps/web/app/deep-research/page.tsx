@@ -10,6 +10,7 @@ import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 // WHITELIST: Only these addresses can access Deep Research
 const WHITELIST_ADDRESSES = [
   "0xedf8e693b3ab4899a03ab22edf90e36a6ac1fd9d", // Admin wallet
+  "0x104b5768fe505c400dd98f447665cb5c6fca388a", // Test wallet
 ];
 
 export default function DeepResearchPage() {

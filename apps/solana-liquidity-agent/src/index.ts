@@ -159,12 +159,12 @@ const analyzeHandlerFn = async (c: any) => {
     let job;
     try {
       job = await addAnalysisJob({
-        poolId: poolId,
-        userId: input.userId,
-        userWallet: input.userWallet, // For user-specific tracking
-        tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
-        options: input.options,
-      });
+      poolId: poolId,
+      userId: input.userId,
+      userWallet: input.userWallet, // For user-specific tracking
+      tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
+      options: input.options,
+    });
     } catch (queueError: any) {
       if (queueError.message && queueError.message.includes('Queue is full')) {
         return c.json({

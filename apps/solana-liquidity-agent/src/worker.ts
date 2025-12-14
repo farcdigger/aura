@@ -273,13 +273,13 @@ async function processAnalysis(job: Job<QueueJobData>) {
     let prompt: string;
     try {
       prompt = buildAnalysisPrompt({
-        poolId,
-        tokenA,
-        tokenB,
-        reserves: finalReserves, // ✅ DÜZELTİLDİ: Artık tanımlı
-        transactions,
-        poolHistory,
-      });
+      poolId,
+      tokenA,
+      tokenB,
+      reserves: finalReserves, // ✅ DÜZELTİLDİ: Artık tanımlı
+      transactions,
+      poolHistory,
+    });
       
       // ✅ DETAYLI LOG: Prompt oluşturulduktan sonra logla (ilk 500 karakter)
       console.log(`✅ [Job ${job.id}] Prompt built successfully. Length: ${prompt.length} characters`);
@@ -311,19 +311,19 @@ async function processAnalysis(job: Job<QueueJobData>) {
     let response: Response;
     try {
       response = await fetch(`${DAYDREAMS_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${INFERENCE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0.3,
-          max_tokens: 4096,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${INFERENCE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.3,
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    
       // ✅ DETAYLI LOG: API response status
       console.log(`📡 [Job ${job.id}] AI API response status: ${response.status} ${response.statusText}`);
       
@@ -453,7 +453,7 @@ async function processAnalysis(job: Job<QueueJobData>) {
     let savedRecord;
     try {
       savedRecord = await saveAnalysis(analysisResult, userId, normalizedUserWallet);
-      
+    
       if (!savedRecord) {
         console.error(`❌ [Job ${job.id}] CRITICAL: saveAnalysis returned null!`);
         throw new Error('Failed to save to database - saveAnalysis returned null');

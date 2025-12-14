@@ -140,7 +140,7 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse | n
     const recordId = result && typeof result === 'object' && 'recordId' in result 
       ? result.recordId 
       : undefined;
-    
+
     const response: JobStatusResponse = {
       jobId,
       status,
