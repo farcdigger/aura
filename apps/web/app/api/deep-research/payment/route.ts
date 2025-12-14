@@ -384,7 +384,8 @@ export async function POST(request: NextRequest) {
       if (queueStatusResponse.ok) {
         const queueStatus = await queueStatusResponse.json();
         const queueSize = (queueStatus.waiting || 0) + (queueStatus.active || 0);
-        if (queueSize >= 5) {
+        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        if (queueSize >= MAX_QUEUE_SIZE) {
           // Queue is full AFTER payment - issue free ticket
           console.warn("⚠️ Queue is full after payment - issuing free ticket");
           
@@ -453,6 +454,54 @@ export async function POST(request: NextRequest) {
       // Ethereum addresses can be in checksum format (mixed case) or lowercase
       // We always store in lowercase to avoid matching issues
       const normalizedWalletAddress = walletAddress.toLowerCase();
+      
+      // Final queue check RIGHT BEFORE queuing (to prevent race conditions)
+      const finalQueueCheck = await fetch(`${agentUrl}/api/stats`);
+      if (finalQueueCheck.ok) {
+        const finalQueueStats = await finalQueueCheck.json();
+        const finalQueueSize = (finalQueueStats.waiting || 0) + (finalQueueStats.active || 0);
+        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        
+        if (finalQueueSize >= MAX_QUEUE_SIZE) {
+          console.warn(`⚠️ Queue is full RIGHT BEFORE queuing: ${finalQueueSize}/${MAX_QUEUE_SIZE} - issuing free ticket`);
+          
+          // Issue free ticket via agent API
+          try {
+            await fetch(`${agentUrl}/api/free-ticket`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userWallet: normalizedWalletAddress,
+                reason: "queue_full_before_queuing",
+                metadata: {
+                  transactionHash: settlement.transaction,
+                  tokenMint,
+                  timestamp: new Date().toISOString(),
+                },
+              }),
+            });
+          } catch (ticketError) {
+            console.error("❌ Failed to issue free ticket:", ticketError);
+          }
+          
+          return NextResponse.json(
+            {
+              error: "Queue is full",
+              message: "Analysis queue is currently full. A free ticket has been issued for your next attempt.",
+              freeTicket: true,
+              freeTicketReason: "queue_full_before_queuing",
+              transaction: settlement.transaction,
+              queueInfo: {
+                active: finalQueueStats.active || 0,
+                waiting: finalQueueStats.waiting || 0,
+                total: finalQueueSize,
+                maxSize: MAX_QUEUE_SIZE,
+              },
+            },
+            { status: 429 }
+          );
+        }
+      }
       
       const analysisResponse = await fetch(`${agentUrl}/api/analyze`, {
         method: "POST",

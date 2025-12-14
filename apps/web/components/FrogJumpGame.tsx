@@ -258,9 +258,15 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
     // Spawn obstacles with random intervals and bonus patterns
     if (now - lastObstacleTimeRef.current > nextObstacleIntervalRef.current / gameSpeed) {
       // Decide if we should spawn consecutive obstacles (bonus pattern)
-      const shouldSpawnConsecutive = Math.random() < 0.15; // 15% chance
+      // Only spawn consecutive obstacles after certain speed levels:
+      // - Double obstacles (2): after 1 speed level (gameSpeed >= 1.5)
+      // - Triple obstacles (3): after 3 speed levels (gameSpeed >= 2.1)
+      const canSpawnDouble = gameSpeed >= 1.5; // 1 kademe sonra (1.2 + 0.3)
+      const canSpawnTriple = gameSpeed >= 2.1; // 3 kademe sonra (1.2 + 0.9)
+      
+      const shouldSpawnConsecutive = canSpawnDouble && Math.random() < 0.15; // 15% chance, but only if double is allowed
       const consecutiveCount = shouldSpawnConsecutive 
-        ? (gameSpeed > 2 ? (Math.random() < 0.5 ? 2 : 3) : 2) // 2 or 3 obstacles based on speed
+        ? (canSpawnTriple && Math.random() < 0.5 ? 3 : 2) // 3 if triple allowed and 50% chance, otherwise 2
         : 1;
       
       const gapBetweenConsecutive = 80; // Small gap between consecutive obstacles

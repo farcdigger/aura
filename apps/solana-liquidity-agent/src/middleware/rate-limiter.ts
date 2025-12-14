@@ -9,8 +9,8 @@ import { redis } from '../lib/cache';
 import { Queue } from 'bullmq';
 
 const DAILY_ANALYSIS_LIMIT = parseInt(process.env.DAILY_ANALYSIS_LIMIT || '160', 10);
-const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '1', 10);
-const QUEUE_MAX_SIZE = parseInt(process.env.QUEUE_MAX_SIZE || '30', 10);
+const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '2', 10); // Max 2 concurrent jobs
+const QUEUE_MAX_SIZE = parseInt(process.env.QUEUE_MAX_SIZE || '4', 10); // Max 4 total (2 active + 2 waiting)
 
 /**
  * Get current daily analysis count
