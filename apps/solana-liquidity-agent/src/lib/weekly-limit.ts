@@ -90,28 +90,46 @@ export async function getWeeklyLimitStatus(): Promise<{
     const weekKey = getISOWeekKey(now);
     const key = `weekly-reports:${weekKey}`;
     
-    const currentStr = await redis.get(key);
-    const current = currentStr ? parseInt(currentStr, 10) : 0;
+    // Check if key exists and has valid TTL
+    const ttl = await redis.ttl(key);
+    
+    // If TTL is -2 (key doesn't exist) or -1 (no expiration set), it's a new week
+    // If TTL is 0 or negative, reset to 0
+    let current = 0;
+    if (ttl > 0) {
+      const currentStr = await redis.get(key);
+      current = currentStr ? parseInt(currentStr, 10) : 0;
+    } else {
+      // Key expired or doesn't exist - new week, reset to 0
+      current = 0;
+    }
+    
     const remaining = Math.max(0, WEEKLY_LIMIT - current);
     
-    const ttl = await redis.ttl(key);
-    const resetsAt = new Date(Date.now() + ttl * 1000).toISOString();
+    // Calculate next reset time (Sunday UTC 21:00)
+    const weekEnd = getWeekEnd(now);
+    const resetsAt = weekEnd.toISOString();
+    const resetsIn = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
+    
+    console.log(`[WeeklyLimit] Status: ${current}/${WEEKLY_LIMIT} (remaining: ${remaining}), resets in ${resetsIn}s`);
     
     return {
       current,
       limit: WEEKLY_LIMIT,
       remaining,
-      resetsIn: ttl > 0 ? ttl : 0,
+      resetsIn,
       resetsAt,
     };
   } catch (error: any) {
     console.error('[WeeklyLimit] ❌ Error getting status:', error.message);
+    // On error, assume limit is available (fail-open)
+    const weekEnd = getWeekEnd(new Date());
     return {
       current: 0,
       limit: WEEKLY_LIMIT,
       remaining: WEEKLY_LIMIT,
-      resetsIn: 0,
-      resetsAt: new Date().toISOString(),
+      resetsIn: Math.max(0, Math.floor((weekEnd.getTime() - Date.now()) / 1000)),
+      resetsAt: weekEnd.toISOString(),
     };
   }
 }

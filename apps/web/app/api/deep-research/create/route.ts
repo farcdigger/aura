@@ -153,11 +153,13 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
     }
 
     const data = await response.json();
+    // Use remaining from API response, or calculate it
+    const remaining = data.remaining !== undefined ? data.remaining : Math.max(0, WEEKLY_LIMIT - data.current);
     return {
-      allowed: data.current < WEEKLY_LIMIT,
-      current: data.current,
+      allowed: remaining > 0, // Use remaining > 0 instead of current < limit
+      current: data.current || 0,
       limit: WEEKLY_LIMIT,
-      remaining: Math.max(0, WEEKLY_LIMIT - data.current),
+      remaining,
     };
   } catch (error: any) {
     console.error("❌ Error checking weekly limit:", error.message);
