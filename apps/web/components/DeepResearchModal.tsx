@@ -258,7 +258,9 @@ export default function DeepResearchModal({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Payment failed" }));
-        throw new Error(errorData.error || "Payment failed");
+        // Use the detailed message from backend if available
+        const errorMessage = errorData.message || errorData.error || "Payment failed";
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -270,6 +272,7 @@ export default function DeepResearchModal({
       setJobId(data.jobId);
     } catch (err: any) {
       console.error("❌ Payment error:", err);
+      // Use the error message directly (it may contain detailed info from backend)
       setError(err.message || "Payment failed. Please try again.");
       setStatus("payment"); // Go back to payment screen
     }
@@ -292,7 +295,9 @@ export default function DeepResearchModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to start analysis");
+        // Use the detailed message from backend if available
+        const errorMessage = errorData.message || errorData.error || "Failed to start analysis";
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

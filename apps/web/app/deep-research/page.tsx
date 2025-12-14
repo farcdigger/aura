@@ -293,6 +293,38 @@ export default function DeepResearchPage() {
               </div>
             )}
 
+            {/* Active Analysis Indicator */}
+            {pricingInfo?.queueInfo && (
+              <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-blue-900 dark:text-blue-200">Active Analyses</p>
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      Currently processing: {pricingInfo.queueInfo.active} / {pricingInfo.queueInfo.maxSize}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-200">
+                      {pricingInfo.queueInfo.active}/{pricingInfo.queueInfo.maxSize}
+                    </p>
+                    {pricingInfo.queueInfo.waiting > 0 && (
+                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                        {pricingInfo.queueInfo.waiting} waiting
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(pricingInfo.queueInfo.total / pricingInfo.queueInfo.maxSize) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Token Input */}
             {pricingInfo?.limitInfo?.remaining === 0 ? (
               <div className="p-8 border-2 border-red-300 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20 text-center">

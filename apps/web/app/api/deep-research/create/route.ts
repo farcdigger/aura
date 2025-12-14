@@ -381,6 +381,25 @@ export async function GET(request: Request) {
     // Get pricing
     const pricing = await getPricing(userWallet);
 
+    // Get queue stats for active analysis indicator
+    let queueInfo = null;
+    try {
+      const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+      const queueStatsResponse = await fetch(`${agentUrl}/api/stats`);
+      if (queueStatsResponse.ok) {
+        const queueStats = await queueStatsResponse.json();
+        queueInfo = {
+          active: queueStats.active || 0,
+          waiting: queueStats.waiting || 0,
+          total: (queueStats.active || 0) + (queueStats.waiting || 0),
+          maxSize: 4, // 2 active + 2 waiting
+        };
+      }
+    } catch (error: any) {
+      console.warn("⚠️ Error fetching queue stats:", error.message);
+      // Continue without queue info
+    }
+
     return NextResponse.json({
       pricing: {
         isFree: pricing.isFree,
@@ -400,6 +419,7 @@ export async function GET(request: Request) {
         startDate: TRIAL_PRICING_START.toISOString(),
         endDate: TRIAL_PRICING_END.toISOString(),
       },
+      queueInfo, // Add queue information for active analysis indicator
     });
   } catch (error: any) {
     console.error("❌ [Deep Research] Error:", error);

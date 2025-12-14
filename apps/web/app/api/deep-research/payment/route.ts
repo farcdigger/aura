@@ -323,10 +323,37 @@ export async function POST(request: NextRequest) {
         
         if (totalInQueue >= MAX_QUEUE_SIZE) {
           console.warn(`⚠️ Queue is full: ${totalInQueue}/${MAX_QUEUE_SIZE} (active: ${queueStats.active}, waiting: ${queueStats.waiting})`);
+          
+          // Issue free ticket before returning error
+          try {
+            await fetch(`${agentUrl}/api/free-ticket`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userWallet: normalizedWalletAddress,
+                reason: "queue_full_before_payment",
+                metadata: {
+                  tokenMint,
+                  timestamp: new Date().toISOString(),
+                  source: "queue_full_error",
+                  queueStats: {
+                    active: queueStats.active || 0,
+                    waiting: queueStats.waiting || 0,
+                    total: totalInQueue,
+                  },
+                },
+              }),
+            });
+            console.log("✅ Free ticket issued due to queue being full");
+          } catch (ticketError: any) {
+            console.error("❌ Error issuing free ticket:", ticketError.message);
+          }
+          
           return NextResponse.json(
             {
               error: "Queue is full",
-              message: `Queue is currently full (${totalInQueue}/${MAX_QUEUE_SIZE} jobs). Maximum 2 analyses can run simultaneously, and 2 can wait in queue. Please try again later.`,
+              message: `Şu anda aynı anda ${queueStats.active || 0} analiz yapılıyor ve limitlerimiz dolu. Bundan dolayı analiziniz başarısız oldu, ancak merak etmeyin! 0.001 USDC karşılığında analiz hakkı size tanındı. Bu sayede çok düşük ücrete analiz üretebilirsiniz.`,
+              freeTicket: true,
               queueInfo: {
                 active: queueStats.active || 0,
                 waiting: queueStats.waiting || 0,
@@ -510,7 +537,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: "Queue is full",
-              message: "Analysis queue is currently full. A free ticket has been issued for your next attempt.",
+              message: `Şu anda aynı anda ${finalQueueStats.active || 0} analiz yapılıyor ve limitlerimiz dolu. Bundan dolayı analiziniz başarısız oldu, ancak merak etmeyin! 0.001 USDC karşılığında analiz hakkı size tanındı. Bu sayede çok düşük ücrete analiz üretebilirsiniz.`,
               freeTicket: true,
               freeTicketReason: "queue_full_before_queuing",
               transaction: settlement.transaction,
