@@ -30,28 +30,65 @@ export async function GET(request: Request) {
     url.searchParams.set("limit", limit.toString());
     url.searchParams.set("offset", offset.toString());
 
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errorData.error || "Failed to get analysis history" },
-        { status: response.status }
-      );
+    try {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // If agent is unavailable (502, 503, 504), return empty history instead of error
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          console.warn("⚠️ Solana agent unavailable, returning empty history");
+          return NextResponse.json({
+            analyses: [],
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          });
+        }
+        
+        const errorData = await response.json().catch(() => ({}));
+        return NextResponse.json(
+          { error: errorData.error || "Failed to get analysis history" },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+
+      return NextResponse.json({
+        analyses: data.analyses || [],
+        total: data.total || 0,
+        limit,
+        offset,
+        hasMore: (data.total || 0) > offset + limit,
+      });
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      // If fetch fails (network error, timeout, etc.), return empty history
+      if (error.name === 'AbortError' || error.message?.includes('fetch')) {
+        console.warn("⚠️ Failed to fetch history from agent, returning empty history:", error.message);
+        return NextResponse.json({
+          analyses: [],
+          total: 0,
+          limit,
+          offset,
+          hasMore: false,
+        });
+      }
+      
+      throw error; // Re-throw other errors
     }
-
-    const data = await response.json();
-
-    return NextResponse.json({
-      analyses: data.analyses,
-      total: data.total,
-      limit,
-      offset,
-      hasMore: data.total > offset + limit,
-    });
   } catch (error: any) {
     console.error("❌ [Deep Research] Error:", error);
     return NextResponse.json(
