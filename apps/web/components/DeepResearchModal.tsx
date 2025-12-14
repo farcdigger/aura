@@ -192,9 +192,15 @@ export default function DeepResearchModal({
       return;
     }
 
-    // Validate Solana address format
+    // Validate Solana address format - reject Ethereum addresses (0x...)
+    if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
+      setError("Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin.");
+      return;
+    }
+
+    // Validate Solana address format (base58, 32-44 chars)
     if (tokenMint.length < 32 || tokenMint.length > 44) {
-      setError("Invalid Solana token mint address");
+      setError("Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin.");
       return;
     }
 

@@ -170,6 +170,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate token mint (Solana address: base58, 32-44 chars, NOT starting with 0x)
+    // Check if it's an Ethereum address (starts with 0x) - reject it
+    if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
+      return NextResponse.json(
+        { 
+          error: "Invalid network",
+          message: "Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin."
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Validate Solana address format (base58, 32-44 chars)
+    if (tokenMint.length < 32 || tokenMint.length > 44) {
+      return NextResponse.json(
+        { 
+          error: "Invalid Solana token mint address",
+          message: "Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin."
+        },
+        { status: 400 }
+      );
+    }
+
     // Normalize wallet address to lowercase for consistent storage
     // Ethereum addresses can be in checksum format (mixed case) or lowercase
     const normalizedWalletAddress = walletAddress.toLowerCase();

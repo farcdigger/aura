@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import DeepResearchModal from "@/components/DeepResearchModal";
 import GameMenu from "@/components/GameMenu";
 import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
@@ -141,13 +142,21 @@ export default function DeepResearchPage() {
       <header className="border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                Deep Research on Solana
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                AI-powered liquidity analysis for Solana tokens
-              </p>
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+              >
+                ← Back to Home
+              </Link>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">
+                  Deep Research on Solana
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                  AI-powered liquidity analysis for Solana tokens
+                </p>
+              </div>
             </div>
             {isConnected && address && (
               <div className="text-right">
