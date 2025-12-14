@@ -352,7 +352,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: "Queue is full",
-              message: `Şu anda aynı anda ${queueStats.active || 0} analiz yapılıyor ve limitlerimiz dolu. Bundan dolayı analiziniz başarısız oldu, ancak merak etmeyin! 0.001 USDC karşılığında analiz hakkı size tanındı. Bu sayede çok düşük ücrete analiz üretebilirsiniz.`,
+              message: `Currently ${queueStats.active || 0} analyses are running simultaneously and our limits are full. Your analysis has failed, but don't worry! A 0.001 USDC analysis ticket has been granted to you. You can generate an analysis at a very low cost.`,
               freeTicket: true,
               queueInfo: {
                 active: queueStats.active || 0,
@@ -537,7 +537,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: "Queue is full",
-              message: `Şu anda aynı anda ${finalQueueStats.active || 0} analiz yapılıyor ve limitlerimiz dolu. Bundan dolayı analiziniz başarısız oldu, ancak merak etmeyin! 0.001 USDC karşılığında analiz hakkı size tanındı. Bu sayede çok düşük ücrete analiz üretebilirsiniz.`,
+              message: `Currently ${finalQueueStats.active || 0} analyses are running simultaneously and our limits are full. Your analysis has failed, but don't worry! A 0.001 USDC analysis ticket has been granted to you. You can generate an analysis at a very low cost.`,
               freeTicket: true,
               freeTicketReason: "queue_full_before_queuing",
               transaction: settlement.transaction,
