@@ -5,6 +5,8 @@ import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import DeepResearchModal from "@/components/DeepResearchModal";
 import SpeedClickGame from "@/components/SpeedClickGame";
+import FrogJumpGame from "@/components/FrogJumpGame";
+import FrogJumpLeaderboard from "@/components/FrogJumpLeaderboard";
 import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 // WHITELIST: Only these addresses can access Deep Research
@@ -286,15 +288,33 @@ export default function DeepResearchPage() {
               </div>
             )}
 
-            {/* Speed Click Game Section (NFT Owners Only) */}
+            {/* Games Section (NFT Owners Only) */}
             {hasNFT && (
-              <div className="mb-8">
-                <SpeedClickGame
-                  onFreeTicketWon={() => {
-                    // When free ticket is won, show a message
-                    alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
-                  }}
-                />
+              <div className="mb-8 space-y-8">
+                {/* Speed Click Game */}
+                <div>
+                  <SpeedClickGame
+                    onFreeTicketWon={() => {
+                      // When free ticket is won, show a message
+                      alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
+                    }}
+                  />
+                </div>
+
+                {/* Frog Jump Game */}
+                <div>
+                  <FrogJumpGame
+                    onFreeTicketWon={() => {
+                      // When free ticket is won, show a message
+                      alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
+                    }}
+                  />
+                </div>
+
+                {/* Frog Jump Leaderboard */}
+                <div>
+                  <FrogJumpLeaderboard />
+                </div>
               </div>
             )}
 
