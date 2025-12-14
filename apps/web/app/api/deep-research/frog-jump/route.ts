@@ -179,48 +179,12 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if leaderboard save fails
       }
 
-      // Check if user won a free ticket (total_score >= 500)
-      let wonTicket = false;
-      if (totalScore >= SCORE_FOR_TICKET) {
-        console.log("🎉 [Frog Jump] User won a free ticket!");
-        wonTicket = true;
-
-        // Issue free ticket via Solana agent
-        try {
-          const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
-          const ticketResponse = await fetch(`${agentUrl}/api/free-ticket`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userWallet: normalizedAddress,
-              reason: "frog_jump_game_win",
-              metadata: {
-                timestamp: new Date().toISOString(),
-                source: "frog_jump_game",
-                score,
-              },
-            }),
-          });
-          
-          if (ticketResponse.ok) {
-            console.log("✅ Free ticket issued via frog jump game");
-          } else {
-            console.warn("⚠️ Failed to issue free ticket, but continuing...");
-          }
-        } catch (error: any) {
-          console.error("❌ Error issuing free ticket:", error.message);
-          // Don't fail the win if ticket issuance fails
-        }
-      }
-
       return NextResponse.json({
         success: true,
         score,
         totalScore,
-        wonTicket,
-        message: wonTicket 
-          ? `Congratulations! Your total score is ${totalScore} and you won a free analysis ticket!`
-          : `Game over! Your score: ${score}. Total: ${totalScore}. Reach ${SCORE_FOR_TICKET} total score to win a free ticket!`,
+        canRedeem: totalScore >= SCORE_FOR_TICKET,
+        message: `Game over! Your score: ${score}. Total: ${totalScore}. Reach ${SCORE_FOR_TICKET} total score to redeem a free ticket!`,
       });
 
     } else {

@@ -28,13 +28,16 @@ export default function DeepResearchPage() {
   // Check whitelist access
   useEffect(() => {
     if (isConnected && address) {
+      const normalizedAddress = address.toLowerCase();
       const isWhitelisted = WHITELIST_ADDRESSES.some(
-        (whitelisted) => whitelisted.toLowerCase() === address.toLowerCase()
+        (whitelisted) => whitelisted.toLowerCase() === normalizedAddress
       );
 
       if (!isWhitelisted) {
-        console.log("❌ Access denied: Not in whitelist");
+        console.log("❌ Access denied: Not in whitelist", { address, normalizedAddress, whitelist: WHITELIST_ADDRESSES });
         router.push("/"); // Redirect to home
+      } else {
+        console.log("✅ Access granted: User is whitelisted", { address, normalizedAddress });
       }
     }
   }, [isConnected, address, router]);

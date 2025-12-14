@@ -27,6 +27,7 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   const [score, setScore] = useState(0);
   const [gameSpeed, setGameSpeed] = useState(1.2); // Slower starting speed
   const [totalScore, setTotalScore] = useState(0);
+  const [redeeming, setRedeeming] = useState(false);
   
   // Game canvas refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -401,9 +402,6 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       if (response.ok) {
         const data = await response.json();
         setTotalScore(data.totalScore || totalScore);
-        if (data.wonTicket && onFreeTicketWon) {
-          onFreeTicketWon();
-        }
         // Refresh status to get updated totalScore
         fetchStatus();
       }
@@ -426,6 +424,43 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     gameStartTimeRef.current = 0;
     nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
       Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
+  };
+
+  // Redeem ticket
+  const redeemTicket = async () => {
+    if (!address || totalScore < (status?.scoreForTicket || 500) || redeeming) return;
+
+    setRedeeming(true);
+    try {
+      const response = await fetch("/api/deep-research/frog-jump/redeem-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.message || "Failed to redeem ticket");
+        setRedeeming(false);
+        return;
+      }
+
+      const data = await response.json();
+      setTotalScore(data.totalScore || 0);
+      alert(data.message || "Successfully redeemed ticket!");
+      
+      if (onFreeTicketWon) {
+        onFreeTicketWon();
+      }
+
+      // Refresh status
+      fetchStatus();
+      setRedeeming(false);
+    } catch (error: any) {
+      console.error("Error redeeming ticket:", error);
+      alert("Failed to redeem ticket. Please try again.");
+      setRedeeming(false);
+    }
   };
 
   // Draw on mount and when score changes
@@ -483,10 +518,51 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
               Jump over obstacles! Reach {status?.scoreForTicket || 500} total score to win a report for 0.001 USDC!
             </p>
             {totalScore > 0 && (
-              <div className="mb-2 p-2 border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300" style={{ background: '#fff', display: 'inline-block' }}>
-                <p className="text-xs font-bold" style={{ color: '#000' }}>
-                  Total Score: <span className="text-blue-600">{totalScore}</span> / {(status?.scoreForTicket || 500)}
-                </p>
+              <div className="mb-2 space-y-2">
+                <div className="p-2 border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300" style={{ background: '#fff', display: 'inline-block' }}>
+                  <p className="text-xs font-bold" style={{ color: '#000' }}>
+                    Total Score: <span className="text-blue-600">{totalScore}</span> / {(status?.scoreForTicket || 500)}
+                  </p>
+                </div>
+                {totalScore >= (status?.scoreForTicket || 500) && (
+                  <button
+                    onClick={redeemTicket}
+                    disabled={redeeming}
+                    className="px-4 py-2 text-xs font-bold transition-all"
+                    style={{
+                      fontFamily: 'MS Sans Serif, sans-serif',
+                      background: redeeming ? '#808080' : '#c0c0c0',
+                      color: redeeming ? '#808080' : '#000',
+                      border: '2px solid',
+                      borderTopColor: redeeming ? '#808080' : '#fff',
+                      borderLeftColor: redeeming ? '#808080' : '#fff',
+                      borderRightColor: redeeming ? '#606060' : '#808080',
+                      borderBottomColor: redeeming ? '#606060' : '#808080',
+                      cursor: redeeming ? 'not-allowed' : 'pointer',
+                      boxShadow: redeeming ? 'none' : 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff',
+                    }}
+                    onMouseDown={(e) => {
+                      if (!redeeming) {
+                        e.currentTarget.style.borderTopColor = '#808080';
+                        e.currentTarget.style.borderLeftColor = '#808080';
+                        e.currentTarget.style.borderRightColor = '#fff';
+                        e.currentTarget.style.borderBottomColor = '#fff';
+                        e.currentTarget.style.boxShadow = 'inset 1px 1px 0px #000, inset -1px -1px 0px #fff';
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      if (!redeeming) {
+                        e.currentTarget.style.borderTopColor = '#fff';
+                        e.currentTarget.style.borderLeftColor = '#fff';
+                        e.currentTarget.style.borderRightColor = '#808080';
+                        e.currentTarget.style.borderBottomColor = '#808080';
+                        e.currentTarget.style.boxShadow = 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff';
+                      }
+                    }}
+                  >
+                    {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 500} Points for 0.001 USDC Ticket`}
+                  </button>
+                )}
               </div>
             )}
             
@@ -538,13 +614,52 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
                     Total Score: {totalScore} / {(status?.scoreForTicket || 500)}
                   </p>
                   {totalScore >= (status?.scoreForTicket || 500) ? (
-                    <p className="text-xs mb-4" style={{ color: '#008000' }}>
-                      🎉 You won a report for 0.001 USDC!
+                    <p className="text-xs mb-2" style={{ color: '#008000' }}>
+                      🎉 You can redeem a report for 0.001 USDC!
                     </p>
                   ) : (
                     <p className="text-xs mb-4" style={{ color: '#000' }}>
-                      Reach {(status?.scoreForTicket || 500)} total score to win a report for 0.001 USDC!
+                      Reach {(status?.scoreForTicket || 500)} total score to redeem a report for 0.001 USDC!
                     </p>
+                  )}
+                  {totalScore >= (status?.scoreForTicket || 500) && (
+                    <button
+                      onClick={redeemTicket}
+                      disabled={redeeming}
+                      className="px-4 py-2 text-xs font-bold transition-all mb-4"
+                      style={{
+                        fontFamily: 'MS Sans Serif, sans-serif',
+                        background: redeeming ? '#808080' : '#c0c0c0',
+                        color: redeeming ? '#808080' : '#000',
+                        border: '2px solid',
+                        borderTopColor: redeeming ? '#808080' : '#fff',
+                        borderLeftColor: redeeming ? '#808080' : '#fff',
+                        borderRightColor: redeeming ? '#606060' : '#808080',
+                        borderBottomColor: redeeming ? '#606060' : '#808080',
+                        cursor: redeeming ? 'not-allowed' : 'pointer',
+                        boxShadow: redeeming ? 'none' : 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff',
+                      }}
+                      onMouseDown={(e) => {
+                        if (!redeeming) {
+                          e.currentTarget.style.borderTopColor = '#808080';
+                          e.currentTarget.style.borderLeftColor = '#808080';
+                          e.currentTarget.style.borderRightColor = '#fff';
+                          e.currentTarget.style.borderBottomColor = '#fff';
+                          e.currentTarget.style.boxShadow = 'inset 1px 1px 0px #000, inset -1px -1px 0px #fff';
+                        }
+                      }}
+                      onMouseUp={(e) => {
+                        if (!redeeming) {
+                          e.currentTarget.style.borderTopColor = '#fff';
+                          e.currentTarget.style.borderLeftColor = '#fff';
+                          e.currentTarget.style.borderRightColor = '#808080';
+                          e.currentTarget.style.borderBottomColor = '#808080';
+                          e.currentTarget.style.boxShadow = 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff';
+                        }
+                      }}
+                    >
+                      {redeeming ? "Redeeming..." : `Redeem ${status?.scoreForTicket || 500} Points for Ticket`}
+                    </button>
                   )}
                   <button
                     onClick={resetGame}
