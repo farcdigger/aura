@@ -657,7 +657,20 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                 </div>
                 {totalScore >= (status?.scoreForTicket || 500) && (
                   <button
-                    onClick={redeemTicket}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!redeeming) {
+                        redeemTicket();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!redeeming) {
+                        redeemTicket();
+                      }
+                    }}
                     disabled={redeeming}
                     className="px-4 py-2 text-xs font-bold transition-all"
                     style={{
@@ -671,6 +684,8 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                       borderBottomColor: redeeming ? '#606060' : '#808080',
                       cursor: redeeming ? 'not-allowed' : 'pointer',
                       boxShadow: redeeming ? 'none' : 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                     onMouseDown={(e) => {
                       if (!redeeming) {
@@ -760,7 +775,20 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                   )}
                   {totalScore >= (status?.scoreForTicket || 1000) && (
                     <button
-                      onClick={redeemTicket}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!redeeming) {
+                          redeemTicket();
+                        }
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!redeeming) {
+                          redeemTicket();
+                        }
+                      }}
                       disabled={redeeming}
                       className="px-4 py-2 text-xs font-bold transition-all mb-4"
                       style={{
@@ -774,6 +802,8 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                         borderBottomColor: redeeming ? '#606060' : '#808080',
                         cursor: redeeming ? 'not-allowed' : 'pointer',
                         boxShadow: redeeming ? 'none' : 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff',
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                       onMouseDown={(e) => {
                         if (!redeeming) {
@@ -798,7 +828,16 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                     </button>
                   )}
                   <button
-                    onClick={resetGame}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      resetGame();
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      resetGame();
+                    }}
                     className="px-4 py-2 text-xs font-bold transition-all"
                     style={{
                       fontFamily: 'MS Sans Serif, sans-serif',
@@ -811,6 +850,8 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                       borderBottomColor: '#808080',
                       cursor: 'pointer',
                       boxShadow: 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                     onMouseDown={(e) => {
                       e.currentTarget.style.borderTopColor = '#808080';
@@ -844,7 +885,20 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                     Click or tap to jump over obstacles!
                   </p>
                   <button
-                    onClick={startGame}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (status?.canPlay && !loading) {
+                        startGame();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (status?.canPlay && !loading) {
+                        startGame();
+                      }
+                    }}
                     disabled={!status?.canPlay || loading}
                     className="px-6 py-2 text-xs font-bold transition-all"
                     style={{
@@ -858,6 +912,8 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
                       borderBottomColor: status?.canPlay && !loading ? '#808080' : '#606060',
                       cursor: status?.canPlay && !loading ? 'pointer' : 'not-allowed',
                       boxShadow: status?.canPlay && !loading ? 'inset -1px -1px 0px #000, inset 1px 1px 0px #fff' : 'none',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                     onMouseDown={(e) => {
                       if (status?.canPlay && !loading) {
