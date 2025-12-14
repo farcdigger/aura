@@ -259,15 +259,25 @@ export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: Fro
     if (now - lastObstacleTimeRef.current > nextObstacleIntervalRef.current / gameSpeed) {
       // Decide if we should spawn consecutive obstacles (bonus pattern)
       // Only spawn consecutive obstacles after certain speed levels:
-      // - Double obstacles (2): after 1 speed level (gameSpeed >= 1.5)
-      // - Triple obstacles (3): after 3 speed levels (gameSpeed >= 2.1)
-      const canSpawnDouble = gameSpeed >= 1.5; // 1 kademe sonra (1.2 + 0.3)
-      const canSpawnTriple = gameSpeed >= 2.1; // 3 kademe sonra (1.2 + 0.9)
+      // - Double obstacles (2): after 2 speed levels (gameSpeed >= 1.8)
+      // - Triple obstacles (3): after 4 speed levels (gameSpeed >= 2.4)
+      // - Quadruple obstacles (4): after 6 speed levels (gameSpeed >= 3.0)
+      const canSpawnDouble = gameSpeed >= 1.8; // 2 kademe sonra (1.2 + 0.6)
+      const canSpawnTriple = gameSpeed >= 2.4; // 4 kademe sonra (1.2 + 1.2)
+      const canSpawnQuadruple = gameSpeed >= 3.0; // 6 kademe sonra (1.2 + 1.8)
       
       const shouldSpawnConsecutive = canSpawnDouble && Math.random() < 0.15; // 15% chance, but only if double is allowed
-      const consecutiveCount = shouldSpawnConsecutive 
-        ? (canSpawnTriple && Math.random() < 0.5 ? 3 : 2) // 3 if triple allowed and 50% chance, otherwise 2
-        : 1;
+      let consecutiveCount = 1;
+      
+      if (shouldSpawnConsecutive) {
+        if (canSpawnQuadruple && Math.random() < 0.33) {
+          consecutiveCount = 4; // 33% chance for 4 if allowed
+        } else if (canSpawnTriple && Math.random() < 0.5) {
+          consecutiveCount = 3; // 50% chance for 3 if allowed
+        } else {
+          consecutiveCount = 2; // Otherwise 2
+        }
+      }
       
       const gapBetweenConsecutive = 80; // Small gap between consecutive obstacles
       
