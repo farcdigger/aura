@@ -14,7 +14,7 @@ interface DeepResearchModalProps {
   selectedAnalysis?: any; // Pre-loaded analysis from history
 }
 
-type AnalysisStatus = "payment" | "processing" | "completed" | "error";
+type AnalysisStatus = "payment" | "waiting" | "processing" | "completed" | "error";
 
 export default function DeepResearchModal({
   onClose,
