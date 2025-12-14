@@ -529,7 +529,7 @@ export function analyzeTransactions(
       const clusterVolumePercent = (clusterVolume / totalUsdVolume) * 100;
       if (clusterVolumePercent > 20) {
         suspiciousPatterns.push(
-          `⚠️ MAFYA KÜMESİ: ${clusterWallets.size} cüzdan aynı saniyelerde senkronize hareket ediyor. Hacmin ${clusterVolumePercent.toFixed(1)}%'i koordineli işlemlerden oluşuyor - yapay yükseliş riski`
+          `⚠️ Manipulation Cluster: ${clusterWallets.size} wallets performing synchronized activity within the same seconds. ${clusterVolumePercent.toFixed(1)}% of volume consists of coordinated transactions - artificial pump risk`
         );
       }
     }
@@ -758,9 +758,9 @@ export function analyzeTransactions(
     const recentNewWalletVolumePercent = totalUsdVolume > 0 ? (recentNewWalletVolume / totalUsdVolume) * 100 : 0;
 
     if (recentNewWalletVolumePercent > 50 && newWalletTxPercent > 60) {
-      suspiciousPatterns.push(
-        `🆕 TAZE KAN GİRİŞİ: Son zamanlardaki alıcıların ${newWalletTxPercent.toFixed(0)}%'i taze cüzdanlar (daha önce görülmemiş). Hacmin ${recentNewWalletVolumePercent.toFixed(1)}%'i yeni yatırımcılardan geliyor. Proje kendi ekosisteminden çıkıp virale gidiyor - organik büyüme göstergesi`
-      );
+        suspiciousPatterns.push(
+          `🆕 New Wallet Activity: ${newWalletTxPercent.toFixed(0)}% of recent buyers are new wallets (previously unseen). ${recentNewWalletVolumePercent.toFixed(1)}% of volume comes from new investors. Project is expanding beyond its ecosystem and going viral - organic growth indicator`
+        );
     } else if (newWalletVolumePercent < 20 && newWalletTxPercent < 30) {
       suspiciousPatterns.push(
         `🔄 KAPALI DÖNGÜ: Hacmin ${((1 - newWalletVolumePercent / 100) * 100).toFixed(0)}%'i mevcut cüzdanlardan geliyor. Token kendi içinde dönüyor, dışarıdan yatırımcı çekemiyor - organik büyüme yok`

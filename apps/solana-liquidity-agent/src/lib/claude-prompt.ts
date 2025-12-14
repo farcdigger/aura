@@ -388,11 +388,11 @@ ${suspiciousPatternsText}
 **🔬 ADVANCED FORENSIC PATTERNS DETECTED:**
 The system has performed deep forensic analysis and detected the following advanced patterns:
 
-1. **MAFYA KÜMESİ (Manipulation Detection):** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes) - ${transactions.walletStats?.manipulationRatio.toFixed(1) || 0}% of all wallets. **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No manipulation patterns detected - normal trading activity."
-2. **KÂR BASINCI (Profit Pressure):** Calculated holder cost basis to determine profit/loss pressure - shows when holders might take profits
-3. **YEMLEME & TUZAK (Bait Watch):** High transaction count but no price movement - micro-transactions trying to manipulate trending lists
-4. **DIAMOND HANDS & SMART MONEY:** Early buyers who haven't sold - shows long-term conviction
-5. **FOMO vs. PANIK (Velocity Sentiment):** 
+1. **Manipulation Detection:** ${transactions.walletStats?.manipulationWallets || 0} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes) - ${transactions.walletStats?.manipulationRatio.toFixed(1) || 0}% of all wallets. **CRITICAL:** Only report this if manipulationWallets > 0. If 0, say "No manipulation patterns detected - normal trading activity."
+2. **Profit Pressure:** Calculated holder cost basis to determine profit/loss pressure - shows when holders might take profits
+3. **Bait & Trap:** High transaction count but no price movement - micro-transactions trying to manipulate trending lists
+4. **Diamond Hands & Smart Money:** Early buyers who haven't sold - shows long-term conviction
+5. **FOMO vs. Panic (Velocity Sentiment):** 
    ${transactions.walletStats?.fomoBuyIndicators ? `
    - **FOMO Indicators:** Transaction velocity increased ${transactions.walletStats.fomoBuyIndicators.velocitySpike.toFixed(1)}x, buy volume spiked ${transactions.walletStats.fomoBuyIndicators.buyVolumeSpike.toFixed(1)}x, estimated price rise ${transactions.walletStats.fomoBuyIndicators.priceRise.toFixed(1)}%
    ` : ''}
@@ -400,7 +400,7 @@ The system has performed deep forensic analysis and detected the following advan
    - **Panic Indicators:** Transaction velocity increased ${transactions.walletStats.panicSellIndicators.velocitySpike.toFixed(1)}x, sell volume spiked ${transactions.walletStats.panicSellIndicators.sellVolumeSpike.toFixed(1)}x, estimated price drop ${transactions.walletStats.panicSellIndicators.priceDrop.toFixed(1)}%
    ` : ''}
    **REQUIRED:** Explain what these numbers mean - if velocity spiked 3x but price only moved 2%, that's manipulation. If velocity and price both spiked, that's genuine FOMO/panic.
-6. **TAZE KAN GİRİŞİ (New Wallet Flow):** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** If this is 0% or very low (<5%), explain why (maybe all transactions are from existing wallets, or the pool is new).
+6. **New Wallet Flow:** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** If this is 0% or very low (<5%), explain why (maybe all transactions are from existing wallets, or the pool is new).
 
 **IMPORTANT:** These patterns are calculated from actual transaction data. Use them to provide deep insights that go beyond surface-level observations.
 
@@ -499,7 +499,7 @@ Write this section in simple language. Explain each point like you're talking to
   ` : 'Wallet statistics not available'}
 
 ${transactions.walletStats?.smartMoneyAnalysis ? `
-#### 💎 Smart Money Analysis (Erken Girenler)
+#### 💎 Smart Money Analysis (Early Buyers)
 - **Early Buyers:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
 - **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)}
 - **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
@@ -541,7 +541,7 @@ ${transactions.walletStats?.supportResistanceLevels ? `
 ` : ''}
 
 ${transactions.walletStats?.smartMoneyAnalysis ? `
-#### 💎 Smart Money Analysis (Erken Girenler)
+#### 💎 Smart Money Analysis (Early Buyers)
 - **Early Buyers Count:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
 - **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)} (weighted average)
 - **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
@@ -590,7 +590,7 @@ ${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).
   - Use these levels to identify entry/exit points and risk management
 ` : ''}
 
-#### 🆕 New Wallet Activity (TAZE KAN GİRİŞİ)
+#### 🆕 New Wallet Activity
 - **New Wallet Flow:** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** 
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is very low (<5%), explain: "Most transactions are from existing wallets - this could mean the pool is new, or there's limited new investor interest."
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is high (>30%), analyze if they're:
@@ -598,7 +598,7 @@ ${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).
   - Bot farm (BAD sign - fake activity) - Look for identical transaction sizes, same timing patterns
 
 ${transactions.walletStats?.smartMoneyAnalysis ? `
-#### 💎 Smart Money Analysis (Erken Girenler)
+#### 💎 Smart Money Analysis (Early Buyers)
 - **Early Buyers Count:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} wallets made their first buy in the first 10% of all transactions
 - **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)} (weighted average)
 - **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
@@ -647,7 +647,7 @@ ${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).
   - Use these levels to identify entry/exit points and risk management
 ` : ''}
 
-#### 🚨 Manipulation Detection (MAFYA KÜMESİ)
+#### 🚨 Manipulation Detection
 ${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
 - **Wash Trading Detected:** ${transactions.walletStats.manipulationWallets} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes)
 - **Total wash trading volume:** $${(transactions.walletStats.manipulationTotalVolume || 0).toLocaleString()} (${(transactions.walletStats.manipulationVolumePercent || 0).toFixed(1)}% of total volume)
