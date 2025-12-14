@@ -158,8 +158,14 @@ function HomePageContent() {
 
   useEffect(() => {
     let ignore = false;
+    let isInitialLoad = true;
 
-    const fetchStats = async () => {
+    const fetchStats = async (showLoading: boolean = false) => {
+      // Only show loading state on initial load
+      if (showLoading && !ignore) {
+        setStatsLoading(true);
+      }
+      
       try {
         const response = await fetch("/api/contract-stats", { cache: "no-store" });
         if (!response.ok) {
@@ -173,25 +179,45 @@ function HomePageContent() {
             ? Number(data.remaining)
             : Math.max(Number(data.maxSupply ?? 0) - minted, 0);
         const maxSupply = Number(data.maxSupply ?? minted + remaining);
-        setMintStats({
+        const newStats = {
           minted: Number.isNaN(minted) ? 0 : minted,
           remaining: Number.isNaN(remaining) ? 0 : remaining,
           maxSupply: Number.isNaN(maxSupply) ? 0 : maxSupply,
+        };
+        
+        // Deep comparison to prevent unnecessary re-renders
+        setMintStats((prev) => {
+          if (prev && JSON.stringify(prev) === JSON.stringify(newStats)) {
+            return prev; // Return same reference to prevent re-render
+          }
+          return newStats;
         });
+        
+        // Mark initial load as complete
+        if (isInitialLoad) {
+          isInitialLoad = false;
+        }
       } catch (error) {
-        console.error("Failed to load mint stats:", error);
-        if (!ignore) {
+        if (showLoading) {
+          console.error("Failed to load mint stats:", error);
+        }
+        if (!ignore && showLoading) {
           setMintStats(null);
         }
       } finally {
-        if (!ignore) {
+        if (!ignore && showLoading) {
           setStatsLoading(false);
         }
       }
     };
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    fetchStats(true); // Initial load with loading state
+    // Refresh every 60 seconds (reduced frequency) without loading state
+    const interval = setInterval(() => {
+      if (!ignore) {
+        fetchStats(false); // Silent refresh
+      }
+    }, 60000);
 
     return () => {
       ignore = true;

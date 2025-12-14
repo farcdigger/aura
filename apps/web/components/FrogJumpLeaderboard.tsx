@@ -13,27 +13,53 @@ interface LeaderboardEntry {
 export default function FrogJumpLeaderboard() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [copiedWallet, setCopiedWallet] = useState<string | null>(null);
 
-  const fetchLeaderboard = async () => {
-    setLoading(true);
+  const fetchLeaderboard = async (showLoading: boolean = false) => {
+    // Only show loading state on initial load or explicit refresh
+    if (showLoading) {
+      setLoading(true);
+    }
+    
     try {
-      const response = await fetch("/api/deep-research/frog-jump?leaderboard=true&limit=10");
+      const response = await fetch("/api/deep-research/frog-jump?leaderboard=true&limit=10", {
+        cache: 'no-store' // Ensure fresh data
+      });
       if (response.ok) {
         const data = await response.json();
-        setLeaderboard(data.leaderboard || []);
+        const newLeaderboard = data.leaderboard || [];
+        
+        // Deep comparison to prevent unnecessary re-renders
+        setLeaderboard((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(newLeaderboard)) {
+            return prev; // Return same reference to prevent re-render
+          }
+          return newLeaderboard;
+        });
+        
+        // Mark initial load as complete after first successful fetch
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
       }
     } catch (error) {
-      console.error("Error fetching leaderboard:", error);
+      if (showLoading) {
+        console.error("Error fetching leaderboard:", error);
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchLeaderboard();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchLeaderboard, 30000);
+    fetchLeaderboard(true); // Initial load with loading state
+    // Refresh every 60 seconds (reduced frequency) without loading state
+    const interval = setInterval(() => {
+      fetchLeaderboard(false); // Silent refresh
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 

@@ -9,9 +9,10 @@ type GameSelection = "menu" | "speed-click" | "frog-jump" | "leaderboard";
 
 interface GameMenuProps {
   onFreeTicketWon?: () => void;
+  onGameStateChange?: (isPlaying: boolean) => void;
 }
 
-export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
+export default function GameMenu({ onFreeTicketWon, onGameStateChange }: GameMenuProps) {
   const [selectedGame, setSelectedGame] = useState<GameSelection>("menu");
 
   const handleBackToMenu = () => {
@@ -54,7 +55,10 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
         >
           ← Back to Menu
         </button>
-        <SpeedClickGame onFreeTicketWon={onFreeTicketWon} />
+        <SpeedClickGame 
+          onFreeTicketWon={onFreeTicketWon}
+          onGameStateChange={onGameStateChange}
+        />
       </div>
     );
   }
@@ -95,7 +99,10 @@ export default function GameMenu({ onFreeTicketWon }: GameMenuProps) {
         >
           ← Back to Menu
         </button>
-        <FrogJumpGame onFreeTicketWon={onFreeTicketWon} />
+        <FrogJumpGame 
+          onFreeTicketWon={onFreeTicketWon}
+          onGameStateChange={onGameStateChange}
+        />
       </div>
     );
   }

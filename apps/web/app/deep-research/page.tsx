@@ -13,31 +13,39 @@ export default function DeepResearchPage() {
   const [showModal, setShowModal] = useState(false);
   const [pricingInfo, setPricingInfo] = useState<any>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [tokenMint, setTokenMint] = useState("");
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [hasNFT, setHasNFT] = useState<boolean | null>(null);
+  const [isGamePlaying, setIsGamePlaying] = useState(false);
 
   // Fetch pricing info when wallet connects
   useEffect(() => {
     if (isConnected && address) {
-      fetchPricingInfo();
+      setIsInitialLoad(true);
+      fetchPricingInfo(true);
       fetchAnalysisHistory();
       checkNFT();
     }
   }, [isConnected, address]);
 
   // Refresh pricing info periodically to check for free tickets
+  // BUT: Don't refresh if a game is currently being played (prevents page jumps)
+  // Use silent refresh (no loading state) to prevent layout shifts
   useEffect(() => {
-    if (isConnected && address) {
+    if (isConnected && address && !isGamePlaying && !isInitialLoad) {
       const interval = setInterval(() => {
-        fetchPricingInfo();
-      }, 10000); // Refresh every 10 seconds to catch new free tickets
+        // Double check game is not playing before fetching
+        if (!isGamePlaying) {
+          fetchPricingInfo(false); // Silent refresh - no loading state
+        }
+      }, 30000); // Refresh every 30 seconds (reduced frequency to minimize impact)
       
       return () => clearInterval(interval);
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, isGamePlaying, isInitialLoad]);
 
   // Check NFT ownership
   const checkNFT = async () => {
@@ -71,30 +79,50 @@ export default function DeepResearchPage() {
     }
   };
 
-  const fetchPricingInfo = async () => {
+  const fetchPricingInfo = async (showLoading: boolean = false) => {
     if (!address) return;
 
-    console.log("💰 Fetching pricing info for address:", address);
-    setLoadingPricing(true);
+    // Only show loading state on initial load or explicit refresh
+    if (showLoading) {
+      setLoadingPricing(true);
+    }
+
     try {
       const response = await fetch(
-        `/api/deep-research/create?userWallet=${address}`
+        `/api/deep-research/create?userWallet=${address}`,
+        { cache: 'no-store' } // Ensure fresh data
       );
-
-      console.log("📊 Pricing API response:", { status: response.status, ok: response.ok });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Pricing data received:", data);
-        setPricingInfo(data);
+        
+        // Deep comparison to prevent unnecessary re-renders
+        setPricingInfo((prev: any) => {
+          // Only update if data actually changed
+          if (JSON.stringify(prev) === JSON.stringify(data)) {
+            return prev; // Return same reference to prevent re-render
+          }
+          return data;
+        });
+        
+        // Mark initial load as complete after first successful fetch
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Pricing API error:", errorData);
+        if (showLoading) {
+          console.error("❌ Pricing API error:", errorData);
+        }
       }
     } catch (error) {
-      console.error("❌ Error fetching pricing info:", error);
+      if (showLoading) {
+        console.error("❌ Error fetching pricing info:", error);
+      }
     } finally {
-      setLoadingPricing(false);
+      if (showLoading) {
+        setLoadingPricing(false);
+      }
     }
   };
 
@@ -167,8 +195,14 @@ export default function DeepResearchPage() {
         ) : (
           <>
             {/* Pricing Info */}
-            {!loadingPricing && pricingInfo && (
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Always render pricing section to prevent layout shift, show loading only on initial load */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8 min-h-[200px]">
+              {loadingPricing && isInitialLoad ? (
+                <div className="col-span-2 text-center py-8 text-gray-600 dark:text-gray-400">
+                  Loading pricing information...
+                </div>
+              ) : pricingInfo ? (
+                <>
                 {/* NFT Holder Pricing */}
                 <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-2">NFT Holder</h3>
@@ -197,12 +231,14 @@ export default function DeepResearchPage() {
                     <li>Full report access</li>
                   </ul>
                 </div>
-              </div>
-            )}
+                </>
+              ) : null}
+            </div>
 
             {/* Trial Pricing Banner */}
+            {/* Use min-height to prevent layout shift */}
             {pricingInfo?.trialPricing?.active && (
-              <div className="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg min-h-[80px]">
                 <p className="font-semibold mb-1">Testing Period Active</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   $0.001 USDC per analysis until {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
@@ -215,8 +251,9 @@ export default function DeepResearchPage() {
             )}
 
             {/* Global Weekly Limit */}
+            {/* Use min-height to prevent layout shift */}
             {pricingInfo?.limitInfo && (
-              <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg min-h-[120px]">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="font-semibold">Platform Capacity</p>
@@ -295,6 +332,7 @@ export default function DeepResearchPage() {
                     // When free ticket is won, show a message
                     alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
                   }}
+                  onGameStateChange={(playing) => setIsGamePlaying(playing)}
                 />
               </div>
             )}
@@ -396,7 +434,7 @@ export default function DeepResearchPage() {
           tokenMint={tokenMint}
           onAnalysisComplete={() => {
             // Don't close modal - just refresh data
-            fetchPricingInfo(); // Refresh limits
+            fetchPricingInfo(true); // Refresh limits with loading state
             fetchAnalysisHistory(); // Refresh history
           }}
           selectedAnalysis={selectedAnalysis}

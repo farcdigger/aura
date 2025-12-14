@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 
 interface FrogJumpGameProps {
   onFreeTicketWon?: () => void;
+  onGameStateChange?: (isPlaying: boolean) => void;
 }
 
 interface GameStatus {
@@ -19,7 +20,7 @@ interface GameStatus {
 
 type GameState = "idle" | "playing" | "gameOver";
 
-export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
+export default function FrogJumpGame({ onFreeTicketWon, onGameStateChange }: FrogJumpGameProps) {
   const { address, isConnected } = useAccount();
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -360,10 +361,34 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     }
   }, [gameState, gameSpeed, draw]);
 
-  // Start game loop when playing
+  // Start game loop when playing and prevent scroll
   useEffect(() => {
     if (gameState === "playing") {
       gameLoopRef.current = requestAnimationFrame(gameLoop);
+      
+      // Prevent scroll while playing
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalWidth = document.body.style.width;
+      const originalHeight = document.body.style.height;
+      
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      document.body.style.height = "100%";
+      
+      return () => {
+        // Restore scroll when game stops
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
+        document.body.style.height = originalHeight;
+        
+        if (gameLoopRef.current !== null) {
+          cancelAnimationFrame(gameLoopRef.current);
+          gameLoopRef.current = null;
+        }
+      };
     } else {
       if (gameLoopRef.current !== null) {
         cancelAnimationFrame(gameLoopRef.current);
@@ -380,28 +405,58 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
   }, [gameState, gameLoop]);
 
   // Jump handler
+  const lastJumpTimeRef = useRef(0);
   const jump = useCallback(() => {
     if (gameState !== "playing") return;
+    
+    const now = Date.now();
+    const timeSinceLastJump = now - lastJumpTimeRef.current;
     
     // Ground jump
     if (!frogJumpingRef.current || frogYRef.current >= GROUND_Y - 1) {
       frogJumpingRef.current = true;
       frogJumpVelocityRef.current = JUMP_STRENGTH;
       canDoubleJumpRef.current = true; // Enable double jump
+      lastJumpTimeRef.current = now;
     } 
-    // Double jump (in air)
-    else if (canDoubleJumpRef.current && frogJumpingRef.current) {
+    // Double jump (in air) - allow if within 500ms of first jump or if already in air
+    else if (canDoubleJumpRef.current && frogJumpingRef.current && (timeSinceLastJump < 500 || frogYRef.current < GROUND_Y - 5)) {
       frogJumpVelocityRef.current = DOUBLE_JUMP_STRENGTH; // Half jump strength
       canDoubleJumpRef.current = false; // Can only double jump once
+      lastJumpTimeRef.current = now;
     }
   }, [gameState]);
 
   // Handle click/touch
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (gameState === "playing") {
       jump();
     }
   }, [gameState, jump]);
+
+  // Touch handlers for mobile
+  const touchStartRef = useRef<number | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    touchStartRef.current = Date.now();
+    if (gameState === "playing") {
+      jump();
+    }
+  }, [gameState, jump]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Allow double jump if touch was quick (within 300ms)
+    if (touchStartRef.current && Date.now() - touchStartRef.current < 300) {
+      // This is handled by the jump function itself
+    }
+  }, []);
 
   // Start game
   const startGame = async () => {
@@ -451,6 +506,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
       setGameState("playing");
       setLoading(false);
       
+      // Notify parent that game is playing
+      if (onGameStateChange) {
+        onGameStateChange(true);
+      }
+      
     } catch (error: any) {
       console.error("Error starting game:", error);
       alert("Failed to start game. Please try again.");
@@ -467,6 +527,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     }
 
     setGameState("gameOver");
+    
+    // Notify parent that game is not playing
+    if (onGameStateChange) {
+      onGameStateChange(false);
+    }
 
     if (!address) return;
 
@@ -509,6 +574,11 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
     gameStartTimeRef.current = 0;
     nextObstacleIntervalRef.current = MIN_OBSTACLE_INTERVAL + 
       Math.random() * (MAX_OBSTACLE_INTERVAL - MIN_OBSTACLE_INTERVAL);
+    
+    // Notify parent that game is not playing
+    if (onGameStateChange) {
+      onGameStateChange(false);
+    }
   };
 
   // Redeem ticket
@@ -663,15 +733,20 @@ export default function FrogJumpGame({ onFreeTicketWon }: FrogJumpGameProps) {
           <div 
             className="relative mx-auto mb-2 sm:mb-3 overflow-hidden border-2 border-t-gray-600 border-l-gray-600 border-r-gray-300 border-b-gray-300 cursor-pointer"
             onClick={handleClick}
-            onTouchStart={(e) => {
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={(e) => {
               e.preventDefault();
-              handleClick();
+              e.stopPropagation();
             }}
             style={{ 
               width: "100%",
               maxWidth: `${CANVAS_WIDTH}px`,
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
               touchAction: "none",
+              WebkitTouchCallout: "none",
+              WebkitUserSelect: "none",
+              userSelect: "none",
             }}
           >
             <canvas
