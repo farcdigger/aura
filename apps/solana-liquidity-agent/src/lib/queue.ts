@@ -64,8 +64,6 @@ export const queue = analysisQueue;
 // QUEUE OPERATIONS
 // =============================================================================
 
-const MAX_QUEUE_SIZE = 4; // Maximum number of jobs in queue (4 active, no waiting queue)
-
 /**
  * Add analysis job to queue
  * @param data Job data (poolId, userId, options)
