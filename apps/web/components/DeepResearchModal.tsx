@@ -481,31 +481,31 @@ export default function DeepResearchModal({
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold">Analysis Complete</p>
-                {analysisResult?.riskScore !== undefined && (
+                {analysisResult?.securityScore !== undefined && (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Risk Score:</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Security Score:</span>
                       <span className={`font-bold text-lg ${
-                        analysisResult.riskScore <= 20 ? 'text-green-600' :
-                        analysisResult.riskScore <= 40 ? 'text-yellow-600' :
-                        analysisResult.riskScore <= 60 ? 'text-orange-600' :
-                        analysisResult.riskScore <= 80 ? 'text-red-600' :
-                        'text-red-800'
+                        analysisResult.securityScore >= 80 ? 'text-green-600' :
+                        analysisResult.securityScore >= 60 ? 'text-green-500' :
+                        analysisResult.securityScore >= 40 ? 'text-yellow-500' :
+                        analysisResult.securityScore >= 20 ? 'text-orange-500' :
+                        'text-red-600'
                       }`}>
-                        {analysisResult.riskScore}/100
+                        {analysisResult.securityScore}/100
                       </span>
                     </div>
-                    {/* Risk Score Bar */}
+                    {/* Security Score Bar */}
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                       <div
                         className={`h-3 rounded-full transition-all duration-500 ${
-                          analysisResult.riskScore <= 20 ? 'bg-green-500' :
-                          analysisResult.riskScore <= 40 ? 'bg-yellow-500' :
-                          analysisResult.riskScore <= 60 ? 'bg-orange-500' :
-                          analysisResult.riskScore <= 80 ? 'bg-red-500' :
-                          'bg-red-700'
+                          analysisResult.securityScore >= 80 ? 'bg-green-500' :
+                          analysisResult.securityScore >= 60 ? 'bg-green-400' :
+                          analysisResult.securityScore >= 40 ? 'bg-yellow-500' :
+                          analysisResult.securityScore >= 20 ? 'bg-orange-500' :
+                          'bg-red-500'
                         }`}
-                        style={{ width: `${analysisResult.riskScore}%` }}
+                        style={{ width: `${analysisResult.securityScore}%` }}
                       />
                     </div>
                   </div>

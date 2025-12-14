@@ -370,7 +370,8 @@ app.get('/api/analyses', async (c) => {
           poolId: a.pool_id,
           tokenMint: a.token_mint,
           analysisReport: parsedReport,
-          riskScore: a.risk_score || parsedReport?.riskScore || null,
+          riskScore: a.risk_score || parsedReport?.riskScore || null, // Kept for backward compatibility
+          securityScore: parsedReport?.securityScore || null, // New: Security score based on holder behavior
           generatedAt: a.generated_at,
           userId: a.user_id,
         };

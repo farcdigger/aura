@@ -7,6 +7,7 @@ import { Worker, Job } from 'bullmq';
 import type { QueueJobData, AdjustedPoolReserves } from './lib/types'; // Types dosyanın güncel olduğundan emin ol
 import { BirdeyeClient } from './lib/birdeye-client';
 import { buildAnalysisPrompt, parseRiskScore } from './lib/claude-prompt';
+import { calculateSecurityScore } from './lib/security-scorer';
 import { saveAnalysis } from './lib/supabase';
 import { redis } from './lib/cache';
 
@@ -400,7 +401,14 @@ async function processAnalysis(job: Job<QueueJobData>) {
       firstChars: rawResponse.substring(0, 100),
     });
     
-    // Parse risk score from Claude's analysis - Claude calculates it based on all detailed report data
+    // Calculate Security Score based on:
+    // 1. Re-entry ratio (users who sold and bought back)
+    // 2. Diamond hands ratio (users still holding)
+    // 3. Early buyers still holding ratio
+    const securityScore = calculateSecurityScore(transactions);
+    console.log(`🔒 [Job ${job.id}] Security score calculated: ${securityScore}/100`);
+    
+    // Parse risk score from Claude's analysis (kept for backward compatibility)
     // This is more accurate than algorithmic score because it considers diamond hands, early buyers,
     // manipulation patterns, profit/loss distribution, and all other detailed analysis points
     let riskScore: number;
@@ -442,7 +450,8 @@ async function processAnalysis(job: Job<QueueJobData>) {
       reserves: finalReserves,
       transactions,
       riskAnalysis: rawResponse,
-      riskScore,
+      riskScore, // Kept for backward compatibility
+      securityScore, // New: Security score based on holder behavior
       generatedAt: new Date().toISOString(),
       modelUsed: model,
       poolHistory,

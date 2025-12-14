@@ -405,7 +405,7 @@ export default function DeepResearchPage() {
               <div className="space-y-4">
                 {analysisHistory.map((analysis: any) => {
                   const report = analysis.analysisReport || {};
-                  const riskScore = analysis.riskScore || report?.riskScore || report?.riskScoreBreakdown?.totalScore || null;
+                  const securityScore = report?.securityScore || null;
                   
                   return (
                     <div
@@ -414,7 +414,7 @@ export default function DeepResearchPage() {
                       onClick={() => {
                         setSelectedAnalysis({
                           analysisResult: report,
-                          riskScore: typeof riskScore === 'number' ? riskScore : (riskScore ? parseInt(riskScore) : 0),
+                          riskScore: 0, // Kept for backward compatibility
                         });
                         setShowModal(true);
                       }}
@@ -425,15 +425,15 @@ export default function DeepResearchPage() {
                             <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
                               {analysis.poolId?.substring(0, 8)}...{analysis.poolId?.substring(analysis.poolId.length - 6)}
                             </span>
-                            {riskScore !== null && (
+                            {securityScore !== null && (
                               <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                riskScore <= 20 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                riskScore <= 40 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                riskScore <= 60 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                riskScore <= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                'bg-red-200 text-red-900 dark:bg-red-950 dark:text-red-100'
+                                securityScore >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                securityScore >= 60 ? 'bg-green-50 text-green-700 dark:bg-green-800 dark:text-green-300' :
+                                securityScore >= 40 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                securityScore >= 20 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                               }`}>
-                                Risk: {riskScore}/100
+                                Security: {securityScore}/100
                               </span>
                             )}
                           </div>

@@ -364,7 +364,8 @@ export interface AnalysisResult {
   reserves: AdjustedPoolReserves;
   transactions: TransactionSummary;
   riskAnalysis: string;
-  riskScore: number;
+  riskScore: number; // Kept for backward compatibility
+  securityScore?: number; // New: Security score based on holder behavior (0-100, higher = more secure)
   generatedAt: string;
   modelUsed?: string;
   tokensUsed?: number;
