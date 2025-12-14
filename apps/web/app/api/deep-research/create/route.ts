@@ -142,19 +142,21 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userWallet }),
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(10000), // 10 second timeout
     });
 
     console.log(`📊 Weekly limit API response: ${response.status} ${response.ok ? 'OK' : 'FAILED'}`);
 
     if (!response.ok) {
       console.error("❌ Weekly limit check failed:", response.status);
-      // PRODUCTION: Deny usage if limit check fails (strict mode)
-      return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
+      // On error, assume limit is available (fail-open) to prevent blocking users
+      return { allowed: true, current: 0, limit: WEEKLY_LIMIT, remaining: WEEKLY_LIMIT };
     }
 
     const data = await response.json();
     // Use remaining from API response, or calculate it
-    const remaining = data.remaining !== undefined ? data.remaining : Math.max(0, WEEKLY_LIMIT - data.current);
+    const remaining = data.remaining !== undefined ? data.remaining : Math.max(0, WEEKLY_LIMIT - (data.current || 0));
     return {
       allowed: remaining > 0, // Use remaining > 0 instead of current < limit
       current: data.current || 0,
@@ -163,8 +165,9 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
     };
   } catch (error: any) {
     console.error("❌ Error checking weekly limit:", error.message);
-    // PRODUCTION: Deny usage if limit check fails (strict mode)
-    return { allowed: false, current: 0, limit: WEEKLY_LIMIT, remaining: 0 };
+    // On error, assume limit is available (fail-open) to prevent blocking users
+    // This allows the page to load even if the agent is temporarily unavailable
+    return { allowed: true, current: 0, limit: WEEKLY_LIMIT, remaining: WEEKLY_LIMIT };
   }
 }
 

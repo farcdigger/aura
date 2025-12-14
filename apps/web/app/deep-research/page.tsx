@@ -112,13 +112,29 @@ export default function DeepResearchPage() {
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        if (showLoading) {
-          console.error("❌ Pricing API error:", errorData);
+        console.error("❌ Pricing API error:", errorData);
+        // Even on error, mark initial load as complete to show error state
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+          // Set default pricing info to prevent infinite loading
+          setPricingInfo({
+            pricing: { priceUSDC: 0.50, hasNFT: false },
+            limitInfo: { current: 0, limit: 140, remaining: 140 },
+            trialPricing: { active: false },
+          });
         }
       }
     } catch (error) {
-      if (showLoading) {
-        console.error("❌ Error fetching pricing info:", error);
+      console.error("❌ Error fetching pricing info:", error);
+      // Even on error, mark initial load as complete to show error state
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+        // Set default pricing info to prevent infinite loading
+        setPricingInfo({
+          pricing: { priceUSDC: 0.50, hasNFT: false },
+          limitInfo: { current: 0, limit: 140, remaining: 140 },
+          trialPricing: { active: false },
+        });
       }
     } finally {
       if (showLoading) {
