@@ -418,19 +418,61 @@ Tokens have different normal behaviors depending on their type. When assessing r
 - **Wash trading <5% of volume:** If wash trading is less than 5% of total volume, it's likely not significant enough to manipulate price meaningfully
 - **New wallets:** 10-30% new wallet ratio is NORMAL for growing tokens
 
-**RISK SCORING GUIDELINES:**
-- **0-40 (Low Risk):** Normal token behavior, healthy liquidity (>15% liquidity-to-market cap ratio), no major red flags, wash trading <5% of volume
-- **41-60 (Medium Risk):** Some concerns but within normal parameters (e.g., 5-10% wash trading, moderate liquidity 10-15%, some bot activity)
-- **61-80 (High Risk):** Significant red flags beyond normal behavior (e.g., >10% wash trading, very low liquidity <10%, coordinated manipulation patterns, suspicious wallet behavior)
-- **81-100 (Very High Risk):** Major red flags - potential scam, rug pull, or severe manipulation (>20% wash trading, extremely low liquidity, clear rug pull signs)
+**RISK SCORING GUIDELINES - USE ALL REPORT DATA:**
 
-**CRITICAL:** A token with 7-8% wash trading, 14% liquidity ratio, and normal bot activity should score 50-65, NOT 81! Only score 81+ if there are SEVERE red flags beyond normal behavior.
+You must calculate the risk score based on ALL the detailed information in your analysis, NOT just basic metrics. Consider:
+
+**LOW RISK (0-40):** Score low when you see:
+- High diamond hands ratio (>60% early buyers still holding)
+- Low manipulation patterns (<5% wash trading)
+- Healthy wallet distribution (top wallet <20% of volume)
+- Positive early buyer behavior (most in profit and holding)
+- Low profit-taking risk
+- Strong support levels
+- Organic new wallet growth (varied transaction sizes, different times)
+- Normal trading patterns (balanced buy/sell, reasonable velocity)
+
+**MEDIUM RISK (41-60):** Score medium when you see:
+- Moderate concerns but within normal parameters
+- Some manipulation (5-10% wash trading) but not dominant
+- Moderate wallet concentration (20-30% top wallet)
+- Some early buyers selling but majority holding
+- Moderate profit-taking risk
+- Mixed signals (some good, some concerning)
+
+**HIGH RISK (61-80):** Score high when you see:
+- Significant manipulation patterns (>10% wash trading, coordinated activity)
+- High wallet concentration (>30% top wallet)
+- Most early buyers selling (low diamond hands <40%)
+- High profit-taking risk (most wallets in profit with high gains)
+- Bot farm patterns (identical transaction sizes, same timing)
+- Extreme buy/sell imbalance (>70% one direction)
+- Declining TVL/volume trends
+- Weak support levels
+
+**VERY HIGH RISK (81-100):** Score very high ONLY when you see:
+- Severe manipulation (>20% wash trading, clear coordinated patterns)
+- Critical wallet concentration (>50% top wallet)
+- Almost no diamond hands (<20% early buyers holding)
+- Extreme profit-taking risk
+- Clear rug pull signs (freeze/mint authority + manipulation)
+- Dead pool (no real trading activity)
+- Fake activity (bot farm with identical patterns)
+
+**CRITICAL SCORING RULES:**
+1. **Use ALL data points** from your analysis - diamond hands %, early buyer behavior, manipulation patterns, wallet concentration, profit/loss distribution, support/resistance, etc.
+2. **Weight the factors** - manipulation and wallet concentration are more important than bot activity
+3. **Consider context** - a token with 60% diamond hands and low manipulation should score 30-50, NOT 70+
+4. **Be specific** - if you see "40% early buyers still holding" and "8% wash trading", that's medium risk (50-60), not high
+5. **Avoid clustering** - don't always score 70-78. Use the full range (0-100) based on actual data
+6. **Reward good behavior** - high diamond hands, low manipulation, good distribution = lower risk score
+7. **Penalize bad behavior** - high manipulation, low diamond hands, high concentration = higher risk score
 
 **DO NOT penalize for:**
-- Bot activity (unless it's coordinated manipulation)
+- Bot activity alone (unless coordinated manipulation)
 - Small transaction sizes (normal for retail)
 - Moderate volatility (expected for many tokens)
-- New wallet activity (could be organic growth)
+- New wallet activity (if organic growth pattern)
 - Wash trading <5% of volume (likely not significant)
 
 Write your report in this exact format:
@@ -440,12 +482,26 @@ Write your report in this exact format:
 **First Line (Required - Parse Only):**
 Risk Score: [NUMBER from 0-100]
 
-**Scoring Guidelines:**
-- **0-20:** Very Safe (You can probably trust this)
-- **21-40:** Mostly Safe (Small concerns, but probably okay)
-- **41-60:** Be Careful (Some warning signs, but could be normal for memecoins)
-- **61-80:** Dangerous (Lots of red flags)
-- **81-100:** Very Dangerous (Strong scam/rug pull signs)
+**CALCULATE RISK SCORE BASED ON YOUR ANALYSIS:**
+After writing your complete analysis, review ALL the data points you found:
+- Diamond hands percentage (early buyers still holding)
+- Early buyer profit/loss status
+- Manipulation patterns (wash trading %, coordinated activity)
+- Wallet concentration (top wallet %)
+- Profit-taking risk level
+- Support/resistance strength
+- Trading activity patterns (buy/sell balance, velocity)
+- New wallet activity (organic vs bot farm)
+- Historical trends (TVL, volume changes)
+
+Then calculate a risk score that reflects the COMBINATION of all these factors. Use the full range (0-100) - don't cluster around 70-78. If the token shows good signs (high diamond hands, low manipulation), score it lower. If it shows bad signs (high manipulation, low diamond hands), score it higher.
+
+**Scoring Ranges:**
+- **0-20:** Very Safe - Strong diamond hands, low manipulation, good distribution
+- **21-40:** Mostly Safe - Some concerns but overall healthy patterns
+- **41-60:** Be Careful - Mixed signals, moderate concerns
+- **61-80:** Dangerous - Significant red flags, high manipulation or concentration
+- **81-100:** Very Dangerous - Severe manipulation, clear scam/rug pull signs
 
 **IMPORTANT:** For new tokens, many "suspicious" patterns are NORMAL:
 - Low transaction sizes ($5-50) = normal retail activity

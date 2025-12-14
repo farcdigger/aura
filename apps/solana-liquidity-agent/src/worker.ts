@@ -400,16 +400,25 @@ async function processAnalysis(job: Job<QueueJobData>) {
       firstChars: rawResponse.substring(0, 100),
     });
     
+    // Parse risk score from Claude's analysis - Claude calculates it based on all detailed report data
+    // This is more accurate than algorithmic score because it considers diamond hands, early buyers,
+    // manipulation patterns, profit/loss distribution, and all other detailed analysis points
     let riskScore: number;
     try {
       riskScore = parseRiskScore(rawResponse);
-      console.log(`🎯 [Job ${job.id}] Risk score parsed: ${riskScore}`);
+      console.log(`🎯 [Job ${job.id}] Risk score parsed from Claude's analysis: ${riskScore}/100`);
     } catch (parseError: any) {
       console.error(`❌ [Job ${job.id}] ERROR parsing risk score:`, {
         error: parseError.message,
         stack: parseError.stack,
       });
-      riskScore = 50; // Fallback
+      // Fallback to algorithmic score if Claude's score cannot be parsed
+      if (riskScoreBreakdown && riskScoreBreakdown.totalScore !== undefined) {
+        riskScore = riskScoreBreakdown.totalScore;
+        console.log(`🎯 [Job ${job.id}] Using algorithmic risk score as fallback: ${riskScore}/100`);
+      } else {
+        riskScore = 50; // Final fallback
+      }
     }
     
     // ✅ DETAYLI LOG: Analysis result oluşturulmadan önce kontrol
