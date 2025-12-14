@@ -336,8 +336,20 @@ export default function DeepResearchModal({
         {/* Payment Stage */}
         {status === "payment" && (
           <div>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">
+                  ⚠️ Error
+                </p>
+                <p className="text-xs text-red-800 dark:text-red-300 whitespace-pre-line">
+                  {error}
+                </p>
+              </div>
+            )}
+
             {/* Free Ticket Notice */}
-            {pricingInfo?.pricing?.freeReason === "free_ticket" && (
+            {pricingInfo?.pricing?.freeReason === "free_ticket" && !error && (
               <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm font-semibold text-green-900 dark:text-green-200 mb-1">
                   🎉 Report for 0.001 USDC
@@ -551,9 +563,9 @@ export default function DeepResearchModal({
         {/* Error Stage */}
         {status === "error" && (
           <div>
-            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-              <p className="font-semibold mb-2">Analysis Failed</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="font-semibold mb-2 text-red-900 dark:text-red-200">Analysis Failed</p>
+              <p className="text-sm text-red-800 dark:text-red-300 whitespace-pre-line">
                 {error}
               </p>
             </div>

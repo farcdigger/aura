@@ -28,7 +28,7 @@ for (const key of REQUIRED_ENV) {
 
 // Configuration
 const WORKER_CONFIG = {
-  concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5', 10),
+  concurrency: parseInt(process.env.WORKER_CONCURRENCY || '4', 10),
   maxJobsPerWorker: 100,
   lockDuration: 120000,
   lockRenewTime: 60000,

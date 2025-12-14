@@ -244,86 +244,80 @@ export default function DeepResearchPage() {
               ) : null}
             </div>
 
-            {/* Trial Pricing Banner */}
-            {/* Use min-height to prevent layout shift */}
-            {pricingInfo?.trialPricing?.active && (
-              <div className="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg min-h-[80px]">
-                <p className="font-semibold mb-1">Testing Period Active</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  $0.001 USDC per analysis until {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
-                  <br />
-                  <span className="text-xs">
-                    This tests the payment system - normal prices apply after trial period
-                  </span>
-                </p>
-              </div>
-            )}
-
-            {/* Global Weekly Limit */}
-            {/* Use min-height to prevent layout shift */}
-            {pricingInfo?.limitInfo && (
-              <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg min-h-[120px]">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="font-semibold">Platform Capacity</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {pricingInfo.limitInfo.current} / {pricingInfo.limitInfo.limit} reports generated this week
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">
-                      {pricingInfo.limitInfo.remaining}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      remaining
-                    </p>
-                  </div>
+            {/* Info Cards - Side by side layout */}
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Trial Pricing Banner */}
+              {pricingInfo?.trialPricing?.active && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="font-semibold text-sm mb-1">Testing Period Active</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    $0.001 USDC per analysis until {new Date(pricingInfo.trialPricing.endDate).toLocaleDateString()}
+                  </p>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-black dark:bg-white h-2 rounded-full transition-all"
-                    style={{
-                      width: `${(pricingInfo.limitInfo.current / pricingInfo.limitInfo.limit) * 100}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                  This is a shared platform limit across all users. Limit resets every Sunday.
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* Active Analysis Indicator - Always show, even if 0 */}
-            {pricingInfo && (
-              <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg min-h-[100px]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-blue-900 dark:text-blue-200">Active Analyses</p>
-                    <p className="text-sm text-blue-800 dark:text-blue-300">
-                      Currently processing: {pricingInfo.queueInfo?.active || 0} / {pricingInfo.queueInfo?.maxSize || 4}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-200">
-                      {pricingInfo.queueInfo?.active || 0}/{pricingInfo.queueInfo?.maxSize || 4}
-                    </p>
-                    {(pricingInfo.queueInfo?.waiting || 0) > 0 && (
-                      <p className="text-xs text-blue-700 dark:text-blue-400">
-                        {pricingInfo.queueInfo.waiting} waiting
+              {/* Global Weekly Limit */}
+              {pricingInfo?.limitInfo && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-sm">Platform Capacity</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {pricingInfo.limitInfo.current} / {pricingInfo.limitInfo.limit} this week
                       </p>
-                    )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">
+                        {pricingInfo.limitInfo.remaining}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        remaining
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div
+                      className="bg-black dark:bg-white h-1.5 rounded-full transition-all"
+                      style={{
+                        width: `${(pricingInfo.limitInfo.current / pricingInfo.limitInfo.limit) * 100}%`,
+                      }}
+                    />
                   </div>
                 </div>
-                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 mt-2">
-                  <div
-                    className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(((pricingInfo.queueInfo?.total || 0) / (pricingInfo.queueInfo?.maxSize || 4)) * 100, 100)}%`,
-                    }}
-                  />
+              )}
+
+              {/* Active Analysis Indicator - Always show, even if 0 */}
+              {pricingInfo && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-sm text-blue-900 dark:text-blue-200">Active Analyses</p>
+                      <p className="text-xs text-blue-800 dark:text-blue-300">
+                        Processing: {pricingInfo.queueInfo?.active || 0} / {pricingInfo.queueInfo?.maxSize || 4}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-blue-900 dark:text-blue-200">
+                        {pricingInfo.queueInfo?.active || 0}/{pricingInfo.queueInfo?.maxSize || 4}
+                      </p>
+                      {(pricingInfo.queueInfo?.waiting || 0) > 0 && (
+                        <p className="text-xs text-blue-700 dark:text-blue-400">
+                          {pricingInfo.queueInfo.waiting} waiting
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-1.5 rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(((pricingInfo.queueInfo?.total || 0) / (pricingInfo.queueInfo?.maxSize || 4)) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Token Input */}
             {pricingInfo?.limitInfo?.remaining === 0 ? (

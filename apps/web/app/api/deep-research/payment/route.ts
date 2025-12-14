@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
       if (queueStatsResponse.ok) {
         const queueStats = await queueStatsResponse.json();
         const totalInQueue = (queueStats.waiting || 0) + (queueStats.active || 0);
-        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        const MAX_QUEUE_SIZE = 4; // 4 active, no waiting queue
         
         if (totalInQueue >= MAX_QUEUE_SIZE) {
           console.warn(`⚠️ Queue is full: ${totalInQueue}/${MAX_QUEUE_SIZE} (active: ${queueStats.active}, waiting: ${queueStats.waiting})`);
@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
       if (queueStatusResponse.ok) {
         const queueStatus = await queueStatusResponse.json();
         const queueSize = (queueStatus.waiting || 0) + (queueStatus.active || 0);
-        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        const MAX_QUEUE_SIZE = 4; // 4 active, no waiting queue
         if (queueSize >= MAX_QUEUE_SIZE) {
           // Queue is full AFTER payment - issue free ticket
           console.warn("⚠️ Queue is full after payment - issuing free ticket");
@@ -510,7 +510,7 @@ export async function POST(request: NextRequest) {
       if (finalQueueCheck.ok) {
         const finalQueueStats = await finalQueueCheck.json();
         const finalQueueSize = (finalQueueStats.waiting || 0) + (finalQueueStats.active || 0);
-        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        const MAX_QUEUE_SIZE = 4; // 4 active, no waiting queue
         
         if (finalQueueSize >= MAX_QUEUE_SIZE) {
           console.warn(`⚠️ Queue is full RIGHT BEFORE queuing: ${finalQueueSize}/${MAX_QUEUE_SIZE} - issuing free ticket`);
