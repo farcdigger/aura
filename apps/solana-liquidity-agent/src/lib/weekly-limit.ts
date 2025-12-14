@@ -87,31 +87,54 @@ export async function getWeeklyLimitStatus(): Promise<{
 }> {
   try {
     const now = new Date();
-    const weekKey = getISOWeekKey(now);
-    const key = `weekly-reports:${weekKey}`;
+    
+    // Calculate next reset time (Sunday UTC 22:15)
+    const weekEnd = getWeekEnd(now);
+    const resetsIn = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
+    
+    // Check if reset time has passed (resetsIn should be > 0, if 0 or negative, we're past reset)
+    // Also check if we're in a new week by comparing week keys
+    const currentWeekKey = getISOWeekKey(now);
+    const key = `weekly-reports:${currentWeekKey}`;
     
     // Check if key exists and has valid TTL
     const ttl = await redis.ttl(key);
     
     // If TTL is -2 (key doesn't exist) or -1 (no expiration set), it's a new week
     // If TTL is 0 or negative, reset to 0
+    // Also, if reset time has passed (resetsIn is very large, meaning next week), check if we should use current week
     let current = 0;
+    
+    // If reset time has passed (we're past Sunday 22:00), we should be in a new week
+    // Check if the current week's key exists and is valid
     if (ttl > 0) {
+      // Key exists and has valid TTL - use it
       const currentStr = await redis.get(key);
       current = currentStr ? parseInt(currentStr, 10) : 0;
+    } else if (ttl === -2) {
+      // Key doesn't exist - new week, reset to 0
+      current = 0;
+    } else if (ttl === -1) {
+      // Key exists but no expiration - this shouldn't happen, but treat as expired
+      current = 0;
     } else {
-      // Key expired or doesn't exist - new week, reset to 0
+      // TTL is 0 or negative - key expired, reset to 0
+      current = 0;
+    }
+    
+    // Additional check: If reset time has passed (resetsIn > 6 days), we might be using old week's key
+    // In this case, force reset to 0
+    if (resetsIn > 6 * 24 * 3600) {
+      // More than 6 days until reset means we're looking at next week's reset
+      // This means current week's reset has passed, so reset to 0
+      console.log(`[WeeklyLimit] Reset time has passed (resetsIn: ${resetsIn}s), forcing reset to 0`);
       current = 0;
     }
     
     const remaining = Math.max(0, WEEKLY_LIMIT - current);
-    
-    // Calculate next reset time (Sunday UTC 22:00)
-    const weekEnd = getWeekEnd(now);
     const resetsAt = weekEnd.toISOString();
-    const resetsIn = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
     
-    console.log(`[WeeklyLimit] Status: ${current}/${WEEKLY_LIMIT} (remaining: ${remaining}), resets in ${resetsIn}s`);
+    console.log(`[WeeklyLimit] Status: ${current}/${WEEKLY_LIMIT} (remaining: ${remaining}), resets in ${resetsIn}s, TTL: ${ttl}`);
     
     return {
       current,
@@ -166,7 +189,7 @@ function getISOWeek(date: Date): number {
 }
 
 /**
- * Haftanın son gününü al (Pazar UTC 22:00)
+ * Haftanın son gününü al (Pazar UTC 22:15)
  * Eğer reset zamanı geçmişse, bir sonraki haftanın reset zamanına git
  */
 function getWeekEnd(date: Date): Date {
@@ -178,8 +201,8 @@ function getWeekEnd(date: Date): Date {
   const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   weekEnd.setDate(weekEnd.getDate() + daysUntilSunday);
   
-  // UTC 22:00'a ayarla (Pazar gecesi)
-  weekEnd.setUTCHours(22, 0, 0, 0);
+  // UTC 22:15'a ayarla (Pazar gecesi) - Test için
+  weekEnd.setUTCHours(22, 15, 0, 0);
   
   // Eğer reset zamanı geçmişse, bir sonraki haftanın reset zamanına git
   if (weekEnd.getTime() <= now.getTime()) {
