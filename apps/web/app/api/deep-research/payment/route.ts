@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
     
     // Check queue capacity first
     try {
-      const queueStatsResponse = await fetch(`${agentUrl}/api/stats`);
+      const queueStatsResponse = await fetch(`${agentUrl}/stats`);
       if (queueStatsResponse.ok) {
         const queueStats = await queueStatsResponse.json();
         const totalInQueue = (queueStats.waiting || 0) + (queueStats.active || 0);
@@ -506,7 +506,7 @@ export async function POST(request: NextRequest) {
       const normalizedWalletAddress = walletAddress.toLowerCase();
       
       // Final queue check RIGHT BEFORE queuing (to prevent race conditions)
-      const finalQueueCheck = await fetch(`${agentUrl}/api/stats`);
+      const finalQueueCheck = await fetch(`${agentUrl}/stats`);
       if (finalQueueCheck.ok) {
         const finalQueueStats = await finalQueueCheck.json();
         const finalQueueSize = (finalQueueStats.waiting || 0) + (finalQueueStats.active || 0);

@@ -385,7 +385,7 @@ export async function GET(request: Request) {
     let queueInfo = null;
     try {
       const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
-      const queueStatsResponse = await fetch(`${agentUrl}/api/stats`);
+      const queueStatsResponse = await fetch(`${agentUrl}/stats`);
       if (queueStatsResponse.ok) {
         const queueStats = await queueStatsResponse.json();
         queueInfo = {
@@ -394,6 +394,9 @@ export async function GET(request: Request) {
           total: (queueStats.active || 0) + (queueStats.waiting || 0),
           maxSize: 4, // 2 active + 2 waiting
         };
+        console.log("📊 Queue info fetched:", queueInfo);
+      } else {
+        console.warn("⚠️ Queue stats response not OK:", queueStatsResponse.status);
       }
     } catch (error: any) {
       console.warn("⚠️ Error fetching queue stats:", error.message);

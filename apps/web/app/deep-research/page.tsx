@@ -293,21 +293,21 @@ export default function DeepResearchPage() {
               </div>
             )}
 
-            {/* Active Analysis Indicator */}
-            {pricingInfo?.queueInfo && (
-              <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            {/* Active Analysis Indicator - Always show, even if 0 */}
+            {pricingInfo && (
+              <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg min-h-[100px]">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-blue-900 dark:text-blue-200">Active Analyses</p>
                     <p className="text-sm text-blue-800 dark:text-blue-300">
-                      Currently processing: {pricingInfo.queueInfo.active} / {pricingInfo.queueInfo.maxSize}
+                      Currently processing: {pricingInfo.queueInfo?.active || 0} / {pricingInfo.queueInfo?.maxSize || 4}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-200">
-                      {pricingInfo.queueInfo.active}/{pricingInfo.queueInfo.maxSize}
+                      {pricingInfo.queueInfo?.active || 0}/{pricingInfo.queueInfo?.maxSize || 4}
                     </p>
-                    {pricingInfo.queueInfo.waiting > 0 && (
+                    {(pricingInfo.queueInfo?.waiting || 0) > 0 && (
                       <p className="text-xs text-blue-700 dark:text-blue-400">
                         {pricingInfo.queueInfo.waiting} waiting
                       </p>
@@ -318,7 +318,7 @@ export default function DeepResearchPage() {
                   <div
                     className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
                     style={{
-                      width: `${(pricingInfo.queueInfo.total / pricingInfo.queueInfo.maxSize) * 100}%`,
+                      width: `${Math.min(((pricingInfo.queueInfo?.total || 0) / (pricingInfo.queueInfo?.maxSize || 4)) * 100, 100)}%`,
                     }}
                   />
                 </div>
