@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import DeepResearchModal from "@/components/DeepResearchModal";
-import SpeedClickGame from "@/components/SpeedClickGame";
-import FrogJumpGame from "@/components/FrogJumpGame";
-import FrogJumpLeaderboard from "@/components/FrogJumpLeaderboard";
+import GameMenu from "@/components/GameMenu";
 import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 // WHITELIST: Only these addresses can access Deep Research
@@ -288,36 +286,6 @@ export default function DeepResearchPage() {
               </div>
             )}
 
-            {/* Games Section (NFT Owners Only) */}
-            {hasNFT && (
-              <div className="mb-8 space-y-8">
-                {/* Speed Click Game */}
-                <div>
-                  <SpeedClickGame
-                    onFreeTicketWon={() => {
-                      // When free ticket is won, show a message
-                      alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
-                    }}
-                  />
-                </div>
-
-                {/* Frog Jump Game */}
-                <div>
-                  <FrogJumpGame
-                    onFreeTicketWon={() => {
-                      // When free ticket is won, show a message
-                      alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
-                    }}
-                  />
-                </div>
-
-                {/* Frog Jump Leaderboard */}
-                <div>
-                  <FrogJumpLeaderboard />
-                </div>
-              </div>
-            )}
-
             {/* Token Input */}
             {pricingInfo?.limitInfo?.remaining === 0 ? (
               <div className="p-8 border-2 border-red-300 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20 text-center">
@@ -357,6 +325,18 @@ export default function DeepResearchPage() {
             )}
           </>
         )}
+
+            {/* Games Section (NFT Owners Only) */}
+            {hasNFT && (
+              <div className="mt-12 mb-8">
+                <GameMenu
+                  onFreeTicketWon={() => {
+                    // When free ticket is won, show a message
+                    alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
+                  }}
+                />
+              </div>
+            )}
 
         {/* Analysis History Section */}
         {isConnected && address && (
