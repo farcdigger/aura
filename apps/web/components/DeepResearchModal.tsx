@@ -54,7 +54,7 @@ export default function DeepResearchModal({
 
   // Poll for job status
   useEffect(() => {
-    if (status === "processing" && jobId) {
+    if ((status === "processing" || status === "waiting") && jobId) {
       const interval = setInterval(async () => {
         try {
           const response = await fetch(`/api/deep-research/status?jobId=${jobId}`);
@@ -80,7 +80,26 @@ export default function DeepResearchModal({
               setError(data.error || "Analysis failed");
               setStatus("error");
               clearInterval(interval);
+            } else if (data.status === "waiting") {
+              // Job is waiting in queue - don't show progress, just waiting message
+              setStatus("waiting");
+              setProgress(0);
+            } else if (data.status === "active") {
+              // Job is now active - show progress
+              setStatus("processing");
+              // Use actual progress from job if available, otherwise estimate
+              if (data.progress !== undefined && typeof data.progress === 'number') {
+                setProgress(data.progress);
+              } else {
+                // Estimate based on time (2 minutes = 120 seconds, poll every 2 seconds = 60 polls)
+                // Start at 10%, reach 95% after 2 minutes
+                const elapsedPolls = Math.floor((Date.now() - (jobId ? parseInt(jobId.split('-').pop() || '0') : Date.now())) / 2000);
+                const estimatedProgress = Math.min(95, 10 + (elapsedPolls * 1.4)); // ~1.4% per poll
+                setProgress(estimatedProgress);
+              }
             } else {
+              // Other statuses - assume processing
+              setStatus("processing");
               // Use actual progress from job if available, otherwise estimate
               if (data.progress !== undefined && typeof data.progress === 'number') {
                 setProgress(data.progress);
@@ -347,6 +366,40 @@ export default function DeepResearchModal({
             >
               Cancel
             </button>
+          </div>
+        )}
+
+        {/* Waiting in Queue Stage */}
+        {status === "waiting" && (
+          <div className="text-center py-8">
+            <div className="mb-6">
+              <div className="inline-block animate-pulse rounded-full h-16 w-16 border-4 border-gray-300 border-t-blue-500 dark:border-gray-700 dark:border-t-blue-400" />
+            </div>
+            
+            <p className="text-lg font-semibold mb-2">Waiting in queue...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Your analysis is queued. An agent will start processing it soon.
+            </p>
+            
+            {/* Info about queue */}
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg max-w-md mx-auto">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                ℹ️ Queue Information
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-300">
+                Maximum 2 analyses run simultaneously. You are in the queue and will be processed as soon as an agent becomes available.
+              </p>
+            </div>
+
+            {/* Warning about closing */}
+            <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg max-w-md mx-auto">
+              <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 mb-1">
+                ⚠️ Do not close this window
+              </p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                Your payment has been processed. Closing this window will not refund your payment.
+              </p>
+            </div>
           </div>
         )}
 

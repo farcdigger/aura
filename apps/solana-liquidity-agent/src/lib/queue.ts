@@ -7,7 +7,7 @@ import type { QueueJobData, JobStatusResponse } from './types';
 // =============================================================================
 
 const QUEUE_NAME = 'pool-analysis';
-const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5');
+const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '2'); // Max 2 agents working simultaneously
 const MAX_ATTEMPTS = parseInt(process.env.WORKER_MAX_ATTEMPTS || '1'); // ✅ Retry KAPALI: Her retry'da veri çekiliyor, limit bitiyor
 const BACKOFF_DELAY_MS = parseInt(process.env.WORKER_BACKOFF_DELAY_MS || '5000');
 
@@ -63,7 +63,7 @@ export const queue = analysisQueue;
 // QUEUE OPERATIONS
 // =============================================================================
 
-const MAX_QUEUE_SIZE = 5; // Maximum number of jobs in queue (waiting + active)
+const MAX_QUEUE_SIZE = 4; // Maximum number of jobs in queue (2 active + 2 waiting)
 
 /**
  * Add analysis job to queue

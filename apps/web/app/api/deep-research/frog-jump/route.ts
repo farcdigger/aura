@@ -1,9 +1,9 @@
 /**
  * Frog Jump Game API for Deep Research
- * NFT owners can play for 20,000 credits
+ * NFT owners can play for 50,000 credits
  * Rewards:
- * - Entry: 10 points
- * - Score 500+: Free analysis ticket
+ * - Entry: 25 points
+ * - Score 1000+: Free analysis ticket (redeemable)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,8 +14,8 @@ import { updateTokenBalance } from "@/lib/chat-tokens-mock";
 import { env } from "@/env.mjs";
 import { supabaseClient } from "@/lib/db-supabase";
 
-const GAME_COST = 20_000; // Credits required to play
-const POINTS_REWARD = 10; // Points awarded on entry
+const GAME_COST = 50_000; // Credits required to play
+const POINTS_REWARD = 25; // Points awarded on entry
 const SCORE_FOR_TICKET = 1000; // Score needed to redeem free ticket
 
 /**

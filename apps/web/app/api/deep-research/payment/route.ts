@@ -286,9 +286,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Could not determine payer address" }, { status: 400 });
     }
 
-    // Check weekly limit and queue status BEFORE queuing (to avoid charging for unavailable service)
-    console.log("📊 Checking weekly limit and queue status...");
+    // Check queue status BEFORE payment (to avoid charging for unavailable service)
+    console.log("📊 Checking queue status before payment...");
     const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
+    
+    // Check queue capacity first
+    try {
+      const queueStatsResponse = await fetch(`${agentUrl}/api/stats`);
+      if (queueStatsResponse.ok) {
+        const queueStats = await queueStatsResponse.json();
+        const totalInQueue = (queueStats.waiting || 0) + (queueStats.active || 0);
+        const MAX_QUEUE_SIZE = 4; // 2 active + 2 waiting
+        
+        if (totalInQueue >= MAX_QUEUE_SIZE) {
+          console.warn(`⚠️ Queue is full: ${totalInQueue}/${MAX_QUEUE_SIZE} (active: ${queueStats.active}, waiting: ${queueStats.waiting})`);
+          return NextResponse.json(
+            {
+              error: "Queue is full",
+              message: `Queue is currently full (${totalInQueue}/${MAX_QUEUE_SIZE} jobs). Maximum 2 analyses can run simultaneously, and 2 can wait in queue. Please try again later.`,
+              queueInfo: {
+                active: queueStats.active || 0,
+                waiting: queueStats.waiting || 0,
+                total: totalInQueue,
+                maxSize: MAX_QUEUE_SIZE,
+              },
+            },
+            { status: 429 } // Too Many Requests
+          );
+        }
+        console.log(`✅ Queue has capacity: ${totalInQueue}/${MAX_QUEUE_SIZE} (active: ${queueStats.active}, waiting: ${queueStats.waiting})`);
+      }
+    } catch (queueError: any) {
+      console.warn("⚠️ Error checking queue status:", queueError.message);
+      // Continue anyway - queue check is not critical, but we prefer to check
+    }
+    
+    // Check weekly limit and queue status BEFORE queuing (to avoid charging for unavailable service)
+    console.log("📊 Checking weekly limit...");
     
     let limitData: any = null;
     try {
