@@ -65,12 +65,14 @@ export default function DeepResearchModal({
               // data.result contains { success, recordId, poolId, riskScore, analysisResult }
               // We need to merge analysisResult with the top-level fields for easier access
               const result = data.result || {};
-              setAnalysisResult({
-                ...result.analysisResult, // Spread the nested analysisResult
+              const mergedResult = {
+                ...result.analysisResult, // Spread the nested analysisResult (contains riskAnalysis, securityScore, etc.)
                 recordId: result.recordId, // Include recordId at top level
                 poolId: result.poolId, // Include poolId at top level
-                securityScore: result.analysisResult?.securityScore, // Ensure securityScore is accessible
-              });
+                // Also keep nested structure for backward compatibility
+                analysisResult: result.analysisResult,
+              };
+              setAnalysisResult(mergedResult);
               setStatus("completed");
               setProgress(100);
               clearInterval(interval);
@@ -531,9 +533,9 @@ export default function DeepResearchModal({
             {/* Analysis Report - Only show the AI-generated risk analysis */}
             <div className="prose dark:prose-invert max-w-none">
               <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-[600px] overflow-y-auto border border-gray-200 dark:border-gray-800">
-                {analysisResult?.analysisResult?.riskAnalysis ? (
+                {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis ? (
                   <ReactMarkdown className="text-sm">
-                    {analysisResult.analysisResult.riskAnalysis}
+                    {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis}
                   </ReactMarkdown>
                 ) : (
                   <p className="text-gray-600 dark:text-gray-400">Analysis report not available</p>
