@@ -41,8 +41,11 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
     const currentWeekKey = getISOWeekKey(now);
     const key = `weekly-reports:${currentWeekKey}`;
     
+    console.log(`[WeeklyLimit] checkAndIncrementWeeklyLimit called. Key: ${key}, resetsIn: ${resetsIn}s`);
+    
     // Check if this is a new week (old key expired or reset time passed)
     const existingTtl = await redis.ttl(key);
+    console.log(`[WeeklyLimit] Existing TTL for key ${key}: ${existingTtl}s`);
     
     // If key doesn't exist or TTL is invalid, or reset time has passed, start fresh
     if (existingTtl <= 0 || resetsIn > 6 * 24 * 3600) {
@@ -61,7 +64,7 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
     // Mevcut sayıyı artır
     const beforeIncr = await redis.get(key);
     const current = await redis.incr(key);
-    console.log(`[WeeklyLimit] Incremented count for key ${key}: ${beforeIncr || '0'} -> ${current}`);
+    console.log(`[WeeklyLimit] ✅ Incremented count for key ${key}: ${beforeIncr || '0'} -> ${current}`);
     
     // İlk kez set ediliyorsa (current === 1) TTL ayarla (haftanın sonuna kadar)
     if (current === 1) {
