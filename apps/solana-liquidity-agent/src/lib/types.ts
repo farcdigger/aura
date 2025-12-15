@@ -113,6 +113,8 @@ export interface DexScreenerData {
     name: string;
     symbol: string;
   };
+  marketCap?: number; // Market cap from DexScreener (if available)
+  fdv?: number; // Fully Diluted Valuation from DexScreener (if available)
 }
 
 // Geriye dönük uyumluluk için (eğer başka yerde kullanılıyorsa)
