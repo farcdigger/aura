@@ -75,6 +75,7 @@ export interface AdjustedPoolReserves {
   tokenAAmount?: number;
   tokenBAmount?: number;
   tvlUSD?: number;
+  marketCap?: number; // Market cap from DexScreener or Birdeye (if available)
   lpMint?: string;
   lpSupply?: string;
   poolStatus?: string;

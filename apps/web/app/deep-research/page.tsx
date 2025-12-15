@@ -405,7 +405,8 @@ export default function DeepResearchPage() {
               <div className="space-y-4">
                 {analysisHistory.map((analysis: any) => {
                   const report = analysis.analysisReport || {};
-                  const securityScore = report?.securityScore || null;
+                  // Get securityScore from multiple possible locations
+                  const securityScore = analysis.securityScore || report?.securityScore || report?.analysisResult?.securityScore || null;
                   
                   return (
                     <div
@@ -413,8 +414,9 @@ export default function DeepResearchPage() {
                       className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
                       onClick={() => {
                         setSelectedAnalysis({
-                          ...report, // Spread the report to include securityScore at top level
-                          analysisResult: report,
+                          ...report, // Spread the report to include all fields
+                          securityScore: securityScore, // Ensure securityScore is at top level
+                          analysisResult: report, // Keep nested structure for backward compatibility
                           riskScore: 0, // Kept for backward compatibility
                         });
                         setShowModal(true);

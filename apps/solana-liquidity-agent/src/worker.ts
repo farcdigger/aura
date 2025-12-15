@@ -135,6 +135,7 @@ async function processAnalysis(job: Job<QueueJobData>) {
               tokenASymbol: dexScreenerData.baseToken.symbol,
               tokenBSymbol: dexScreenerData.quoteToken.symbol,
               tvlUSD: dexScreenerData.liquidityUsd || 0,
+              marketCap: dexScreenerData.marketCap, // Use DexScreener's market cap if available
               lpSupply,
               poolStatus: 'Active',
               poolType: dexScreenerData.dexLabel,

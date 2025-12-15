@@ -70,10 +70,11 @@ export function buildAnalysisPrompt(params: {
   const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
   
   // Calculate liquidity-to-market-cap ratio
-  // ✅ DÜZELTME: Market cap hesaplaması - memecoinler için daha gerçekçi oran (TVL × 7)
-  // Memecoinlerde genellikle likidite/market cap oranı %10-20 arası, yani market cap = TVL × 5-10
+  // ✅ DÜZELTME: Market cap hesaplaması - önce DexScreener'dan gelen marketCap'i kullan, yoksa tahmin et
+  // DexScreener'dan gelen marketCap varsa onu kullan (daha doğru)
+  // Yoksa memecoinler için daha gerçekçi oran: TVL × 5.5 (daha konservatif tahmin)
   const tvlUSD = reserves?.tvlUSD || 0;
-  const estimatedMarketCap = tvlUSD > 0 ? tvlUSD * 7 : 0; // Memecoinler için daha gerçekçi: TVL × 7
+  const estimatedMarketCap = reserves?.marketCap || (tvlUSD > 0 ? tvlUSD * 5.5 : 0); // Use DexScreener marketCap if available, otherwise estimate
   const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (tvlUSD / estimatedMarketCap) * 100 : 0;
   
   // Calculate wallet diversity metrics
@@ -248,7 +249,7 @@ ${hasActiveLiquidity ? '✅ **LP supply and reserves indicate active liquidity**
 
 ### Liquidity Health:
 - **Pool TVL:** $${tvlUSD.toLocaleString()}
-- **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()} (rough estimate: TVL × 7 for memecoins)
+- **Estimated Market Cap:** $${estimatedMarketCap.toLocaleString()}${reserves?.marketCap ? ' (from DexScreener)' : ' (estimated: TVL × 5.5 for memecoins)'}
 - **Liquidity-to-Market Cap Ratio:** ${liquidityToMarketCapRatio.toFixed(1)}%
 - **Key Insight:** For memecoins, 20-30% liquidity ratio is HEALTHY. Below 10% = risky. Above 50% = unusual but could be good.
 

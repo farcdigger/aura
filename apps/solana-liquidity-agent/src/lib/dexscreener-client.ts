@@ -170,6 +170,8 @@ export async function findBestPoolViaDexScreener(
       liquidityQuote: bestPair.liquidity?.quote || 0,
       baseToken: bestPair.baseToken,
       quoteToken: bestPair.quoteToken,
+      marketCap: bestPair.marketCap || undefined, // Use DexScreener's market cap if available
+      fdv: bestPair.fdv || undefined, // Use FDV if available
     };
     
   } catch (error: any) {
