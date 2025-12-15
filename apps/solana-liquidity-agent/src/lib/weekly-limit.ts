@@ -50,15 +50,17 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
       // Delete old key if it exists (shouldn't happen but safety check)
       if (existingTtl > 0) {
         await redis.del(key);
+        console.log(`[WeeklyLimit] Deleted old week key with TTL: ${existingTtl}s`);
       }
       // Set new key with proper TTL
       const newTtl = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
       await redis.setex(key, newTtl, '0'); // Start at 0
-      console.log(`[WeeklyLimit] New week detected, starting fresh. TTL: ${newTtl}s`);
+      console.log(`[WeeklyLimit] New week detected, starting fresh. Key: ${key}, TTL: ${newTtl}s`);
     }
     
     // Mevcut sayıyı artır
     const current = await redis.incr(key);
+    console.log(`[WeeklyLimit] Incremented count for key ${key}: ${current}`);
     
     // İlk kez set ediliyorsa (current === 1) TTL ayarla (haftanın sonuna kadar)
     if (current === 1) {

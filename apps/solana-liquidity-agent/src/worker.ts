@@ -53,11 +53,12 @@ async function processAnalysis(job: Job<QueueJobData>) {
   
   await job.updateProgress(10);
   
-  // Weekly Limit Check
+  // Weekly Limit Check - Increment at the START of analysis
   const { checkAndIncrementWeeklyLimit } = await import('./lib/weekly-limit');
+  console.log(`📊 [Job ${job.id}] Checking and incrementing weekly limit...`);
   const limitStatus = await checkAndIncrementWeeklyLimit();
   
-  console.log(`📊 [Job ${job.id}] Weekly reports: ${limitStatus.current}/${limitStatus.limit}`);
+  console.log(`📊 [Job ${job.id}] Weekly reports: ${limitStatus.current}/${limitStatus.limit} (allowed: ${limitStatus.allowed})`);
   
   if (!limitStatus.allowed) {
     throw new Error(`Weekly limit reached (${limitStatus.current}/${limitStatus.limit}).`);
