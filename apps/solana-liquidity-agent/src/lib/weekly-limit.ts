@@ -47,18 +47,17 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
     const existingTtl = await redis.ttl(key);
     console.log(`[WeeklyLimit] Existing TTL for key ${key}: ${existingTtl}s`);
     
-    // If key doesn't exist or TTL is invalid, or reset time has passed, start fresh
-    if (existingTtl <= 0 || resetsIn > 6 * 24 * 3600) {
-      // New week - ensure we start from 0
-      // Delete old key if it exists (shouldn't happen but safety check)
-      if (existingTtl > 0) {
-        await redis.del(key);
-        console.log(`[WeeklyLimit] Deleted old week key with TTL: ${existingTtl}s`);
-      }
-      // Set new key with proper TTL
+    // If key doesn't exist or TTL is invalid, start fresh
+    // NOTE: resetsIn > 6 days means we're still in the current week (reset hasn't happened yet)
+    // We should only reset if the key doesn't exist (TTL <= 0)
+    if (existingTtl <= 0) {
+      // Key doesn't exist - this is a new week or first time, start from 0
       const newTtl = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
       await redis.setex(key, newTtl, '0'); // Start at 0
-      console.log(`[WeeklyLimit] New week detected, starting fresh. Key: ${key}, TTL: ${newTtl}s`);
+      console.log(`[WeeklyLimit] New week detected (key doesn't exist), starting fresh. Key: ${key}, TTL: ${newTtl}s`);
+    } else {
+      // Key exists - we're in the same week, continue using it
+      console.log(`[WeeklyLimit] Using existing key for current week. TTL: ${existingTtl}s`);
     }
     
     // Mevcut sayıyı artır
