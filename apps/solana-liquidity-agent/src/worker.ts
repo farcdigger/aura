@@ -6,7 +6,7 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import type { QueueJobData, AdjustedPoolReserves } from './lib/types'; // Types dosyanın güncel olduğundan emin ol
 import { BirdeyeClient } from './lib/birdeye-client';
-import { buildAnalysisPrompt, parseRiskScore } from './lib/claude-prompt';
+import { buildAnalysisPrompt } from './lib/claude-prompt';
 import { calculateSecurityScore } from './lib/security-scorer';
 import { saveAnalysis } from './lib/supabase';
 import { redis } from './lib/cache';
@@ -402,32 +402,14 @@ async function processAnalysis(job: Job<QueueJobData>) {
     });
     
     // Calculate Security Score based on:
-    // 1. Re-entry ratio (users who sold and bought back)
-    // 2. Diamond hands ratio (users still holding)
-    // 3. Early buyers still holding ratio
+    // 1. Re-entry ratio (users who sold and bought back) - 30% weight
+    // 2. Diamond hands ratio (users still holding) - 40% weight
+    // 3. Early buyers still holding ratio - 30% weight
     const securityScore = calculateSecurityScore(transactions);
     console.log(`🔒 [Job ${job.id}] Security score calculated: ${securityScore}/100`);
     
-    // Parse risk score from Claude's analysis (kept for backward compatibility)
-    // This is more accurate than algorithmic score because it considers diamond hands, early buyers,
-    // manipulation patterns, profit/loss distribution, and all other detailed analysis points
-    let riskScore: number;
-    try {
-      riskScore = parseRiskScore(rawResponse);
-      console.log(`🎯 [Job ${job.id}] Risk score parsed from Claude's analysis: ${riskScore}/100`);
-    } catch (parseError: any) {
-      console.error(`❌ [Job ${job.id}] ERROR parsing risk score:`, {
-        error: parseError.message,
-        stack: parseError.stack,
-      });
-      // Fallback to algorithmic score if Claude's score cannot be parsed
-      if (riskScoreBreakdown && riskScoreBreakdown.totalScore !== undefined) {
-        riskScore = riskScoreBreakdown.totalScore;
-        console.log(`🎯 [Job ${job.id}] Using algorithmic risk score as fallback: ${riskScore}/100`);
-      } else {
-        riskScore = 50; // Final fallback
-      }
-    }
+    // Risk score is no longer used - kept for backward compatibility only
+    const riskScore = 50; // Default value, not used in UI
     
     // ✅ DETAYLI LOG: Analysis result oluşturulmadan önce kontrol
     console.log(`📦 [Job ${job.id}] Creating analysis result object...`);
