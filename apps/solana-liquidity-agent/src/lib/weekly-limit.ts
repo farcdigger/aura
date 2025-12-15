@@ -59,13 +59,15 @@ export async function checkAndIncrementWeeklyLimit(): Promise<{
     }
     
     // Mevcut sayıyı artır
+    const beforeIncr = await redis.get(key);
     const current = await redis.incr(key);
-    console.log(`[WeeklyLimit] Incremented count for key ${key}: ${current}`);
+    console.log(`[WeeklyLimit] Incremented count for key ${key}: ${beforeIncr || '0'} -> ${current}`);
     
     // İlk kez set ediliyorsa (current === 1) TTL ayarla (haftanın sonuna kadar)
     if (current === 1) {
       const ttl = Math.floor((weekEnd.getTime() - now.getTime()) / 1000);
       await redis.expire(key, ttl);
+      console.log(`[WeeklyLimit] Set TTL for new key: ${ttl}s`);
     }
     
     const allowed = current <= WEEKLY_LIMIT;
