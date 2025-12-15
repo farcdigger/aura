@@ -481,35 +481,39 @@ export default function DeepResearchModal({
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold">Analysis Complete</p>
-                {analysisResult?.securityScore !== undefined && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Security Score:</span>
-                      <span className={`font-bold text-lg ${
-                        analysisResult.securityScore >= 80 ? 'text-green-600' :
-                        analysisResult.securityScore >= 60 ? 'text-green-500' :
-                        analysisResult.securityScore >= 40 ? 'text-yellow-500' :
-                        analysisResult.securityScore >= 20 ? 'text-orange-500' :
-                        'text-red-600'
-                      }`}>
-                        {analysisResult.securityScore}/100
-                      </span>
+                {(() => {
+                  // Get security score from nested structure
+                  const securityScore = analysisResult?.securityScore || analysisResult?.analysisResult?.securityScore;
+                  return securityScore !== undefined && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">Security Score:</span>
+                        <span className={`font-bold text-lg ${
+                          securityScore >= 80 ? 'text-green-600' :
+                          securityScore >= 60 ? 'text-green-500' :
+                          securityScore >= 40 ? 'text-yellow-500' :
+                          securityScore >= 20 ? 'text-orange-500' :
+                          'text-red-600'
+                        }`}>
+                          {securityScore}/100
+                        </span>
+                      </div>
+                      {/* Security Score Bar */}
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div
+                          className={`h-3 rounded-full transition-all duration-500 ${
+                            securityScore >= 80 ? 'bg-green-500' :
+                            securityScore >= 60 ? 'bg-green-400' :
+                            securityScore >= 40 ? 'bg-yellow-500' :
+                            securityScore >= 20 ? 'bg-orange-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${securityScore}%` }}
+                        />
+                      </div>
                     </div>
-                    {/* Security Score Bar */}
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                      <div
-                        className={`h-3 rounded-full transition-all duration-500 ${
-                          analysisResult.securityScore >= 80 ? 'bg-green-500' :
-                          analysisResult.securityScore >= 60 ? 'bg-green-400' :
-                          analysisResult.securityScore >= 40 ? 'bg-yellow-500' :
-                          analysisResult.securityScore >= 20 ? 'bg-orange-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${analysisResult.securityScore}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Report generated successfully

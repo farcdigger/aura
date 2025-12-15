@@ -413,6 +413,7 @@ export default function DeepResearchPage() {
                       className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
                       onClick={() => {
                         setSelectedAnalysis({
+                          ...report, // Spread the report to include securityScore at top level
                           analysisResult: report,
                           riskScore: 0, // Kept for backward compatibility
                         });

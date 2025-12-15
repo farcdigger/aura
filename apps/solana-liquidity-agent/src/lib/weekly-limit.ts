@@ -110,7 +110,7 @@ export async function getWeeklyLimitStatus(): Promise<{
   try {
     const now = new Date();
     
-    // Calculate next reset time (Sunday UTC 22:15)
+    // Calculate next reset time (Sunday UTC 22:00)
     const weekEnd = getWeekEnd(now);
     const resetsIn = Math.max(0, Math.floor((weekEnd.getTime() - now.getTime()) / 1000));
     
@@ -189,32 +189,57 @@ export async function getWeeklyLimitStatus(): Promise<{
 }
 
 /**
- * ISO Week formatında key oluştur (YYYY-Www)
+ * Week formatında key oluştur (YYYY-Www)
  * Örnek: 2025-W50
+ * Pazar haftanın son günü, Pazartesi haftanın ilk günü
  */
 function getISOWeekKey(date: Date): string {
   const year = date.getFullYear();
-  const weekNumber = getISOWeek(date);
+  const weekNumber = getWeekNumber(date);
   return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
 /**
- * ISO 8601 week number hesapla
- * Pazartesi haftanın ilk günü
+ * Week number hesapla (Pazar haftanın son günü)
+ * Pazar gecesi reset yapıldığı için, hafta numarası Pazartesi'den başlar
  */
-function getISOWeek(date: Date): number {
+function getWeekNumber(date: Date): number {
   const tempDate = new Date(date.getTime());
   
-  // Perşembeye kaydır (ISO 8601 standardı)
-  tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7));
+  // Pazar'ı haftanın son günü olarak kabul et, Pazartesi'yi haftanın ilk günü yap
+  // Pazar = 0, Pazartesi = 1, ..., Cumartesi = 6
+  const dayOfWeek = tempDate.getDay(); // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
   
-  // Yılın ilk Perşembesi
-  const week1 = new Date(tempDate.getFullYear(), 0, 4);
+  // Eğer Pazar ise, bir önceki Pazartesi'ye git (aynı hafta)
+  // Pazar gecesi reset yapıldığı için, Pazar günü hala eski hafta sayılır
+  if (dayOfWeek === 0) {
+    // Pazar günü - bir önceki Pazartesi'ye git (aynı hafta)
+    tempDate.setDate(tempDate.getDate() - 6);
+  } else {
+    // Diğer günler - bu haftanın Pazartesi'sine git
+    tempDate.setDate(tempDate.getDate() - (dayOfWeek - 1));
+  }
+  
+  // Yılın ilk Pazartesi'sini bul
+  const jan1 = new Date(tempDate.getFullYear(), 0, 1);
+  const jan1DayOfWeek = jan1.getDay(); // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
+  
+  // İlk Pazartesi'yi bul
+  let firstMonday: Date;
+  if (jan1DayOfWeek === 0) {
+    // 1 Ocak Pazar ise, 2 Ocak Pazartesi
+    firstMonday = new Date(tempDate.getFullYear(), 0, 2);
+  } else if (jan1DayOfWeek === 1) {
+    // 1 Ocak Pazartesi ise, o gün
+    firstMonday = new Date(tempDate.getFullYear(), 0, 1);
+  } else {
+    // Diğer günler ise, ilk Pazartesi'ye git
+    firstMonday = new Date(tempDate.getFullYear(), 0, 1 + (8 - jan1DayOfWeek));
+  }
   
   // Hafta numarasını hesapla
-  const weekNumber = 1 + Math.round(
-    ((tempDate.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
-  );
+  const daysDiff = Math.floor((tempDate.getTime() - firstMonday.getTime()) / (1000 * 60 * 60 * 24));
+  const weekNumber = Math.floor(daysDiff / 7) + 1;
   
   return weekNumber;
 }
