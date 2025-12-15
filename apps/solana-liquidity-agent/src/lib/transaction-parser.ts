@@ -758,9 +758,9 @@ export function analyzeTransactions(
     const recentNewWalletVolumePercent = totalUsdVolume > 0 ? (recentNewWalletVolume / totalUsdVolume) * 100 : 0;
 
     if (recentNewWalletVolumePercent > 50 && newWalletTxPercent > 60) {
-        suspiciousPatterns.push(
+      suspiciousPatterns.push(
           `🆕 New Wallet Activity: ${newWalletTxPercent.toFixed(0)}% of recent buyers are new wallets (previously unseen). ${recentNewWalletVolumePercent.toFixed(1)}% of volume comes from new investors. Project is expanding beyond its ecosystem and going viral - organic growth indicator`
-        );
+      );
     } else if (newWalletVolumePercent < 20 && newWalletTxPercent < 30) {
       suspiciousPatterns.push(
         `🔄 KAPALI DÖNGÜ: Hacmin ${((1 - newWalletVolumePercent / 100) * 100).toFixed(0)}%'i mevcut cüzdanlardan geliyor. Token kendi içinde dönüyor, dışarıdan yatırımcı çekemiyor - organik büyüme yok`

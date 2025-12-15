@@ -62,7 +62,15 @@ export default function DeepResearchModal({
             const data = await response.json();
             
             if (data.status === "completed") {
-              setAnalysisResult(data.result);
+              // data.result contains { success, recordId, poolId, riskScore, analysisResult }
+              // We need to merge analysisResult with the top-level fields for easier access
+              const result = data.result || {};
+              setAnalysisResult({
+                ...result.analysisResult, // Spread the nested analysisResult
+                recordId: result.recordId, // Include recordId at top level
+                poolId: result.poolId, // Include poolId at top level
+                securityScore: result.analysisResult?.securityScore, // Ensure securityScore is accessible
+              });
               setStatus("completed");
               setProgress(100);
               clearInterval(interval);
