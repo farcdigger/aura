@@ -198,7 +198,7 @@ export default function DeepResearchModal({
 
   const handleStartAnalysis = async () => {
     if (!tokenMint.trim()) {
-      setError("Please enter a token mint address");
+      setError("Please enter a token address");
       return;
     }
 

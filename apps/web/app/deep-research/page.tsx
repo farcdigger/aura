@@ -146,7 +146,7 @@ export default function DeepResearchPage() {
 
   const handleStartAnalysis = () => {
     if (!tokenMint.trim()) {
-      alert("Please enter a token mint address");
+      alert("Please enter a token address");
       return;
     }
     setShowModal(true);
@@ -204,7 +204,7 @@ export default function DeepResearchPage() {
               ⚠️ Important: Solana Network Only
             </p>
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              This analysis tool only supports tokens on the Solana network. Please enter a Solana token mint address.
+              This analysis tool only supports tokens on the Solana network. Please enter a Solana token address.
             </p>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function DeepResearchPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Token Mint Address
+                    Token Address
                   </label>
                   <input
                     type="text"
@@ -359,7 +359,7 @@ export default function DeepResearchPage() {
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                    Enter the Solana token mint address you want to analyze
+                    Enter the Solana token address you want to analyze
                   </p>
                 </div>
 
