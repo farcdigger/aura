@@ -464,8 +464,6 @@ Write this section in simple language. Explain each point like you're talking to
   - Both high = Strong organic interest
   - Both low = Low activity, high risk
 - **Average transaction size: $${avgTransactionSize.toFixed(2)}** - For tokens, $5-50 is NORMAL retail activity. Don't call it "suspicious" without context!
-- **High-value buyers analysis:** Look at the HIGH-VALUE BUYERS section above. Which wallets made large buys? Did they sell after (profit-taking) or are they holding (conviction)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "3Twiy4pPsPt7Ptge7ghXPtqK3ww4WN5XnoiZhz2Txjeh" not "3Twiy4pP...".
-- **High-value sellers analysis:** Look at the HIGH-VALUE SELLERS section above. Which wallets made large sells? Did they re-enter (accumulation strategy) or exit completely (bearish)? **CRITICAL:** Always show FULL wallet addresses (not truncated with ...). Example: "BvyEhJjPiFbHQFAvNe3eTdHbyFPcScTAKSNwxEcjatSm" not "BvyEhJjP...".
 - **Wallet Behavior Statistics:** 
   ${transactions.walletStats ? `
   - **Diamond Hands (Holding):** ${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} high-value buyers are still holding (${transactions.walletStats.diamondHandsRatio.toFixed(1)}% diamond hands ratio). **CRITICAL:** Always mention the exact number: "${transactions.walletStats.diamondHandsCount} high-value buyers" not "important portion" or "significant number".
@@ -637,12 +635,7 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
 - **Analysis Required:** Explain the significance of this wash trading volume. If it's <5% of total volume, it's likely not significant. If it's >10%, it could be manipulating price discovery.
 ` : '- **No wash trading detected** - normal trading patterns observed.'}
 
-**🔍 WALLET-SPECIFIC ANALYSIS (REQUIRED):**
-- **Mention specific wallet addresses** from HIGH-VALUE BUYERS and HIGH-VALUE SELLERS sections
-- For each significant wallet, explain: "Wallet [ADDRESS] made [X] large buys totaling $[Y]. They [HOLDING/SOLD after buy]. This suggests [conviction/profit-taking/accumulation]."
-- **Identify suspicious wallets:** "Wallet [ADDRESS] shows bot-like behavior: [specific pattern]. This wallet should be monitored."
-- **Identify bullish wallets:** "Wallet [ADDRESS] is accumulating: [specific pattern]. This is a positive signal."
-- **Wallet Behavior Statistics (IMPORTANT - Include these numbers in your analysis):**
+**Wallet Behavior Statistics (IMPORTANT - Include these numbers in your analysis):**
   ${transactions.walletStats ? `
   - **Diamond Hands Ratio:** ${transactions.walletStats.diamondHandsRatio.toFixed(1)}% of high-value buyers are still holding (${transactions.walletStats.diamondHandsCount} out of ${transactions.highValueBuyers?.length || 0} wallets)
   - **Re-Entry Ratio:** ${transactions.walletStats.reEntryRatio.toFixed(1)}% of high-value sellers re-entered after selling (${transactions.walletStats.reEntryCount} out of ${transactions.highValueSellers?.length || 0} wallets)
@@ -662,6 +655,7 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
 5. **Make It Interesting:** Use emojis, bold text, and clear sections to make it easy to read
 6. **No Financial Advice:** Don't tell people to buy or sell - just tell them the risks
 7. **Be Helpful:** Help people understand what the data means for them
+8. **DO NOT mention specific wallet addresses:** Do NOT include "High-Value Buyers Analysis" or "High-Value Sellers Analysis" sections with specific wallet addresses. Do NOT include a "WALLET-SPECIFIC ANALYSIS" section. Only mention aggregate statistics (e.g., "X% of high-value buyers are holding") without listing individual wallet addresses.
 8. **Add Visual Diagrams:** For critical information, add simple ASCII art diagrams or visual representations:
    - **Support/Resistance Levels:** Use a simple price chart with lines
    - **Profit/Loss Distribution:** Use a simple bar chart or pie representation
