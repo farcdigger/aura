@@ -103,57 +103,81 @@ async function processAnalysis(job: Job<QueueJobData>) {
       console.log(`✅ [Job ${job.id}] Birdeye reserves fetched successfully.`);
 
     } catch (birdeyeError: any) {
-      console.warn(`⚠️ [Job ${job.id}] Birdeye failed, trying DexScreener fallback...`);
+      console.warn(`⚠️ [Job ${job.id}] Birdeye failed, trying fallback...`);
       
       // ==========================================================================
-      // FALLBACK: DEXSCREENER LOGIC
+      // FALLBACK: DEXSCREENER LOGIC (Only for Solana)
       // ==========================================================================
-      try {
-        if (job.data.tokenMint) {
-          const { findBestPoolViaDexScreener } = await import('./lib/dexscreener-client');
-          // DexScreener'dan veri çek
-          const dexScreenerData = await findBestPoolViaDexScreener(job.data.tokenMint);
-          
-          if (dexScreenerData) {
-            // Pool ID kontrolü
-            if (dexScreenerData.poolAddress.toLowerCase() === poolId.toLowerCase()) {
-              console.log(`✅ [Job ${job.id}] DexScreener pool matches job pool ID`);
-            } else {
-              console.warn(`⚠️ [Job ${job.id}] Using DexScreener data as best alternative.`);
+      if (network === 'solana') {
+        try {
+          if (job.data.tokenMint) {
+            const { findBestPoolViaDexScreener } = await import('./lib/dexscreener-client');
+            // DexScreener'dan veri çek
+            const dexScreenerData = await findBestPoolViaDexScreener(job.data.tokenMint);
+            
+            if (dexScreenerData) {
+              // Pool ID kontrolü
+              if (dexScreenerData.poolAddress.toLowerCase() === poolId.toLowerCase()) {
+                console.log(`✅ [Job ${job.id}] DexScreener pool matches job pool ID`);
+              } else {
+                console.warn(`⚠️ [Job ${job.id}] Using DexScreener data as best alternative.`);
+              }
+              
+              // LP Supply Tahmini
+              let lpSupply: string | undefined = undefined;
+              const resA = dexScreenerData.liquidityQuote || 0; // İsimlendirmeye dikkat (Quote/Base)
+              const resB = dexScreenerData.liquidityBase || 0;
+              
+              if (resA > 0 && resB > 0) {
+                const calculatedLP = Math.sqrt(resA * resB);
+                lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
+              }
+              
+              // ✅ DÜZELTME: Dışarıdaki 'reserves' değişkenine atama yapıyoruz
+              // ✅ Tip güvenliği: dexScreenerData null kontrolü yapıldıktan sonra buraya geliyoruz
+              // baseToken ve quoteToken artık zorunlu alanlar (types.ts'de güncellendi)
+              reserves = {
+                tokenAMint: dexScreenerData.baseToken.address,
+                tokenBMint: dexScreenerData.quoteToken.address,
+                tokenAReserve: dexScreenerData.liquidityBase, // Artık zorunlu alan, || 0 gerekmez ama güvenlik için bırakıyoruz
+                tokenBReserve: dexScreenerData.liquidityQuote, // Artık zorunlu alan
+                tokenASymbol: dexScreenerData.baseToken.symbol,
+                tokenBSymbol: dexScreenerData.quoteToken.symbol,
+                tvlUSD: dexScreenerData.liquidityUsd || 0,
+                marketCap: dexScreenerData.marketCap, // Use DexScreener's market cap if available
+                lpSupply,
+                poolStatus: 'Active',
+                poolType: dexScreenerData.dexLabel,
+              };
+              
+              console.log(`📊 [Job ${job.id}] Fallback reserves created successfully.`);
             }
-            
-            // LP Supply Tahmini
-            let lpSupply: string | undefined = undefined;
-            const resA = dexScreenerData.liquidityQuote || 0; // İsimlendirmeye dikkat (Quote/Base)
-            const resB = dexScreenerData.liquidityBase || 0;
-            
-            if (resA > 0 && resB > 0) {
-              const calculatedLP = Math.sqrt(resA * resB);
-              lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            }
-            
-            // ✅ DÜZELTME: Dışarıdaki 'reserves' değişkenine atama yapıyoruz
-            // ✅ Tip güvenliği: dexScreenerData null kontrolü yapıldıktan sonra buraya geliyoruz
-            // baseToken ve quoteToken artık zorunlu alanlar (types.ts'de güncellendi)
-            reserves = {
-              tokenAMint: dexScreenerData.baseToken.address,
-              tokenBMint: dexScreenerData.quoteToken.address,
-              tokenAReserve: dexScreenerData.liquidityBase, // Artık zorunlu alan, || 0 gerekmez ama güvenlik için bırakıyoruz
-              tokenBReserve: dexScreenerData.liquidityQuote, // Artık zorunlu alan
-              tokenASymbol: dexScreenerData.baseToken.symbol,
-              tokenBSymbol: dexScreenerData.quoteToken.symbol,
-              tvlUSD: dexScreenerData.liquidityUsd || 0,
-              marketCap: dexScreenerData.marketCap, // Use DexScreener's market cap if available
-              lpSupply,
-              poolStatus: 'Active',
-              poolType: dexScreenerData.dexLabel,
-            };
-            
-            console.log(`📊 [Job ${job.id}] Fallback reserves created successfully.`);
           }
+        } catch (dexError: any) {
+          console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
         }
-      } catch (dexError: any) {
-        console.warn(`⚠️ [Job ${job.id}] DexScreener fallback also failed: ${dexError.message}`);
+      } else {
+        // For EVM chains, if Birdeye fails, we can't use DexScreener (it's Solana-only)
+        // Try to create minimal reserves from token metadata
+        console.warn(`⚠️ [Job ${job.id}] EVM chain (${network}) - Birdeye failed, creating minimal reserves from token data...`);
+        try {
+          const tokenMetadata = await birdeyeClient.getTokenMetadata(poolId);
+          reserves = {
+            tokenAMint: poolId,
+            tokenBMint: '', // Will be filled from swap transactions
+            tokenAReserve: 0,
+            tokenBReserve: 0,
+            tokenASymbol: tokenMetadata.symbol || 'UNKNOWN',
+            tokenBSymbol: '',
+            tvlUSD: 0,
+            lpSupply: undefined,
+            poolStatus: 'Active',
+            poolType: 'Unknown',
+          };
+          console.log(`📊 [Job ${job.id}] Minimal reserves created from token metadata.`);
+        } catch (tokenError: any) {
+          console.warn(`⚠️ [Job ${job.id}] Failed to create minimal reserves: ${tokenError.message}`);
+        }
       }
     }
 

@@ -617,18 +617,73 @@ export class BirdeyeClient {
   }
 
   /**
-   * Get pool/pair data from Birdeye API
+   * Get pool address from token address (for EVM chains)
+   * Fetches swap transactions and extracts the most used pool address
    * 
-   * @param pairAddress Trading pair address (pool address)
+   * @param tokenAddress Token contract address
+   * @returns Pool address or null if not found
+   */
+  async getPoolAddressFromToken(tokenAddress: string): Promise<string | null> {
+    try {
+      await this.rateLimit();
+
+      // Fetch recent swap transactions for this token
+      const swaps = await this.getSwapTransactions(tokenAddress, 10); // Get first 10 swaps
+      
+      if (swaps.length === 0) {
+        return null;
+      }
+
+      // Find the most common pool address from swaps
+      const poolCounts: Record<string, number> = {};
+      for (const swap of swaps) {
+        if (swap.poolId) {
+          poolCounts[swap.poolId] = (poolCounts[swap.poolId] || 0) + 1;
+        }
+      }
+
+      // Return the most used pool
+      const mostUsedPool = Object.entries(poolCounts)
+        .sort(([, a], [, b]) => b - a)[0]?.[0];
+      
+      return mostUsedPool || null;
+    } catch (error: any) {
+      console.warn(`[BirdeyeClient] ⚠️ Failed to get pool address from token: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get pool/pair data from Birdeye API
+   * For EVM chains, if pairAddress is a token address, try to find the pool first
+   * 
+   * @param pairAddress Trading pair address (pool address) or token address (for EVM)
    * @returns Pool reserves and liquidity data
    */
   async getPoolData(pairAddress: string): Promise<AdjustedPoolReserves> {
     try {
       await this.rateLimit();
 
-      const url = `${BIRDEYE_API_BASE}/defi/pair?address=${pairAddress}`;
+      // For EVM chains, if pairAddress looks like a token address (starts with 0x and is 42 chars),
+      // try to find the actual pool address first
+      let actualPoolAddress = pairAddress;
+      if (this.network === 'base' || this.network === 'bsc') {
+        if (pairAddress.startsWith('0x') && pairAddress.length === 42) {
+          // This might be a token address, try to find the pool
+          console.log(`[BirdeyeClient] 🔍 Detected token address, trying to find pool...`);
+          const poolAddress = await this.getPoolAddressFromToken(pairAddress);
+          if (poolAddress) {
+            actualPoolAddress = poolAddress;
+            console.log(`[BirdeyeClient] ✅ Found pool address: ${actualPoolAddress}`);
+          } else {
+            console.warn(`[BirdeyeClient] ⚠️ Could not find pool from token address, using token address as pool ID`);
+          }
+        }
+      }
+
+      const url = `${BIRDEYE_API_BASE}/defi/pair?address=${actualPoolAddress}`;
       
-      console.log(`[BirdeyeClient] 🔍 Fetching pool data for: ${pairAddress}`);
+      console.log(`[BirdeyeClient] 🔍 Fetching pool data for: ${actualPoolAddress}`);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -640,6 +695,12 @@ export class BirdeyeClient {
       });
 
       if (!response.ok) {
+        // For EVM chains, if pair endpoint fails, try to get pool data from token market data
+        if ((this.network === 'base' || this.network === 'bsc') && response.status === 404) {
+          console.log(`[BirdeyeClient] ⚠️ Pair endpoint 404, trying token market data endpoint...`);
+          return await this.getPoolDataFromTokenMarketData(pairAddress);
+        }
+        
         const errorText = await response.text();
         throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
