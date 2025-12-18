@@ -10,6 +10,7 @@
 
 import type { ParsedSwap, TokenMetadata, AdjustedPoolReserves, Network } from './types';
 import { parseEvmSwapTransaction, type EvmSwapTransaction } from './evm-transaction-parser';
+import { getAddress } from 'ethers';
 
 // =============================================================================
 // CONSTANTS
@@ -158,6 +159,18 @@ export class BirdeyeClient {
     limit: number = 10000, // Production: default 10,000 swaps
     tokenMint?: string
   ): Promise<ParsedSwap[]> {
+    // For EVM chains, if pairAddress is a token address (starts with 0x and is 42 chars),
+    // we should use token endpoint directly instead of trying pair endpoint first
+    const isEvmTokenAddress = (this.network === 'base' || this.network === 'bsc') && 
+                               pairAddress.startsWith('0x') && 
+                               pairAddress.length === 42;
+    
+    // If it's an EVM token address and we don't have a separate tokenMint, use token address as tokenMint
+    if (isEvmTokenAddress && !tokenMint) {
+      tokenMint = pairAddress;
+      console.log(`[BirdeyeClient] 🔍 Detected EVM token address, will use /defi/txs/token endpoint`);
+    }
+    
     try {
       console.log(`[BirdeyeClient] 🔍 Fetching swap transactions...`);
       console.log(`[BirdeyeClient]    Pair Address: ${pairAddress}`);
@@ -170,12 +183,12 @@ export class BirdeyeClient {
       const targetLimit = Math.min(limit, MAX_TOTAL_SWAPS);
 
       // Strategy: Try multiple endpoints in order
-      // ✅ DÜZELTME: Pair endpoint'i önce dene (daha verimli - direkt pool'a özel swap'lar)
-      // Eğer pair endpoint 404 verirse, token endpoint'e geç
-      // 1. Pair v2 endpoint: /defi/txs/pair (önce dene - daha verimli)
-      // 2. Token v2 endpoint: /defi/txs/token (fallback - tüm token swap'larını çekip filtrele)
-      // ❌ REMOVED: SEEK_BY_TIME endpoint (requires before_time/after_time params)
-      let endpointStrategy: 'pair_v2' | 'token_v2' = 'pair_v2'; // Önce pair endpoint'i dene
+      // For EVM chains with token address, use token endpoint directly
+      // For Solana or when we have a pool address, try pair endpoint first
+      // 1. Pair v2 endpoint: /defi/txs/pair (for Solana or known pool addresses)
+      // 2. Token v2 endpoint: /defi/txs/token (for EVM token addresses)
+      let endpointStrategy: 'pair_v2' | 'token_v2' = 
+        (isEvmTokenAddress && tokenMint) ? 'token_v2' : 'pair_v2';
       let lastError: any = null;
       let pairEndpointFailed = false; // Pair endpoint başarısız oldu mu?
       
@@ -617,36 +630,85 @@ export class BirdeyeClient {
   }
 
   /**
+   * Get markets (pools) for a token using /defi/v2/markets endpoint
+   * Returns all pools where the token is traded, sorted by liquidity
+   * 
+   * @param tokenAddress Token contract address (checksummed)
+   * @returns Array of market data with pool addresses and liquidity info
+   */
+  async getTokenMarkets(tokenAddress: string): Promise<Array<{
+    address: string; // Pool address
+    source: string; // DEX name (e.g., 'aerodrome', 'pancakeswap')
+    liquidity: number; // USD liquidity
+    volume_24h?: number; // 24h volume
+    price?: number; // Token price in this pool
+  }>> {
+    try {
+      await this.rateLimit();
+
+      // Ensure checksummed address
+      const checksummedAddress = getAddress(tokenAddress.toLowerCase());
+      
+      const url = `${BIRDEYE_API_BASE}/defi/v2/markets?address=${checksummedAddress}&sort_by=liquidity&sort_type=desc`;
+      
+      console.log(`[BirdeyeClient] 🔍 Fetching markets for token: ${checksummedAddress}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-KEY': BIRDEYE_API_KEY,
+          'x-chain': this.getChainHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`[BirdeyeClient] ⚠️ Markets API error (${response.status}):`, errorText.substring(0, 200));
+        return [];
+      }
+
+      const data = await response.json();
+      const markets = data.data || data.items || [];
+
+      // Parse and return market data
+      return markets.map((market: any) => ({
+        address: market.address || market.pairAddress,
+        source: market.source || market.dexId || 'unknown',
+        liquidity: parseFloat(market.liquidity?.usd || market.liquidityUSD || '0'),
+        volume_24h: market.volume_24h ? parseFloat(market.volume_24h) : undefined,
+        price: market.price ? parseFloat(market.price) : undefined,
+      }));
+    } catch (error: any) {
+      console.error(`[BirdeyeClient] ❌ Failed to get token markets:`, error.message);
+      return [];
+    }
+  }
+
+  /**
    * Get pool address from token address (for EVM chains)
-   * Fetches swap transactions and extracts the most used pool address
+   * Uses /defi/v2/markets endpoint to find the most liquid pool
    * 
    * @param tokenAddress Token contract address
    * @returns Pool address or null if not found
    */
   async getPoolAddressFromToken(tokenAddress: string): Promise<string | null> {
     try {
-      await this.rateLimit();
-
-      // Fetch recent swap transactions for this token
-      const swaps = await this.getSwapTransactions(tokenAddress, 10); // Get first 10 swaps
+      // Use /defi/v2/markets endpoint to find pools
+      const markets = await this.getTokenMarkets(tokenAddress);
       
-      if (swaps.length === 0) {
+      if (markets.length === 0) {
+        console.warn(`[BirdeyeClient] ⚠️ No markets found for token: ${tokenAddress}`);
         return null;
       }
 
-      // Find the most common pool address from swaps
-      const poolCounts: Record<string, number> = {};
-      for (const swap of swaps) {
-        if (swap.poolId) {
-          poolCounts[swap.poolId] = (poolCounts[swap.poolId] || 0) + 1;
-        }
-      }
+      // Filter by liquidity threshold (min $10,000) and get the most liquid pool
+      const liquidMarkets = markets.filter(m => m.liquidity >= 10000);
+      const bestMarket = liquidMarkets.length > 0 ? liquidMarkets[0] : markets[0];
 
-      // Return the most used pool
-      const mostUsedPool = Object.entries(poolCounts)
-        .sort(([, a], [, b]) => b - a)[0]?.[0];
+      console.log(`[BirdeyeClient] ✅ Found ${markets.length} markets, selected most liquid: ${bestMarket.address} (${bestMarket.source}, $${bestMarket.liquidity.toLocaleString()} liquidity)`);
       
-      return mostUsedPool || null;
+      return bestMarket.address;
     } catch (error: any) {
       console.warn(`[BirdeyeClient] ⚠️ Failed to get pool address from token: ${error.message}`);
       return null;

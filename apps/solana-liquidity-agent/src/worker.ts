@@ -227,7 +227,13 @@ async function processAnalysis(job: Job<QueueJobData>) {
     // ✅ Swap limitini 10000'e çıkardık (daha kapsamlı analiz için)
     const txLimit = options?.transactionLimit || 10000;
     
-    const swaps = await birdeyeClient.getSwapTransactions(poolId, txLimit, job.data.tokenMint);
+    // For EVM chains, if poolId is a token address, pass it as tokenMint to use token endpoint
+    // For Solana, use poolId as pool address
+    const swapAddress = (network === 'base' || network === 'bsc') && job.data.tokenMint 
+      ? job.data.tokenMint  // Use token address for EVM chains
+      : poolId;              // Use pool address for Solana
+    
+    const swaps = await birdeyeClient.getSwapTransactions(swapAddress, txLimit, job.data.tokenMint);
     
     if (swaps.length === 0) {
       throw new Error('No swap data available for analysis.');
