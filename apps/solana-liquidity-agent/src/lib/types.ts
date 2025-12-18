@@ -11,18 +11,10 @@ export type Network = 'solana' | 'base' | 'bsc';
 // =============================================================================
 
 export const PoolAnalysisInputSchema = z.object({
-  poolId: z
-    .string()
-    .min(32)
-    .max(44)
-    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/)
-    .optional(),
-  tokenMint: z
-    .string()
-    .min(32)
-    .max(44)
-    .regex(/^[1-9A-HJ-NP-Za-km-z]+$/)
-    .optional(),
+  poolId: z.string().optional(),
+  tokenMint: z.string().optional(),
+  network: z.enum(['solana', 'base', 'bsc']).optional().default('solana'),
+  userWallet: z.string().optional(),
   userId: z.string().optional(),
   options: z.object({
     transactionLimit: z.number().min(1).max(10000).optional(),
@@ -35,7 +27,83 @@ export const PoolAnalysisInputSchema = z.object({
     message: 'Either poolId or tokenMint must be provided',
     path: ['poolId', 'tokenMint'],
   }
-);
+).superRefine((data, ctx) => {
+  const network = data.network || 'solana';
+  
+  // Validate poolId if provided
+  if (data.poolId) {
+    if (network === 'solana') {
+      // Solana: Base58, 32-44 chars
+      if (data.poolId.length < 32 || data.poolId.length > 44) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['poolId'],
+          message: 'Solana pool ID must be 32-44 characters long',
+        });
+      }
+      if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(data.poolId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['poolId'],
+          message: 'Solana pool ID must be Base58 format (no 0x prefix)',
+        });
+      }
+    } else {
+      // EVM (Base/BSC): Hex, 0x + 40 hex (42 total)
+      if (!data.poolId.startsWith('0x') && !data.poolId.startsWith('0X')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['poolId'],
+          message: `${network === 'base' ? 'Base' : 'BSC'} pool ID must start with 0x`,
+        });
+      }
+      if (data.poolId.length !== 42) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['poolId'],
+          message: `${network === 'base' ? 'Base' : 'BSC'} pool ID must be 42 characters long (0x + 40 hex)`,
+        });
+      }
+    }
+  }
+  
+  // Validate tokenMint if provided
+  if (data.tokenMint) {
+    if (network === 'solana') {
+      // Solana: Base58, 32-44 chars
+      if (data.tokenMint.length < 32 || data.tokenMint.length > 44) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['tokenMint'],
+          message: 'Solana token address must be 32-44 characters long',
+        });
+      }
+      if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(data.tokenMint)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['tokenMint'],
+          message: 'Solana token address must be Base58 format (no 0x prefix)',
+        });
+      }
+    } else {
+      // EVM (Base/BSC): Hex, 0x + 40 hex (42 total)
+      if (!data.tokenMint.startsWith('0x') && !data.tokenMint.startsWith('0X')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['tokenMint'],
+          message: `${network === 'base' ? 'Base' : 'BSC'} token address must start with 0x`,
+        });
+      }
+      if (data.tokenMint.length !== 42) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['tokenMint'],
+          message: `${network === 'base' ? 'Base' : 'BSC'} token address must be 42 characters long (0x + 40 hex)`,
+        });
+      }
+    }
+  }
+});
 
 export type PoolAnalysisInput = z.infer<typeof PoolAnalysisInputSchema>;
 

@@ -73,24 +73,43 @@ const analyzeHandlerFn = async (c: any) => {
       
     } else if (input.tokenMint) {
       // Option 2: Token mint provided - auto-discover best pool
-      console.log(`🔍 Token mint provided: ${input.tokenMint}`);
-      console.log(`🎯 Using 3-Tier Pool Discovery (Known → Jupiter → Fallback)...`);
+      const network = input.network || 'solana';
+      console.log(`🔍 Token mint provided: ${input.tokenMint} (network: ${network})`);
       
       discoveryMethod = 'auto-discovery';
       
-      // Find best pool using 3-tier approach (super fast!)
-      const bestPoolId = await findMostLiquidPoolForMint(input.tokenMint);
-      
-      if (!bestPoolId) {
-        return c.json({
-          error: 'Pool discovery failed',
-          message: `No pools found for token: ${input.tokenMint}`,
-          suggestion: 'Token might be too new or not have sufficient liquidity',
-        }, 404);
+      // Network-aware pool discovery
+      if (network === 'solana') {
+        // Solana: Use existing 3-tier pool discovery
+        console.log(`🎯 Using 3-Tier Pool Discovery (Known → Jupiter → Fallback)...`);
+        const bestPoolId = await findMostLiquidPoolForMint(input.tokenMint);
+        
+        if (!bestPoolId) {
+          return c.json({
+            error: 'Pool discovery failed',
+            message: `No pools found for token: ${input.tokenMint}`,
+            suggestion: 'Token might be too new or not have sufficient liquidity',
+          }, 404);
+        }
+        
+        poolId = bestPoolId;
+        console.log(`✅ Best pool discovered: ${poolId}`);
+      } else {
+        // EVM (Base/BSC): Use Birdeye API to find pool
+        console.log(`🎯 Using Birdeye API for ${network} pool discovery...`);
+        try {
+          const birdeyeClient = new BirdeyeClient(network);
+          // For EVM, we can use token address as pool identifier or fetch from Birdeye
+          // For now, use token address directly (Birdeye will handle pool lookup)
+          poolId = input.tokenMint; // Use token address as pool identifier for EVM
+          console.log(`✅ Using token address as pool identifier: ${poolId}`);
+        } catch (error: any) {
+          return c.json({
+            error: 'Pool discovery failed',
+            message: `Failed to initialize Birdeye client for ${network}: ${error.message}`,
+          }, 500);
+        }
       }
-      
-      poolId = bestPoolId;
-      console.log(`✅ Best pool discovered: ${poolId}`);
       
     } else {
       // Should not happen due to schema validation
@@ -159,12 +178,13 @@ const analyzeHandlerFn = async (c: any) => {
     let job;
     try {
       job = await addAnalysisJob({
-      poolId: poolId,
-      userId: input.userId,
-      userWallet: input.userWallet, // For user-specific tracking
-      tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
-      options: input.options,
-    });
+        poolId: poolId,
+        userId: input.userId,
+        userWallet: input.userWallet, // For user-specific tracking
+        tokenMint: input.tokenMint, // Pass token mint to worker for Pump.fun support
+        network: input.network || 'solana', // Network parameter (default: solana for backward compatibility)
+        options: input.options,
+      });
     } catch (queueError: any) {
       if (queueError.message && queueError.message.includes('Queue is full')) {
         return c.json({
