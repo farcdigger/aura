@@ -129,6 +129,8 @@ export interface TokenMetadata {
     freezeAuthority?: string | null;
     mintAuthority?: string | null;
   };
+  marketCap?: number; // Market cap from token overview (if available)
+  fdv?: number; // Fully Diluted Valuation from token overview (if available)
 }
 
 export interface PoolReserves {
