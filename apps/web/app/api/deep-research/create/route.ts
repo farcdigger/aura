@@ -19,6 +19,7 @@ import { env } from "@/env.mjs";
 interface CreateAnalysisRequest {
   tokenMint: string;
   userWallet: string;
+  network?: 'solana' | 'base' | 'bsc'; // Network selection (default: 'solana')
 }
 
 interface PricingInfo {
@@ -181,7 +182,8 @@ async function checkWeeklyLimit(userWallet: string): Promise<{
  */
 async function queueAnalysisJob(
   tokenMint: string,
-  userWallet: string
+  userWallet: string,
+  network: 'solana' | 'base' | 'bsc' = 'solana'
 ): Promise<{ jobId: string }> {
   try {
     const agentUrl = env.SOLANA_AGENT_URL || "http://localhost:3002";
@@ -191,6 +193,7 @@ async function queueAnalysisJob(
       body: JSON.stringify({
         tokenMint,
         userWallet,
+        network, // Add network parameter
         transactionLimit: 10000, // Lite plan: 10K swaps
       }),
     });
@@ -214,7 +217,7 @@ async function queueAnalysisJob(
 export async function POST(request: Request) {
   try {
     const body: CreateAnalysisRequest = await request.json();
-    const { tokenMint, userWallet } = body;
+    const { tokenMint, userWallet, network = 'solana' } = body;
 
     console.log("🔍 [Deep Research] Create analysis request:", {
       tokenMint,
@@ -335,7 +338,7 @@ export async function POST(request: Request) {
 
     // 5. Queue analysis job
     console.log("🚀 [Deep Research] Queuing analysis job...");
-    const { jobId } = await queueAnalysisJob(tokenMint, userWallet);
+    const { jobId } = await queueAnalysisJob(tokenMint, userWallet, network);
 
     console.log(`✅ Analysis queued: ${jobId}`);
 

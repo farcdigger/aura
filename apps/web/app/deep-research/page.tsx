@@ -21,6 +21,7 @@ export default function DeepResearchPage() {
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [hasNFT, setHasNFT] = useState<boolean | null>(null);
   const [isGamePlaying, setIsGamePlaying] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState<'solana' | 'base' | 'bsc'>('solana');
 
   // Fetch pricing info when wallet connects
   useEffect(() => {
@@ -349,17 +350,38 @@ export default function DeepResearchPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
+                    Network
+                  </label>
+                  <select
+                    value={selectedNetwork}
+                    onChange={(e) => setSelectedNetwork(e.target.value as 'solana' | 'base' | 'bsc')}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white mb-4"
+                  >
+                    <option value="solana">Solana</option>
+                    <option value="base">Base</option>
+                    <option value="bsc">BSC (Binance Smart Chain)</option>
+                  </select>
+                  
+                  <label className="block text-sm font-medium mb-2">
                     Token Address
                   </label>
                   <input
                     type="text"
                     value={tokenMint}
                     onChange={(e) => setTokenMint(e.target.value)}
-                    placeholder="e.g. C2omVhcvt3DDY77S2KZzawFJQeETZofgZ4eNWWkXpump"
+                    placeholder={
+                      selectedNetwork === 'solana'
+                        ? "e.g. C2omVhcvt3DDY77S2KZzawFJQeETZofgZ4eNWWkXpump"
+                        : "e.g. 0x1234567890123456789012345678901234567890"
+                    }
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                    Enter the Solana token address you want to analyze
+                    {selectedNetwork === 'solana'
+                      ? "Enter the Solana token address you want to analyze"
+                      : selectedNetwork === 'base'
+                      ? "Enter the Base token address (0x...) you want to analyze"
+                      : "Enter the BSC token address (0x...) you want to analyze"}
                   </p>
                 </div>
 
@@ -486,6 +508,7 @@ export default function DeepResearchPage() {
           userWallet={address ? address.toLowerCase() : ""}
           pricingInfo={pricingInfo}
           tokenMint={tokenMint}
+          network={selectedNetwork}
           onAnalysisComplete={() => {
             // Don't close modal - just refresh data
             fetchPricingInfo(true); // Refresh limits with loading state

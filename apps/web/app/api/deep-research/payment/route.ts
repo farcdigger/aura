@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { tokenMint, walletAddress } = body;
+    const { tokenMint, walletAddress, network = 'solana' } = body;
 
     if (!tokenMint || !walletAddress) {
       return NextResponse.json(
@@ -170,24 +170,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate token mint (Solana address: base58, 32-44 chars, NOT starting with 0x)
-    // Check if it's an Ethereum address (starts with 0x) - reject it
-    if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
+    // Network-aware address validation
+    if (network === 'solana') {
+      // Solana: Base58 format, 32-44 chars, NOT starting with 0x
+      if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
+        return NextResponse.json(
+          { 
+            error: "Invalid address format",
+            message: "Invalid Solana address format. Solana addresses do not start with 0x. Please enter a valid Solana token address."
+          },
+          { status: 400 }
+        );
+      }
+      if (tokenMint.length < 32 || tokenMint.length > 44) {
+        return NextResponse.json(
+          { 
+            error: "Invalid Solana address format",
+            message: "Invalid Solana address format. Solana addresses are 32-44 characters long. Please enter a valid Solana token address."
+          },
+          { status: 400 }
+        );
+      }
+    } else if (network === 'base' || network === 'bsc') {
+      // EVM (Base/BSC): Hex format, 0x + 40 hex characters (42 total)
+      if (!tokenMint.startsWith("0x") && !tokenMint.startsWith("0X")) {
+        return NextResponse.json(
+          { 
+            error: "Invalid address format",
+            message: `Invalid ${network === 'base' ? 'Base' : 'BSC'} address format. ${network === 'base' ? 'Base' : 'BSC'} addresses start with 0x. Please enter a valid token address.`
+          },
+          { status: 400 }
+        );
+      }
+      if (tokenMint.length !== 42) {
+        return NextResponse.json(
+          { 
+            error: "Invalid address format",
+            message: `Invalid ${network === 'base' ? 'Base' : 'BSC'} address format. ${network === 'base' ? 'Base' : 'BSC'} addresses are 42 characters long (0x + 40 hex characters). Please enter a valid token address.`
+          },
+          { status: 400 }
+        );
+      }
+    } else {
       return NextResponse.json(
         { 
           error: "Invalid network",
-          message: "Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin."
-        },
-        { status: 400 }
-      );
-    }
-    
-    // Validate Solana address format (base58, 32-44 chars)
-    if (tokenMint.length < 32 || tokenMint.length > 44) {
-      return NextResponse.json(
-        { 
-          error: "Invalid Solana token mint address",
-          message: "Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin."
+          message: `Invalid network: ${network}. Supported networks: solana, base, bsc.`
         },
         { status: 400 }
       );
@@ -559,6 +587,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           tokenMint,
           userWallet: normalizedWalletAddress,
+          network, // Add network parameter
           transactionLimit: 10000,
         }),
       });

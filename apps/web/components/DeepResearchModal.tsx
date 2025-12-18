@@ -10,6 +10,7 @@ interface DeepResearchModalProps {
   userWallet: string;
   pricingInfo: any;
   tokenMint: string;
+  network?: 'solana' | 'base' | 'bsc'; // Network selection
   onAnalysisComplete: () => void;
   selectedAnalysis?: any; // Pre-loaded analysis from history
 }
@@ -21,10 +22,12 @@ export default function DeepResearchModal({
   userWallet,
   pricingInfo,
   tokenMint: initialTokenMint,
+  network: initialNetwork = 'solana',
   onAnalysisComplete,
   selectedAnalysis,
 }: DeepResearchModalProps) {
   const [tokenMint] = useState(initialTokenMint);
+  const [network] = useState<'solana' | 'base' | 'bsc'>(initialNetwork);
   const [status, setStatus] = useState<AnalysisStatus>(
     selectedAnalysis ? "completed" : "payment"
   ); // If pre-loaded, show completed
@@ -202,16 +205,27 @@ export default function DeepResearchModal({
       return;
     }
 
-    // Validate Solana address format - reject Ethereum addresses (0x...)
-    if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
-      setError("Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin.");
-      return;
-    }
-
-    // Validate Solana address format (base58, 32-44 chars)
-    if (tokenMint.length < 32 || tokenMint.length > 44) {
-      setError("Solana ağı haricinde başka bir ağdan coin adresi yazdığınız için talebiniz başarısız oldu. Lütfen Solana ağından bir token mint adresi girin.");
-      return;
+    // Network-aware address validation
+    if (network === 'solana') {
+      // Solana: Base58 format, 32-44 chars, NOT starting with 0x
+      if (tokenMint.startsWith("0x") || tokenMint.startsWith("0X")) {
+        setError("Invalid Solana address format. Solana addresses do not start with 0x. Please enter a valid Solana token address.");
+        return;
+      }
+      if (tokenMint.length < 32 || tokenMint.length > 44) {
+        setError("Invalid Solana address format. Solana addresses are 32-44 characters long. Please enter a valid Solana token address.");
+        return;
+      }
+    } else {
+      // EVM (Base/BSC): Hex format, 0x + 40 hex characters (42 total)
+      if (!tokenMint.startsWith("0x") && !tokenMint.startsWith("0X")) {
+        setError(`Invalid ${network === 'base' ? 'Base' : 'BSC'} address format. ${network === 'base' ? 'Base' : 'BSC'} addresses start with 0x. Please enter a valid token address.`);
+        return;
+      }
+      if (tokenMint.length !== 42) {
+        setError(`Invalid ${network === 'base' ? 'Base' : 'BSC'} address format. ${network === 'base' ? 'Base' : 'BSC'} addresses are 42 characters long (0x + 40 hex characters). Please enter a valid token address.`);
+        return;
+      }
     }
 
     setError(null);
@@ -263,6 +277,7 @@ export default function DeepResearchModal({
         body: JSON.stringify({
           tokenMint,
           walletAddress: userWallet.toLowerCase(), // Normalize to lowercase for consistent storage
+          network, // Add network parameter
         }),
       });
 
@@ -300,6 +315,7 @@ export default function DeepResearchModal({
         body: JSON.stringify({
           tokenMint,
           userWallet,
+          network, // Add network parameter
         }),
       });
 
