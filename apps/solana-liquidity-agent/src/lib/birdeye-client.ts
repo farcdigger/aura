@@ -749,6 +749,58 @@ export class BirdeyeClient {
   }
 
   /**
+   * Get pool data from token market data endpoint (for EVM chains when pair endpoint fails)
+   * 
+   * @param tokenAddress Token contract address
+   * @returns Pool reserves and liquidity data
+   */
+  async getPoolDataFromTokenMarketData(tokenAddress: string): Promise<AdjustedPoolReserves> {
+    try {
+      await this.rateLimit();
+
+      // Try /defi/v3/token/market-data endpoint
+      const url = `${BIRDEYE_API_BASE}/defi/v3/token/market-data?address=${tokenAddress}`;
+      
+      console.log(`[BirdeyeClient] 🔍 Fetching token market data for: ${tokenAddress}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-KEY': BIRDEYE_API_KEY,
+          'x-chain': this.getChainHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Birdeye API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const marketData = data.data || data;
+
+      // Extract pool information from market data
+      // Note: This is a fallback, so we'll use minimal data
+      return {
+        tokenAMint: tokenAddress, // We don't know the other token from market data
+        tokenBMint: '', // Will be filled from swap transactions
+        tokenAReserve: 0,
+        tokenBReserve: 0,
+        tokenASymbol: marketData.symbol || 'UNKNOWN',
+        tokenBSymbol: '',
+        tvlUSD: parseFloat(marketData.liquidity || marketData.liquidityUSD || '0'),
+        lpSupply: undefined,
+        poolStatus: 'Active',
+        poolType: 'Unknown',
+      };
+    } catch (error: any) {
+      console.error(`[BirdeyeClient] ❌ Failed to get pool data from token market data:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get token metadata from Birdeye API
    * 
    * @param tokenMint Token mint address
