@@ -738,8 +738,16 @@ export class BirdeyeClient {
             actualPoolAddress = poolAddress;
             console.log(`[BirdeyeClient] ✅ Found pool address: ${actualPoolAddress}`);
           } else {
-            console.warn(`[BirdeyeClient] ⚠️ Could not find pool from token address, using token address as pool ID`);
+            console.warn(`[BirdeyeClient] ⚠️ Could not find pool from token address, will try token market data endpoint`);
           }
+        }
+        
+        // Ensure checksummed address for EVM chains
+        try {
+          actualPoolAddress = getAddress(actualPoolAddress.toLowerCase());
+        } catch (error) {
+          // If checksum fails, use as-is (might be invalid address)
+          console.warn(`[BirdeyeClient] ⚠️ Failed to checksum address: ${actualPoolAddress}`);
         }
       }
 
