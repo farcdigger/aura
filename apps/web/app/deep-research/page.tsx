@@ -358,9 +358,9 @@ export default function DeepResearchPage() {
                       onChange={(e) => setSelectedNetwork(e.target.value as 'solana' | 'base' | 'bsc')}
                       className="w-full px-4 py-3 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 appearance-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 shadow-sm hover:shadow-md"
                     >
-                      <option value="solana">🌐 Solana</option>
-                      <option value="base">🔷 Base</option>
-                      <option value="bsc">💎 BSC (Binance Smart Chain)</option>
+                      <option value="solana">⭐ Solana</option>
+                      <option value="base">⭐ Base</option>
+                      <option value="bsc">⭐ BSC (Binance Smart Chain)</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
