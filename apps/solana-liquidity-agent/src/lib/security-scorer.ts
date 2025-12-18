@@ -29,21 +29,24 @@ export function calculateSecurityScore(
   
   // Debug logging to understand why score might be 0
   console.log('[SecurityScorer] 📊 Input Metrics:');
-  console.log(`  - Re-Entry Ratio: ${reEntryRatio.toFixed(2)}% (30% weight)`);
-  console.log(`  - Diamond Hands Ratio: ${diamondHandsRatio.toFixed(2)}% (40% weight)`);
-  console.log(`  - Early Buyers Still Holding: ${earlyBuyersStillHoldingRatio.toFixed(2)}% (30% weight)`);
+  console.log(`  - Re-Entry Ratio: ${reEntryRatio.toFixed(2)}% (25% weight)`);
+  console.log(`  - Diamond Hands Ratio: ${diamondHandsRatio.toFixed(2)}% (50% weight - most important)`);
+  console.log(`  - Early Buyers Still Holding: ${earlyBuyersStillHoldingRatio.toFixed(2)}% (25% weight)`);
   console.log(`  - Has Smart Money Analysis: ${!!walletStats.smartMoneyAnalysis}`);
   console.log(`  - Has Token Security Data: ${!!tokenSecurity}`);
 
   // Weighted average calculation
-  // Re-entry ratio: 30% weight (shows confidence after selling)
-  // Diamond hands ratio: 40% weight (most important - shows conviction)
-  // Early buyers still holding: 30% weight (shows smart money conviction)
+  // Re-entry ratio: 25% weight (shows confidence after selling)
+  // Diamond hands ratio: 50% weight (most important - shows conviction)
+  // Early buyers still holding: 25% weight (shows smart money conviction)
+  // 
+  // Adjusted weights: Diamond hands is the most reliable indicator, so it gets more weight
+  // Early buyers can be misleading (they might take profits early), so reduced weight
   
   const weights = {
-    reEntry: 0.30,
-    diamondHands: 0.40,
-    earlyBuyers: 0.30,
+    reEntry: 0.25,
+    diamondHands: 0.50,  // Increased from 0.40 to 0.50 - most reliable metric
+    earlyBuyers: 0.25,   // Reduced from 0.30 to 0.25 - can be misleading
   };
 
   // Calculate base weighted score from transaction metrics
@@ -54,11 +57,19 @@ export function calculateSecurityScore(
   let securityScore = reEntryScore + diamondHandsScore + earlyBuyersScore;
   const baseScoreBeforePenalties = securityScore; // Store base score before penalties
   
+  // ✅ IMPROVEMENT: Add bonus points for very high diamond hands (shows strong conviction)
+  // If diamond hands > 70%, add bonus points (up to +10 points)
+  if (diamondHandsRatio > 70) {
+    const bonusPoints = Math.min(10, (diamondHandsRatio - 70) * 0.2); // 0.2 points per % above 70
+    securityScore += bonusPoints;
+    console.log(`[SecurityScorer] ⭐ Diamond Hands Bonus: +${bonusPoints.toFixed(2)} points (${diamondHandsRatio.toFixed(2)}% > 70%)`);
+  }
+  
   console.log('[SecurityScorer] 📊 Weighted Scores:');
-  console.log(`  - Re-Entry Contribution: ${reEntryScore.toFixed(2)} points (${reEntryRatio.toFixed(2)}% × 30%)`);
-  console.log(`  - Diamond Hands Contribution: ${diamondHandsScore.toFixed(2)} points (${diamondHandsRatio.toFixed(2)}% × 40%)`);
-  console.log(`  - Early Buyers Contribution: ${earlyBuyersScore.toFixed(2)} points (${earlyBuyersStillHoldingRatio.toFixed(2)}% × 30%)`);
-  console.log(`  - Base Score (before penalties): ${baseScoreBeforePenalties.toFixed(2)}/100`);
+  console.log(`  - Re-Entry Contribution: ${reEntryScore.toFixed(2)} points (${reEntryRatio.toFixed(2)}% × 25%)`);
+  console.log(`  - Diamond Hands Contribution: ${diamondHandsScore.toFixed(2)} points (${diamondHandsRatio.toFixed(2)}% × 50%)`);
+  console.log(`  - Early Buyers Contribution: ${earlyBuyersScore.toFixed(2)} points (${earlyBuyersStillHoldingRatio.toFixed(2)}% × 25%)`);
+  console.log(`  - Base Score (before bonuses/penalties): ${baseScoreBeforePenalties.toFixed(2)}/100`);
 
   // Apply token security penalties (if available)
   let penalty = 0;
@@ -75,16 +86,16 @@ export function calculateSecurityScore(
         console.log(`[SecurityScorer]   ⚠️ Honeypot detected: -30 points (CRITICAL: token cannot be sold)`);
       }
       
-      // Proxy contract: -12 points (high risk)
+      // Proxy contract: -8 points (high risk, but many legitimate tokens use proxies)
       if (evm.isProxy) {
-        penalty += 12;
-        console.log(`[SecurityScorer]   ⚠️ Proxy contract: -12 points (code can be upgraded/changed)`);
+        penalty += 8;
+        console.log(`[SecurityScorer]   ⚠️ Proxy contract: -8 points (code can be upgraded/changed)`);
       }
       
-      // Transfer pausable: -8 points (high risk)
+      // Transfer pausable: -5 points (moderate risk, some legitimate use cases)
       if (evm.transferPausable) {
-        penalty += 8;
-        console.log(`[SecurityScorer]   ⚠️ Transfer pausable: -8 points (owner can pause all transfers)`);
+        penalty += 5;
+        console.log(`[SecurityScorer]   ⚠️ Transfer pausable: -5 points (owner can pause all transfers)`);
       }
       
       // High taxes: -5 to -15 points depending on tax rate

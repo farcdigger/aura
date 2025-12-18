@@ -471,6 +471,10 @@ Write this section in simple language. Explain each point like you're talking to
   - **Re-Entry Patterns:** ${transactions.walletStats.reEntryCount} out of ${transactions.highValueSellers?.length || 0} high-value sellers re-entered after selling (${transactions.walletStats.reEntryRatio.toFixed(1)}% re-entry ratio)
   - **Re-Entry Details:** Re-entry wallets sold a total of $${(transactions.walletStats.reEntryTotalSellVolume || 0).toLocaleString()} but bought back $${(transactions.walletStats.reEntryTotalBuyBackVolume || 0).toLocaleString()}. **REQUIRED:** Analyze what this means - are they accumulating more? Taking profits and re-entering? What's the net effect?
   - **Total High-Value Wallets:** ${transactions.walletStats.totalHighValueWallets} unique wallets with significant trading activity
+  
+  **MANDATORY VISUAL CHARTS - Include these bar charts:**
+  - **Diamond Hands:** Show as bar chart: \`Diamond Hands: [calculate filled blocks] ${transactions.walletStats.diamondHandsRatio.toFixed(1)}%\`
+  - **Re-Entry:** Show as bar chart: \`Re-Entry: [calculate filled blocks] ${transactions.walletStats.reEntryRatio.toFixed(1)}%\`
   ` : 'Wallet statistics not available'}
 
 ${transactions.walletStats?.smartMoneyAnalysis ? `
@@ -479,6 +483,7 @@ ${transactions.walletStats?.smartMoneyAnalysis ? `
 - **Average Entry Price:** $${transactions.walletStats.smartMoneyAnalysis.earlyBuyersAvgEntryPrice.toFixed(6)}
 - **Current Profit/Loss:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '+' : ''}${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss.toFixed(1)}% ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCurrentProfitLoss >= 0 ? '(profit)' : '(loss)'}
 - **Still Holding:** ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHolding} out of ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersCount} early buyers (${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHoldingRatio.toFixed(1)}%)
+- **MANDATORY VISUAL CHART:** Show as bar chart: \`Early Buyers (Holding): [calculate filled blocks] ${transactions.walletStats.smartMoneyAnalysis.earlyBuyersStillHoldingRatio.toFixed(1)}%\`
 - **Analysis Required:** Explain what this means:
   - If early buyers are in profit and still holding → Strong conviction, bullish signal
   - If early buyers are in profit but selling → Profit-taking, potential price pressure
@@ -493,6 +498,12 @@ ${transactions.walletStats?.profitLossDistribution ? `
 - **Average Profit:** ${transactions.walletStats.profitLossDistribution.avgProfitPercent.toFixed(1)}% (for profitable wallets)
 - **Average Loss:** ${transactions.walletStats.profitLossDistribution.avgLossPercent.toFixed(1)}% (for losing wallets)
 - **Profit-Taking Risk:** ${transactions.walletStats.profitLossDistribution.profitTakingRisk.toUpperCase()}
+- **MANDATORY VISUAL CHART:** Show as bar charts:
+  \`\`\`
+  Profit:      [calculate filled blocks] ${transactions.walletStats.profitLossDistribution.profitLossRatio.toFixed(1)}%
+  Loss:        [calculate filled blocks] ${(100 - transactions.walletStats.profitLossDistribution.profitLossRatio - (transactions.walletStats.profitLossDistribution.walletsBreakEven || 0)).toFixed(1)}%
+  Break-even:  [calculate filled blocks] ${((transactions.walletStats.profitLossDistribution.walletsBreakEven || 0)).toFixed(1)}%
+  \`\`\`
 - **Analysis Required:** 
   - **High risk:** Most wallets in profit with high gains → Potential price correction when they sell
   - **Medium risk:** Moderate profit-taking possible → Some price pressure expected
@@ -535,7 +546,9 @@ ${transactions.walletStats?.profitLossDistribution ? `
 ` : ''}
 
 #### 🆕 New Wallet Activity
-- **New Wallet Flow:** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool. **CRITICAL:** 
+- **New Wallet Flow:** ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% of transactions are from wallets making their first trade in this pool
+- **MANDATORY VISUAL CHART:** Show as bar chart: \`New Wallets: [calculate filled blocks] ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}%\`
+- **CRITICAL:** 
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is very low (<5%), explain: "Most transactions are from existing wallets - this could mean the pool is new, or there's limited new investor interest."
   - If ${transactions.walletStats?.newWalletRatio.toFixed(1) || 0}% is high (>30%), analyze if they're:
   - Real new investors (GOOD sign - growing community, going viral) - Look for varied transaction sizes, different times
@@ -608,24 +621,44 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
 6. **No Financial Advice:** Don't tell people to buy or sell - just tell them the risks
 7. **Be Helpful:** Help people understand what the data means for them
 8. **DO NOT mention specific wallet addresses:** Do NOT include "High-Value Buyers Analysis" or "High-Value Sellers Analysis" sections with specific wallet addresses. Do NOT include a "WALLET-SPECIFIC ANALYSIS" section. Only mention aggregate statistics (e.g., "X% of high-value buyers are holding") without listing individual wallet addresses.
-8. **Add Visual Diagrams:** For critical information, add simple ASCII art diagrams or visual representations:
-   - **Profit/Loss Distribution:** Use a simple bar chart or pie representation
-   - **Wallet Behavior:** Use flow diagrams or comparison tables
-   - **Risk Factors:** Use visual indicators (⚠️, ✅, ❌) and simple charts
+8. **MANDATORY: Add Visual Bar Charts for Key Metrics:** You MUST include visual bar charts for these specific metrics in EVERY report:
    
-   **Diagram Examples:**
-   - Price levels: Use lines and labels like:
-     \`\`\`
-     Resistance: $0.0015 ──────────────
-     Current:    $0.0012 ──────●
-     Support:    $0.0010 ──────────────
-     \`\`\`
-   - Percentages: Use simple bars like:
-     \`\`\`
-     Profit:  ████████████░░░░ 60%
-     Loss:    ████░░░░░░░░░░░░ 20%
-     Break-even: ████░░░░░░░░░░░░ 20%
-     \`\`\`
+   **REQUIRED VISUAL CHARTS (MUST appear in report):**
+   
+   a) **Diamond Hands Ratio:**
+      - Always show as: \`Diamond Hands: ████████████████████░░ 77.7%\`
+      - Use filled blocks (█) for the percentage, empty blocks (░) for remainder
+      - Calculate: 20 blocks total, filled blocks = Math.round((percentage / 100) * 20)
+      - Example: 77.7% = 15.54 blocks → 16 filled blocks, 4 empty blocks
+   
+   b) **Re-Entry Ratio:**
+      - Always show as: \`Re-Entry: ████░░░░░░░░░░░░░░░░ 20.0%\`
+      - Same format as Diamond Hands
+   
+   c) **Early Buyers Still Holding:**
+      - Always show as: \`Early Buyers (Holding): ████████░░░░░░░░░░░░ 40.0%\`
+      - Same format as above
+   
+   d) **Profit/Loss Distribution:**
+      - Always show as:
+        \`\`\`
+        Profit:      ████████████░░░░ 60.0%
+        Loss:        ██████░░░░░░░░░ 30.0%
+        Break-even:  ██░░░░░░░░░░░░░ 10.0%
+        \`\`\`
+      - Use 20 blocks per line, calculate filled blocks based on percentage
+   
+   e) **New Wallet Activity:**
+      - Always show as: \`New Wallets: ████████░░░░░░░░░░░░ 40.0%\`
+      - Same format as above
+   
+   **CRITICAL:** These visual charts MUST appear in the report. They make the data much easier to understand at a glance. Place them right after the relevant metric is mentioned.
+   
+   **Additional Visual Elements (optional but recommended):**
+   - **Transaction Ratios:** Use visual bars to show buy vs sell ratios
+   - **Risk Factors:** Use visual indicators (⚠️, ✅, ❌) and simple charts
+   - **Wallet Concentration:** Show top wallet dominance visually
+   - **Liquidity Health:** Use visual indicators for liquidity levels
    - Comparisons: Use simple tables or side-by-side indicators
    
    **IMPORTANT:** 
