@@ -47,10 +47,18 @@ export function calculateSecurityScore(
   };
 
   // Calculate base weighted score from transaction metrics
-  let securityScore = 
-    (reEntryRatio * weights.reEntry) +
-    (diamondHandsRatio * weights.diamondHands) +
-    (earlyBuyersStillHoldingRatio * weights.earlyBuyers);
+  const reEntryScore = reEntryRatio * weights.reEntry;
+  const diamondHandsScore = diamondHandsRatio * weights.diamondHands;
+  const earlyBuyersScore = earlyBuyersStillHoldingRatio * weights.earlyBuyers;
+  
+  let securityScore = reEntryScore + diamondHandsScore + earlyBuyersScore;
+  const baseScoreBeforePenalties = securityScore; // Store base score before penalties
+  
+  console.log('[SecurityScorer] 📊 Weighted Scores:');
+  console.log(`  - Re-Entry Contribution: ${reEntryScore.toFixed(2)} points (${reEntryRatio.toFixed(2)}% × 30%)`);
+  console.log(`  - Diamond Hands Contribution: ${diamondHandsScore.toFixed(2)} points (${diamondHandsRatio.toFixed(2)}% × 40%)`);
+  console.log(`  - Early Buyers Contribution: ${earlyBuyersScore.toFixed(2)} points (${earlyBuyersStillHoldingRatio.toFixed(2)}% × 30%)`);
+  console.log(`  - Base Score (before penalties): ${baseScoreBeforePenalties.toFixed(2)}/100`);
 
   // Apply token security penalties (if available)
   let penalty = 0;
@@ -115,28 +123,20 @@ export function calculateSecurityScore(
       }
     }
     
-    // Apply penalty (reduce score) - but ensure we don't completely nullify good holder behavior
+    // Apply penalty (reduce score) - no minimum guarantee, let it go to 0 if needed
     if (penalty > 0) {
       console.log(`[SecurityScorer] ⚠️ Total Security Penalty: -${penalty.toFixed(2)} points`);
       const scoreBeforePenalty = securityScore;
-      
-      // ✅ DÜZELTME: Penalty'leri daha dengeli uygula
-      // Eğer base score yüksekse (iyi holder behavior), penalty'leri azalt
-      // Minimum güvence: Base score'un %30'u kadar minimum skor garantisi
-      const minimumGuaranteedScore = baseScoreBeforePenalties * 0.30; // En az %30'u korunur
-      
-      // Penalty'yi uygula ama minimum garantiyi koru
-      securityScore = Math.max(minimumGuaranteedScore, securityScore - penalty);
+      securityScore = Math.max(0, securityScore - penalty);
       
       console.log(`[SecurityScorer] 📉 Score Calculation:`);
       console.log(`  - Base Score: ${baseScoreBeforePenalties.toFixed(2)}/100`);
       console.log(`  - Penalties: -${penalty.toFixed(2)} points`);
       console.log(`  - After Penalties: ${(scoreBeforePenalty - penalty).toFixed(2)}`);
-      console.log(`  - Minimum Guarantee: ${minimumGuaranteedScore.toFixed(2)} (30% of base score)`);
       console.log(`  - Final Score: ${securityScore.toFixed(2)}/100`);
       
-      if (securityScore === minimumGuaranteedScore && (scoreBeforePenalty - penalty) < minimumGuaranteedScore) {
-        console.log(`[SecurityScorer] ⚠️ Score protected by minimum guarantee (good holder behavior preserved)`);
+      if (securityScore === 0 && baseScoreBeforePenalties > 0) {
+        console.log(`[SecurityScorer] ⚠️ Score clamped to 0 due to severe security risks`);
       }
     } else {
       console.log(`[SecurityScorer] ✅ No security penalties (token is safe)`);
