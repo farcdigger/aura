@@ -69,22 +69,22 @@ export function calculateSecurityScore(
     if (tokenSecurity.evmSecurity) {
       const evm = tokenSecurity.evmSecurity;
       
-      // Honeypot: -50 points (critical risk)
+      // Honeypot: -35 points (critical risk, but not completely nullifying good holder behavior)
       if (evm.isHoneypot) {
-        penalty += 50;
-        console.log(`[SecurityScorer]   ⚠️ Honeypot detected: -50 points (CRITICAL: token cannot be sold)`);
+        penalty += 35;
+        console.log(`[SecurityScorer]   ⚠️ Honeypot detected: -35 points (CRITICAL: token cannot be sold)`);
       }
       
-      // Proxy contract: -20 points (high risk)
+      // Proxy contract: -15 points (high risk)
       if (evm.isProxy) {
-        penalty += 20;
-        console.log(`[SecurityScorer]   ⚠️ Proxy contract: -20 points (code can be upgraded/changed)`);
+        penalty += 15;
+        console.log(`[SecurityScorer]   ⚠️ Proxy contract: -15 points (code can be upgraded/changed)`);
       }
       
-      // Transfer pausable: -15 points (high risk)
+      // Transfer pausable: -10 points (high risk)
       if (evm.transferPausable) {
-        penalty += 15;
-        console.log(`[SecurityScorer]   ⚠️ Transfer pausable: -15 points (owner can pause all transfers)`);
+        penalty += 10;
+        console.log(`[SecurityScorer]   ⚠️ Transfer pausable: -10 points (owner can pause all transfers)`);
       }
       
       // High taxes: -5 to -15 points depending on tax rate
