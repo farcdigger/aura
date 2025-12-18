@@ -8,7 +8,8 @@
  * Documentation: https://docs.birdeye.so/
  */
 
-import type { ParsedSwap, TokenMetadata, AdjustedPoolReserves } from './types';
+import type { ParsedSwap, TokenMetadata, AdjustedPoolReserves, Network } from './types';
+import { parseEvmSwapTransaction, type EvmSwapTransaction } from './evm-transaction-parser';
 
 // =============================================================================
 // CONSTANTS
@@ -102,11 +103,26 @@ interface BirdeyeResponse<T> {
 
 export class BirdeyeClient {
   private lastRequestTime: number = 0;
+  private network: Network;
 
-  constructor() {
+  constructor(network: Network = 'solana') {
     if (!BIRDEYE_API_KEY) {
       throw new Error('BIRDEYE_API_KEY environment variable is not set');
     }
+    this.network = network;
+  }
+
+  /**
+   * Get chain header value for Birdeye API
+   * Maps Network type to Birdeye API chain identifier
+   */
+  private getChainHeader(): string {
+    const chainMap: Record<Network, string> = {
+      'solana': 'solana',
+      'base': 'base',
+      'bsc': 'bsc',
+    };
+    return chainMap[this.network];
   }
 
   /**
@@ -214,7 +230,7 @@ export class BirdeyeClient {
           method: 'GET',
           headers: {
             'X-API-KEY': BIRDEYE_API_KEY,
-            'x-chain': 'solana',
+            'x-chain': this.getChainHeader(),
             'accept': 'application/json',
           },
         });
@@ -405,7 +421,16 @@ export class BirdeyeClient {
             }
             return true;
           })
-          .map(tx => this.parseBirdeyeSwap(tx, tokenMint))
+          .map(tx => {
+            // Use EVM parser for Base/BSC, Solana parser for Solana
+            if (this.network === 'base' || this.network === 'bsc') {
+              return parseEvmSwapTransaction(tx as EvmSwapTransaction, 
+                tokenMint ? { tokenA: tokenMint, tokenB: '' } : undefined, 
+                this.network);
+            } else {
+              return this.parseBirdeyeSwap(tx, tokenMint);
+            }
+          })
           .filter((swap): swap is ParsedSwap => swap !== null);
         
         // Log filtering results
@@ -609,6 +634,7 @@ export class BirdeyeClient {
         method: 'GET',
         headers: {
           'X-API-KEY': BIRDEYE_API_KEY,
+          'x-chain': this.getChainHeader(),
           'Content-Type': 'application/json',
         },
       });
@@ -681,6 +707,7 @@ export class BirdeyeClient {
         method: 'GET',
         headers: {
           'X-API-KEY': BIRDEYE_API_KEY,
+          'x-chain': this.getChainHeader(),
           'Content-Type': 'application/json',
         },
       });
@@ -778,6 +805,7 @@ export class BirdeyeClient {
         method: 'GET',
         headers: {
           'X-API-KEY': BIRDEYE_API_KEY,
+          'x-chain': this.getChainHeader(),
           'Content-Type': 'application/json',
         },
       });

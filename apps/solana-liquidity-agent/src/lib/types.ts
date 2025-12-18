@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
 // =============================================================================
+// NETWORK TYPES
+// =============================================================================
+
+export type Network = 'solana' | 'base' | 'bsc';
+
+// =============================================================================
 // INPUT SCHEMAS (Zod Validation)
 // =============================================================================
 
@@ -50,6 +56,7 @@ export interface TokenMetadata {
   decimals: number;
   logoURI?: string;
   coingeckoId?: string;
+  network?: Network; // Network information (optional for backward compatibility)
   authorities?: {
     freezeAuthority?: string | null;
     mintAuthority?: string | null;
@@ -182,11 +189,11 @@ export interface WalletProfile {
 }
 
 export interface ParsedSwap {
-  signature: string;
+  signature: string; // Transaction hash (Solana: signature, EVM: txHash)
   timestamp: number;
-  slot?: number;
+  slot?: number; // Solana-specific
   wallet: string;
-  signer?: string;
+  signer?: string; // Solana-specific
   direction: 'buy' | 'sell';
   amountIn: bigint;
   amountOut: bigint;
@@ -194,6 +201,11 @@ export interface ParsedSwap {
   amountOutUsd?: number;
   priceToken?: number;
   priceImpact?: number;
+  // EVM-specific fields
+  txHash?: string; // EVM transaction hash (alias for signature)
+  blockNumber?: number; // EVM block number
+  source?: string; // DEX source (e.g., 'aerodrome', 'pancakeswap')
+  network?: Network; // Network information
 }
 
 /**
@@ -385,6 +397,7 @@ export interface QueueJobData {
   userId?: string;
   userWallet?: string;
   tokenMint?: string;
+  network?: Network; // Network information (default: 'solana' for backward compatibility)
   requestedAt?: string;
   priority?: number;
   options?: {
@@ -439,6 +452,7 @@ export interface PoolAnalysisRecord {
   transaction_summary: TransactionSummary;
   generated_at: string;
   user_id?: string | null;
+  network?: Network; // Network information (default: 'solana' for backward compatibility)
   created_at: string;
 }
 

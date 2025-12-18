@@ -1,14 +1,19 @@
 import { TransactionSummary } from './types';
+import type { TokenSecurity } from './token-security';
 
 /**
  * Calculate Security Score based on:
  * 1. Re-entry ratio (users who sold and bought back) - higher = more secure
  * 2. Diamond hands ratio (users still holding) - higher = more secure
  * 3. Early buyers still holding ratio - higher = more secure
+ * 4. Token security risks (EVM: taxes, honeypot, proxy; Solana: authorities) - lower = more secure
  * 
  * Score range: 0-100 (higher = more secure)
  */
-export function calculateSecurityScore(transactions: TransactionSummary): number {
+export function calculateSecurityScore(
+  transactions: TransactionSummary,
+  tokenSecurity?: TokenSecurity
+): number {
   const walletStats = transactions.walletStats;
   
   if (!walletStats) {
@@ -32,11 +37,67 @@ export function calculateSecurityScore(transactions: TransactionSummary): number
     earlyBuyers: 0.30,
   };
 
-  // Calculate weighted score
+  // Calculate base weighted score from transaction metrics
   let securityScore = 
     (reEntryRatio * weights.reEntry) +
     (diamondHandsRatio * weights.diamondHands) +
     (earlyBuyersStillHoldingRatio * weights.earlyBuyers);
+
+  // Apply token security penalties (if available)
+  if (tokenSecurity) {
+    let penalty = 0;
+    
+    // EVM-specific penalties
+    if (tokenSecurity.evmSecurity) {
+      const evm = tokenSecurity.evmSecurity;
+      
+      // Honeypot: -50 points (critical risk)
+      if (evm.isHoneypot) {
+        penalty += 50;
+      }
+      
+      // Proxy contract: -20 points (high risk)
+      if (evm.isProxy) {
+        penalty += 20;
+      }
+      
+      // Transfer pausable: -15 points (high risk)
+      if (evm.transferPausable) {
+        penalty += 15;
+      }
+      
+      // High taxes: -5 to -15 points depending on tax rate
+      if (evm.buyTax && evm.buyTax > 10) {
+        penalty += Math.min(15, evm.buyTax * 0.5); // Max 15 points penalty
+      }
+      if (evm.sellTax && evm.sellTax > 10) {
+        penalty += Math.min(15, evm.sellTax * 0.5); // Max 15 points penalty
+      }
+      
+      // Mintable: -5 points (moderate risk)
+      if (evm.mintable) {
+        penalty += 5;
+      }
+    }
+    
+    // Solana-specific penalties
+    if (tokenSecurity.solanaSecurity) {
+      const sol = tokenSecurity.solanaSecurity;
+      
+      // Freeze authority: -20 points (high risk)
+      if (sol.hasFreezeAuthority) {
+        penalty += 20;
+      }
+      
+      // Mint authority: -10 points (moderate risk)
+      if (sol.hasMintAuthority) {
+        penalty += 10;
+      }
+    }
+    
+    // Apply penalty (reduce score)
+    securityScore = Math.max(0, securityScore - penalty);
+  }
 
   // Ensure score is between 0-100
   securityScore = Math.max(0, Math.min(100, securityScore));

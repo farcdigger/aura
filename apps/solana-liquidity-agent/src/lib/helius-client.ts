@@ -118,7 +118,7 @@ export class HeliusClient {
 
     // Initialize Birdeye client for swap transaction history (REQUIRED - no Helius fallback)
     try {
-      this.birdeyeClient = new BirdeyeClient();
+      this.birdeyeClient = new BirdeyeClient('solana'); // Helius client is Solana-specific
       console.log('[HeliusClient] ✅ Birdeye client initialized (REQUIRED - no Helius fallback)');
     } catch (error: any) {
       console.error(`[HeliusClient] ❌ Birdeye client initialization failed: ${error.message}`);

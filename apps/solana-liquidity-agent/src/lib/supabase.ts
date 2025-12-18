@@ -85,10 +85,11 @@ function serializeBigInt(obj: any): any {
 export async function saveAnalysis(
   analysis: AnalysisResult,
   userId?: string,
-  userWallet?: string  // ✅ YENİ: Kullanıcı cüzdan adresi
+  userWallet?: string,  // ✅ YENİ: Kullanıcı cüzdan adresi
+  network?: string  // ✅ YENİ: Network information (default: 'solana')
 ): Promise<PoolAnalysisRecord | null> {
   try {
-    console.log(`[Supabase] Saving analysis for pool: ${analysis.poolId}`);
+    console.log(`[Supabase] Saving analysis for pool: ${analysis.poolId}, network: ${network || 'solana'}`);
 
     // Serialize BigInt values before saving
     const serializedReserves = serializeBigInt(analysis.reserves);
@@ -109,6 +110,7 @@ export async function saveAnalysis(
       generated_at: analysis.generatedAt,
       user_id: userId || null,
       user_wallet: userWallet ? userWallet.toLowerCase() : null,  // ✅ YENİ: Kullanıcı cüzdanı (normalized)
+      network: network || 'solana',  // ✅ YENİ: Network information (default: 'solana')
     };
 
     const { data, error } = await supabase

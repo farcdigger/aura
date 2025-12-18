@@ -636,7 +636,7 @@ app.get('/health', async (c) => {
   
   try {
     // Birdeye health (simple validation)
-    const birdeyeClient = new BirdeyeClient();
+    const birdeyeClient = new BirdeyeClient('solana'); // Default to Solana for API endpoints
     checks.birdeye = 'ok';
   } catch (error) {
     checks.birdeye = 'error';

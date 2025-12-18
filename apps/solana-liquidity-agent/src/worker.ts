@@ -8,8 +8,10 @@ import type { QueueJobData, AdjustedPoolReserves } from './lib/types'; // Types 
 import { BirdeyeClient } from './lib/birdeye-client';
 import { buildAnalysisPrompt } from './lib/claude-prompt';
 import { calculateSecurityScore } from './lib/security-scorer';
+import { getTokenSecurity } from './lib/token-security';
 import { saveAnalysis } from './lib/supabase';
 import { redis } from './lib/cache';
+import type { Network } from './lib/types';
 
 // Environment validation
 const REQUIRED_ENV = [
@@ -38,20 +40,22 @@ const WORKER_CONFIG = {
 const INFERENCE_API_KEY = process.env.INFERENCE_API_KEY;
 const DAYDREAMS_BASE_URL = process.env.DAYDREAMS_BASE_URL || 'https://api-beta.daydreams.systems/v1';
 
-const birdeyeClient = new BirdeyeClient();
-
 /**
  * Ana analiz fonksiyonu
  */
 async function processAnalysis(job: Job<QueueJobData>) {
-  const { poolId, userId, userWallet, options } = job.data;
+  const { poolId, userId, userWallet, options, network = 'solana' } = job.data;
   
   console.log(`\n🔄 [Job ${job.id}] Starting analysis for pool: ${poolId}`);
+  console.log(`🌐 Network: ${network}`);
   console.log(`👤 User: ${userId || 'anonymous'}`);
   // ✅ DÜZELTME: userWallet kontrolü ve loglama
   console.log(`💼 User Wallet: ${userWallet ? userWallet.substring(0, 16) + '...' : 'NOT PROVIDED (will be null in database)'}`);
   
   await job.updateProgress(10);
+  
+  // Initialize Birdeye client with network
+  const birdeyeClient = new BirdeyeClient(network as Network);
   
   // Weekly Limit Check - Increment at the START of analysis
   const { checkAndIncrementWeeklyLimit } = await import('./lib/weekly-limit');
@@ -407,11 +411,32 @@ async function processAnalysis(job: Job<QueueJobData>) {
       firstChars: rawResponse.substring(0, 100),
     });
     
+    // Fetch token security information (for EVM chains and Solana authorities)
+    console.log(`🔒 [Job ${job.id}] Fetching token security information...`);
+    let tokenSecurity;
+    try {
+      tokenSecurity = await getTokenSecurity(
+        tokenA.mint,
+        network as Network,
+        { authorities: tokenA.authorities }
+      );
+      
+      if (tokenSecurity.riskFactors.length > 0) {
+        console.log(`⚠️ [Job ${job.id}] Token security risks found:`, tokenSecurity.riskFactors);
+      } else {
+        console.log(`✅ [Job ${job.id}] No major token security risks detected`);
+      }
+    } catch (error: any) {
+      console.warn(`⚠️ [Job ${job.id}] Token security check failed (non-fatal): ${error.message}`);
+      tokenSecurity = undefined;
+    }
+    
     // Calculate Security Score based on:
     // 1. Re-entry ratio (users who sold and bought back) - 30% weight
     // 2. Diamond hands ratio (users still holding) - 40% weight
     // 3. Early buyers still holding ratio - 30% weight
-    const securityScore = calculateSecurityScore(transactions);
+    // 4. Token security risks (EVM: taxes, honeypot, proxy; Solana: authorities)
+    const securityScore = calculateSecurityScore(transactions, tokenSecurity);
     console.log(`🔒 [Job ${job.id}] Security score calculated: ${securityScore}/100`);
     
     // Risk score is no longer used - kept for backward compatibility only
