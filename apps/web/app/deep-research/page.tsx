@@ -196,16 +196,16 @@ export default function DeepResearchPage() {
             Uncover Hidden Insights
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-            Get comprehensive AI analysis of any Solana token with 10,000+ swap transactions, 
+            Get comprehensive AI analysis of any token with 10,000+ swap transactions, 
             whale tracking, and market sentiment.
           </p>
-          {/* Solana Network Warning */}
+          {/* Multi-Chain Support Info */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
-              ⚠️ Important: Solana Network Only
+              ✅ Multi-Chain Support
             </p>
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              This analysis tool only supports tokens on the Solana network. Please enter a Solana token address.
+              This analysis tool supports tokens on <strong>Solana</strong>, <strong>Base</strong>, and <strong>BSC (Binance Smart Chain)</strong> networks. Select your network and enter the token address.
             </p>
           </div>
         </div>
@@ -349,18 +349,25 @@ export default function DeepResearchPage() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                     Network
                   </label>
-                  <select
-                    value={selectedNetwork}
-                    onChange={(e) => setSelectedNetwork(e.target.value as 'solana' | 'base' | 'bsc')}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white mb-4"
-                  >
-                    <option value="solana">Solana</option>
-                    <option value="base">Base</option>
-                    <option value="bsc">BSC (Binance Smart Chain)</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={selectedNetwork}
+                      onChange={(e) => setSelectedNetwork(e.target.value as 'solana' | 'base' | 'bsc')}
+                      className="w-full px-4 py-3 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 appearance-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 shadow-sm hover:shadow-md"
+                    >
+                      <option value="solana">🌐 Solana</option>
+                      <option value="base">🔷 Base</option>
+                      <option value="bsc">💎 BSC (Binance Smart Chain)</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                   
                   <label className="block text-sm font-medium mb-2">
                     Token Address
