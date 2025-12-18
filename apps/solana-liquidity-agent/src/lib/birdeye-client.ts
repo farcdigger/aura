@@ -970,6 +970,14 @@ export class BirdeyeClient {
       // Parse Birdeye token data to our format
       const tokenData = data.data || data;
       
+      // Extract market cap from token overview if available
+      const marketCap = tokenData.marketCap || tokenData.market_cap || tokenData.mc || undefined;
+      const fdv = tokenData.fdv || tokenData.fully_diluted_valuation || undefined;
+      
+      if (marketCap) {
+        console.log(`[BirdeyeClient] 📊 Market cap from token_overview: $${parseFloat(marketCap).toLocaleString()}`);
+      }
+      
       return {
         mint: tokenMint,
         symbol: tokenData.symbol || 'UNKNOWN',
@@ -980,6 +988,8 @@ export class BirdeyeClient {
           freezeAuthority: tokenData.freezeAuthority || null,
           mintAuthority: tokenData.mintAuthority || null,
         },
+        marketCap: marketCap ? parseFloat(marketCap) : undefined, // Market cap from token overview
+        fdv: fdv ? parseFloat(fdv) : undefined, // FDV from token overview
       };
 
     } catch (error: any) {

@@ -64,29 +64,37 @@ export function calculateSecurityScore(
       // Honeypot: -50 points (critical risk)
       if (evm.isHoneypot) {
         penalty += 50;
+        console.log(`[SecurityScorer]   ⚠️ Honeypot detected: -50 points (CRITICAL: token cannot be sold)`);
       }
       
       // Proxy contract: -20 points (high risk)
       if (evm.isProxy) {
         penalty += 20;
+        console.log(`[SecurityScorer]   ⚠️ Proxy contract: -20 points (code can be upgraded/changed)`);
       }
       
       // Transfer pausable: -15 points (high risk)
       if (evm.transferPausable) {
         penalty += 15;
+        console.log(`[SecurityScorer]   ⚠️ Transfer pausable: -15 points (owner can pause all transfers)`);
       }
       
       // High taxes: -5 to -15 points depending on tax rate
       if (evm.buyTax && evm.buyTax > 10) {
-        penalty += Math.min(15, evm.buyTax * 0.5); // Max 15 points penalty
+        const taxPenalty = Math.min(15, evm.buyTax * 0.5);
+        penalty += taxPenalty;
+        console.log(`[SecurityScorer]   ⚠️ High buy tax (${evm.buyTax}%): -${taxPenalty.toFixed(2)} points`);
       }
       if (evm.sellTax && evm.sellTax > 10) {
-        penalty += Math.min(15, evm.sellTax * 0.5); // Max 15 points penalty
+        const taxPenalty = Math.min(15, evm.sellTax * 0.5);
+        penalty += taxPenalty;
+        console.log(`[SecurityScorer]   ⚠️ High sell tax (${evm.sellTax}%): -${taxPenalty.toFixed(2)} points`);
       }
       
       // Mintable: -5 points (moderate risk)
       if (evm.mintable) {
         penalty += 5;
+        console.log(`[SecurityScorer]   ⚠️ Mintable token: -5 points (supply can be increased)`);
       }
     }
     
@@ -97,30 +105,55 @@ export function calculateSecurityScore(
       // Freeze authority: -20 points (high risk)
       if (sol.hasFreezeAuthority) {
         penalty += 20;
+        console.log(`[SecurityScorer]   ⚠️ Freeze authority: -20 points (can freeze token accounts)`);
       }
       
       // Mint authority: -10 points (moderate risk)
       if (sol.hasMintAuthority) {
         penalty += 10;
+        console.log(`[SecurityScorer]   ⚠️ Mint authority: -10 points (can mint more tokens)`);
       }
     }
     
-    // Apply penalty (reduce score)
+    // Apply penalty (reduce score) - but ensure we don't completely nullify good holder behavior
     if (penalty > 0) {
-      console.log(`[SecurityScorer] ⚠️ Security Penalty Applied: -${penalty.toFixed(2)} points`);
-      securityScore = Math.max(0, securityScore - penalty);
+      console.log(`[SecurityScorer] ⚠️ Total Security Penalty: -${penalty.toFixed(2)} points`);
+      const scoreBeforePenalty = securityScore;
+      
+      // ✅ DÜZELTME: Penalty'leri daha dengeli uygula
+      // Eğer base score yüksekse (iyi holder behavior), penalty'leri azalt
+      // Minimum güvence: Base score'un %30'u kadar minimum skor garantisi
+      const minimumGuaranteedScore = baseScoreBeforePenalties * 0.30; // En az %30'u korunur
+      
+      // Penalty'yi uygula ama minimum garantiyi koru
+      securityScore = Math.max(minimumGuaranteedScore, securityScore - penalty);
+      
+      console.log(`[SecurityScorer] 📉 Score Calculation:`);
+      console.log(`  - Base Score: ${baseScoreBeforePenalties.toFixed(2)}/100`);
+      console.log(`  - Penalties: -${penalty.toFixed(2)} points`);
+      console.log(`  - After Penalties: ${(scoreBeforePenalty - penalty).toFixed(2)}`);
+      console.log(`  - Minimum Guarantee: ${minimumGuaranteedScore.toFixed(2)} (30% of base score)`);
+      console.log(`  - Final Score: ${securityScore.toFixed(2)}/100`);
+      
+      if (securityScore === minimumGuaranteedScore && (scoreBeforePenalty - penalty) < minimumGuaranteedScore) {
+        console.log(`[SecurityScorer] ⚠️ Score protected by minimum guarantee (good holder behavior preserved)`);
+      }
     } else {
       console.log(`[SecurityScorer] ✅ No security penalties (token is safe)`);
+      console.log(`[SecurityScorer] 📊 Final Score: ${securityScore.toFixed(2)}/100 (no penalties applied)`);
     }
   } else {
     console.log(`[SecurityScorer] ⚠️ No token security data available (skipping security checks)`);
+    console.log(`[SecurityScorer] 📊 Final Score: ${securityScore.toFixed(2)}/100 (no security data to check)`);
   }
 
   // Ensure score is between 0-100
-  securityScore = Math.max(0, Math.min(100, securityScore));
-
+  const finalScore = Math.max(0, Math.min(100, securityScore));
+  
+  console.log(`[SecurityScorer] 🎯 FINAL SECURITY SCORE: ${finalScore}/100`);
+  
   // Round to nearest integer
-  return Math.round(securityScore);
+  return Math.round(finalScore);
 }
 
 /**

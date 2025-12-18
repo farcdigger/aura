@@ -101,6 +101,23 @@ async function processAnalysis(job: Job<QueueJobData>) {
     try {
       reserves = await birdeyeClient.getPoolData(poolId);
       console.log(`✅ [Job ${job.id}] Birdeye reserves fetched successfully.`);
+      
+      // If market cap is missing from pool data, try to get it from token metadata
+      if (!reserves.marketCap && job.data.tokenMint) {
+        console.log(`📊 [Job ${job.id}] Market cap missing from pool data, fetching from token metadata...`);
+        try {
+          const tokenMetadata = await birdeyeClient.getTokenMetadata(job.data.tokenMint);
+          if (tokenMetadata.marketCap) {
+            reserves.marketCap = tokenMetadata.marketCap;
+            console.log(`✅ [Job ${job.id}] Market cap from token metadata: $${tokenMetadata.marketCap.toLocaleString()}`);
+          }
+          if (tokenMetadata.fdv) {
+            reserves.fdv = tokenMetadata.fdv;
+          }
+        } catch (metadataError: any) {
+          console.warn(`⚠️ [Job ${job.id}] Failed to fetch market cap from token metadata: ${metadataError.message}`);
+        }
+      }
 
     } catch (birdeyeError: any) {
       console.warn(`⚠️ [Job ${job.id}] Birdeye failed, trying fallback...`);
