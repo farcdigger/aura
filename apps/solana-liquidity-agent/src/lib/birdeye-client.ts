@@ -678,6 +678,8 @@ export class BirdeyeClient {
         liquidity: parseFloat(market.liquidity?.usd || market.liquidityUSD || '0'),
         volume_24h: market.volume_24h ? parseFloat(market.volume_24h) : undefined,
         price: market.price ? parseFloat(market.price) : undefined,
+        marketCap: market.marketCap ? parseFloat(market.marketCap) : undefined, // Market cap from markets endpoint
+        fdv: market.fdv ? parseFloat(market.fdv) : undefined, // FDV from markets endpoint
       }));
     } catch (error: any) {
       console.error(`[BirdeyeClient] ❌ Failed to get token markets:`, error.message);
@@ -686,13 +688,13 @@ export class BirdeyeClient {
   }
 
   /**
-   * Get pool address from token address (for EVM chains)
+   * Get pool address and market data from token address (for EVM chains)
    * Uses /defi/v2/markets endpoint to find the most liquid pool
    * 
    * @param tokenAddress Token contract address
-   * @returns Pool address or null if not found
+   * @returns Object with pool address and market data (marketCap, fdv) or null if not found
    */
-  async getPoolAddressFromToken(tokenAddress: string): Promise<string | null> {
+  async getPoolAddressFromToken(tokenAddress: string): Promise<{ poolAddress: string; marketCap?: number; fdv?: number } | null> {
     try {
       // Use /defi/v2/markets endpoint to find pools
       const markets = await this.getTokenMarkets(tokenAddress);
@@ -707,8 +709,15 @@ export class BirdeyeClient {
       const bestMarket = liquidMarkets.length > 0 ? liquidMarkets[0] : markets[0];
 
       console.log(`[BirdeyeClient] ✅ Found ${markets.length} markets, selected most liquid: ${bestMarket.address} (${bestMarket.source}, $${bestMarket.liquidity.toLocaleString()} liquidity)`);
+      if (bestMarket.marketCap) {
+        console.log(`[BirdeyeClient] 📊 Market cap from markets: $${bestMarket.marketCap.toLocaleString()}`);
+      }
       
-      return bestMarket.address;
+      return {
+        poolAddress: bestMarket.address,
+        marketCap: bestMarket.marketCap,
+        fdv: bestMarket.fdv,
+      };
     } catch (error: any) {
       console.warn(`[BirdeyeClient] ⚠️ Failed to get pool address from token: ${error.message}`);
       return null;
@@ -730,13 +739,21 @@ export class BirdeyeClient {
       // try to find the actual pool address first
       let actualPoolAddress = pairAddress;
       if (this.network === 'base' || this.network === 'bsc') {
+        let marketCapFromMarkets: number | undefined = undefined;
+        let fdvFromMarkets: number | undefined = undefined;
+        
         if (pairAddress.startsWith('0x') && pairAddress.length === 42) {
           // This might be a token address, try to find the pool
           console.log(`[BirdeyeClient] 🔍 Detected token address, trying to find pool...`);
-          const poolAddress = await this.getPoolAddressFromToken(pairAddress);
-          if (poolAddress) {
-            actualPoolAddress = poolAddress;
+          const poolData = await this.getPoolAddressFromToken(pairAddress);
+          if (poolData) {
+            actualPoolAddress = poolData.poolAddress;
+            marketCapFromMarkets = poolData.marketCap;
+            fdvFromMarkets = poolData.fdv;
             console.log(`[BirdeyeClient] ✅ Found pool address: ${actualPoolAddress}`);
+            if (marketCapFromMarkets) {
+              console.log(`[BirdeyeClient] 📊 Market cap from markets endpoint: $${marketCapFromMarkets.toLocaleString()}`);
+            }
           } else {
             console.warn(`[BirdeyeClient] ⚠️ Could not find pool from token address, will try token market data endpoint`);
           }
@@ -797,6 +814,10 @@ export class BirdeyeClient {
         lpSupply = calculatedLP.toLocaleString('en-US', { maximumFractionDigits: 0 });
       }
       
+      // Use market cap from markets endpoint if available, otherwise try pair endpoint
+      const marketCap = marketCapFromMarkets || (pairData.marketCap ? parseFloat(pairData.marketCap) : (pairData.market_cap ? parseFloat(pairData.market_cap) : undefined));
+      const fdv = fdvFromMarkets || (pairData.fdv ? parseFloat(pairData.fdv) : (pairData.fully_diluted_valuation ? parseFloat(pairData.fully_diluted_valuation) : undefined));
+      
       return {
         tokenAMint: pairData.baseToken?.address || pairData.token0?.address || '',
         tokenBMint: pairData.quoteToken?.address || pairData.token1?.address || '',
@@ -805,6 +826,8 @@ export class BirdeyeClient {
         tokenASymbol: pairData.baseToken?.symbol || pairData.token0?.symbol,
         tokenBSymbol: pairData.quoteToken?.symbol || pairData.token1?.symbol,
         tvlUSD: parseFloat(pairData.liquidity?.usd || pairData.liquidityUSD || '0'),
+        marketCap, // Use market cap from markets endpoint or pair endpoint
+        fdv, // Use FDV from markets endpoint or pair endpoint
         lpSupply,
         lpMint: pairData.lpMint || pairData.liquidity?.lpMint,
         poolStatus: pairData.pairCreatedAt ? 'Active' : 'Unknown',
@@ -860,6 +883,8 @@ export class BirdeyeClient {
         tokenASymbol: marketData.symbol || 'UNKNOWN',
         tokenBSymbol: '',
         tvlUSD: parseFloat(marketData.liquidity || marketData.liquidityUSD || '0'),
+        marketCap: marketData.marketCap ? parseFloat(marketData.marketCap) : undefined, // Use market cap from API if available
+        fdv: marketData.fdv ? parseFloat(marketData.fdv) : undefined, // Use FDV from API if available
         lpSupply: undefined,
         poolStatus: 'Active',
         poolType: 'Unknown',

@@ -18,6 +18,7 @@ export function calculateSecurityScore(
   
   if (!walletStats) {
     // If no wallet stats available, return neutral score
+    console.warn('[SecurityScorer] ⚠️ No walletStats available, returning neutral score 50');
     return 50;
   }
 
@@ -25,6 +26,14 @@ export function calculateSecurityScore(
   const reEntryRatio = walletStats.reEntryRatio || 0; // 0-100%
   const diamondHandsRatio = walletStats.diamondHandsRatio || 0; // 0-100%
   const earlyBuyersStillHoldingRatio = walletStats.smartMoneyAnalysis?.earlyBuyersStillHoldingRatio || 0; // 0-100%
+  
+  // Debug logging to understand why score might be 0
+  console.log('[SecurityScorer] 📊 Security score calculation:', {
+    reEntryRatio,
+    diamondHandsRatio,
+    earlyBuyersStillHoldingRatio,
+    hasSmartMoneyAnalysis: !!walletStats.smartMoneyAnalysis,
+  });
 
   // Weighted average calculation
   // Re-entry ratio: 30% weight (shows confidence after selling)

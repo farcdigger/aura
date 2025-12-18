@@ -70,11 +70,11 @@ export function buildAnalysisPrompt(params: {
   const buyVolumeRatio = totalUsdVolume > 0 ? (buyVolumeUSD / totalUsdVolume) * 100 : 0;
   
   // Calculate liquidity-to-market-cap ratio
-  // ✅ DÜZELTME: Market cap hesaplaması - önce DexScreener'dan gelen marketCap'i kullan, yoksa tahmin et
-  // DexScreener'dan gelen marketCap varsa onu kullan (daha doğru)
-  // Yoksa memecoinler için daha gerçekçi oran: TVL × 5.5 (daha konservatif tahmin)
+  // ✅ DÜZELTME: Market cap hesaplaması - önce API'den gelen marketCap'i kullan, yoksa daha gerçekçi tahmin
+  // API'den (Birdeye veya DexScreener) gelen marketCap varsa onu kullan (daha doğru)
+  // Yoksa memecoinler için daha gerçekçi oran: TVL × 2.1 (görsellerden: BASED $30K liq → $63K mcap = 2.1x, RYU $95K liq → $165K mcap = 1.74x, ortalaması ~2.1x)
   const tvlUSD = reserves?.tvlUSD || 0;
-  const estimatedMarketCap = reserves?.marketCap || (tvlUSD > 0 ? tvlUSD * 5.5 : 0); // Use DexScreener marketCap if available, otherwise estimate
+  const estimatedMarketCap = reserves?.marketCap || (tvlUSD > 0 ? tvlUSD * 2.1 : 0); // Use API marketCap if available, otherwise estimate with 2.1x multiplier
   const liquidityToMarketCapRatio = estimatedMarketCap > 0 ? (tvlUSD / estimatedMarketCap) * 100 : 0;
   
   // Calculate wallet diversity metrics
@@ -500,20 +500,6 @@ ${transactions.walletStats?.profitLossDistribution ? `
   - Explain what this means for potential price movements
 ` : ''}
 
-${transactions.walletStats?.supportResistanceLevels ? `
-#### 📈 Support/Resistance Levels
-- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
-- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below)` : 'Not detected'}
-- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above)` : 'Not detected'}
-- **Top Support Levels:** ${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any) => `$${level.price.toFixed(6)} (${level.strength})`).join(', ')}
-- **Top Resistance Levels:** ${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any) => `$${level.price.toFixed(6)} (${level.strength})`).join(', ')}
-- **Analysis Required:** 
-  - Explain what support/resistance levels mean in simple terms
-  - Strong support → Price likely to bounce at these levels (good entry points)
-  - Strong resistance → Price may struggle to break above (potential exit points)
-  - Distance to nearest support → Downside risk assessment
-  - Distance to nearest resistance → Upside potential assessment
-` : ''}
 
 ${transactions.walletStats?.smartMoneyAnalysis ? `
 #### 💎 Smart Money Analysis (Early Buyers)
@@ -546,23 +532,6 @@ ${transactions.walletStats?.profitLossDistribution ? `
   - High profit-taking risk → Potential price correction when profitable wallets sell
   - Low profit-taking risk → Price stability, holders waiting for higher prices
   - Many wallets at break-even → Potential resistance at current price level
-` : ''}
-
-${transactions.walletStats?.supportResistanceLevels ? `
-#### 📈 Support/Resistance Levels
-- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
-- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below current)` : 'Not detected'}
-- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above current)` : 'Not detected'}
-- **Top Support Levels:**
-${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} support)`).join('\n')}
-- **Top Resistance Levels:**
-${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} resistance)`).join('\n')}
-- **Analysis Required:**
-  - Strong support levels → Price likely to bounce at these levels
-  - Strong resistance levels → Price may struggle to break above these levels
-  - Distance to nearest support → Downside risk assessment
-  - Distance to nearest resistance → Upside potential assessment
-  - Use these levels to identify entry/exit points and risk management
 ` : ''}
 
 #### 🆕 New Wallet Activity
@@ -605,23 +574,6 @@ ${transactions.walletStats?.profitLossDistribution ? `
   - Many wallets at break-even → Potential resistance at current price level
 ` : ''}
 
-${transactions.walletStats?.supportResistanceLevels ? `
-#### 📈 Support/Resistance Levels
-- **Current Price:** $${transactions.walletStats.supportResistanceLevels.currentPrice.toFixed(6)}
-- **Nearest Support:** ${transactions.walletStats.supportResistanceLevels.nearestSupport ? `$${transactions.walletStats.supportResistanceLevels.nearestSupport.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.currentPrice - transactions.walletStats.supportResistanceLevels.nearestSupport) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% below current)` : 'Not detected'}
-- **Nearest Resistance:** ${transactions.walletStats.supportResistanceLevels.nearestResistance ? `$${transactions.walletStats.supportResistanceLevels.nearestResistance.toFixed(6)} (${((transactions.walletStats.supportResistanceLevels.nearestResistance - transactions.walletStats.supportResistanceLevels.currentPrice) / transactions.walletStats.supportResistanceLevels.currentPrice * 100).toFixed(1)}% above current)` : 'Not detected'}
-- **Top Support Levels:**
-${transactions.walletStats.supportResistanceLevels.supportLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} support)`).join('\n')}
-- **Top Resistance Levels:**
-${transactions.walletStats.supportResistanceLevels.resistanceLevels.slice(0, 3).map((level: any, i: number) => `  ${i + 1}. $${level.price.toFixed(6)} - ${level.transactionCount} transactions, $${level.volume.toLocaleString()} volume (${level.strength.toUpperCase()} resistance)`).join('\n')}
-- **Analysis Required:**
-  - Strong support levels → Price likely to bounce at these levels
-  - Strong resistance levels → Price may struggle to break above these levels
-  - Distance to nearest support → Downside risk assessment
-  - Distance to nearest resistance → Upside potential assessment
-  - Use these levels to identify entry/exit points and risk management
-` : ''}
-
 #### 🚨 Manipulation Detection
 ${transactions.walletStats?.manipulationWallets && transactions.walletStats.manipulationWallets > 0 ? `
 - **Wash Trading Detected:** ${transactions.walletStats.manipulationWallets} wallets detected performing simultaneous buy-sell patterns (buying and selling large amounts within 5 minutes)
@@ -657,7 +609,6 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
 7. **Be Helpful:** Help people understand what the data means for them
 8. **DO NOT mention specific wallet addresses:** Do NOT include "High-Value Buyers Analysis" or "High-Value Sellers Analysis" sections with specific wallet addresses. Do NOT include a "WALLET-SPECIFIC ANALYSIS" section. Only mention aggregate statistics (e.g., "X% of high-value buyers are holding") without listing individual wallet addresses.
 8. **Add Visual Diagrams:** For critical information, add simple ASCII art diagrams or visual representations:
-   - **Support/Resistance Levels:** Use a simple price chart with lines
    - **Profit/Loss Distribution:** Use a simple bar chart or pie representation
    - **Wallet Behavior:** Use flow diagrams or comparison tables
    - **Risk Factors:** Use visual indicators (⚠️, ✅, ❌) and simple charts
@@ -679,7 +630,7 @@ ${transactions.walletStats?.manipulationWallets && transactions.walletStats.mani
    
    **IMPORTANT:** 
    - Keep diagrams simple and readable
-   - Only add diagrams for critical information (support/resistance, profit distribution, risk factors)
+   - Only add diagrams for critical information (profit distribution, risk factors)
    - Don't overuse diagrams - they should enhance, not clutter
    - Use markdown code blocks with \`\`\` for diagrams
    - Diagrams should be placed right after the relevant section text
