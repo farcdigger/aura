@@ -296,55 +296,51 @@ async function processAnalysis(job: Job<QueueJobData>) {
     console.log(`🔒 [Job ${job.id}] Fetching token security information...`);
     let tokenSecurity;
     try {
-      if (network === 'base' || network === 'bsc') {
-        tokenSecurity = await getTokenSecurity(
-          tokenA.mint,
-          network
-        );
+      tokenSecurity = await getTokenSecurity(
+        tokenA.mint,
+        network as Network,
+        { authorities: tokenA.authorities }
+      );
+      
+      // ✅ KRİTİK DÜZELTME: Honeypot tespiti - swap verilerine göre doğrulama
+      // Honeypot = satılamayan coin demek
+      // - Eğer SADECE alım (buy) işlemi varsa ve satım (sell) YOKSA → honeypot olabilir
+      // - Eğer hem alım hem satım işlemi varsa → honeypot OLAMAZ (token satılabiliyor demektir)
+      if (tokenSecurity && tokenSecurity.evmSecurity) {
+        const hasSellTransactions = transactions.sellCount > 0;
+        const hasBuyTransactions = transactions.buyCount > 0;
         
-        // ✅ KRİTİK DÜZELTME: Eğer swap transaction'ları varsa, honeypot olamaz!
-        // Honeypot = satılamayan coin demek, ama biz swap transaction'ları görüyorsak satış yapılıyor demektir
-        if (tokenSecurity && tokenSecurity.evmSecurity && transactions.sellCount > 0) {
-          const hasSellTransactions = transactions.sellCount > 0;
-          const hasBuyTransactions = transactions.buyCount > 0;
-          
-          if (hasSellTransactions || hasBuyTransactions) {
-            // Swap transaction'ları varsa honeypot olamaz - Birdeye API yanlış tespit etmiş olabilir
-            if (tokenSecurity.evmSecurity.isHoneypot) {
-              console.log(`⚠️ [Job ${job.id}] Honeypot flag detected BUT ${transactions.sellCount} sell transactions found - overriding honeypot flag (token can be sold)`);
-              tokenSecurity.evmSecurity.isHoneypot = false;
-              
-              // Remove honeypot from risk factors
-              tokenSecurity.riskFactors = tokenSecurity.riskFactors.filter(
-                (factor: string) => !factor.includes('Honeypot')
-              );
-              
-              // Update hasHighRisk if honeypot was the only high risk
-              if (tokenSecurity.riskFactors.length === 0) {
-                tokenSecurity.hasHighRisk = false;
-              }
+        if (hasSellTransactions) {
+          // Satım işlemi varsa honeypot OLAMAZ - token satılabiliyor demektir
+          if (tokenSecurity.evmSecurity.isHoneypot) {
+            console.log(`⚠️ [Job ${job.id}] Honeypot flag detected BUT ${transactions.sellCount} sell transactions found`);
+            console.log(`✅ [Job ${job.id}] Overriding honeypot flag (token CAN be sold - NOT a honeypot)`);
+            tokenSecurity.evmSecurity.isHoneypot = false;
+            
+            // Remove honeypot from risk factors
+            tokenSecurity.riskFactors = tokenSecurity.riskFactors.filter(
+              (factor: string) => !factor.toLowerCase().includes('honeypot')
+            );
+            
+            // Update hasHighRisk if honeypot was the only high risk
+            if (tokenSecurity.riskFactors.length === 0) {
+              tokenSecurity.hasHighRisk = false;
             }
           }
+        } else if (hasBuyTransactions && !hasSellTransactions) {
+          // SADECE alım var, satım YOK → honeypot olabilir (Birdeye API doğru tespit etmiş olabilir)
+          if (tokenSecurity.evmSecurity.isHoneypot) {
+            console.log(`⚠️ [Job ${job.id}] Honeypot detected: ${transactions.buyCount} buy transactions but 0 sell transactions`);
+            console.log(`⚠️ [Job ${job.id}] Token appears to be a honeypot (can buy but cannot sell)`);
+            // Keep honeypot flag as true - this is likely correct
+          }
         }
-        
-        if (tokenSecurity && tokenSecurity.riskFactors.length > 0) {
-          console.log(`⚠️ [Job ${job.id}] Token security risks found:`, tokenSecurity.riskFactors);
-        }
-      } else if (network === 'solana') {
-        tokenSecurity = {
-          network: 'solana',
-          tokenAddress: tokenA.mint,
-          solanaSecurity: {
-            freezeAuthority: tokenA.authorities?.freezeAuthority,
-            mintAuthority: tokenA.authorities?.mintAuthority,
-            hasFreezeAuthority: !!tokenA.authorities?.freezeAuthority,
-            hasMintAuthority: !!tokenA.authorities?.mintAuthority,
-          },
-          riskFactors: [],
-          hasHighRisk: false,
-        };
+      }
+      
+      if (tokenSecurity && tokenSecurity.riskFactors.length > 0) {
+        console.log(`⚠️ [Job ${job.id}] Token security risks found:`, tokenSecurity.riskFactors);
       } else {
-        tokenSecurity = undefined;
+        console.log(`✅ [Job ${job.id}] No major token security risks detected`);
       }
     } catch (error: any) {
       console.warn(`⚠️ [Job ${job.id}] Token security check failed (non-fatal): ${error.message}`);
@@ -518,61 +514,6 @@ async function processAnalysis(job: Job<QueueJobData>) {
       hasContent: rawResponse.length > 0,
       firstChars: rawResponse.substring(0, 100),
     });
-    
-    // Fetch token security information (for EVM chains and Solana authorities)
-    console.log(`🔒 [Job ${job.id}] Fetching token security information...`);
-    let tokenSecurity;
-    try {
-      tokenSecurity = await getTokenSecurity(
-        tokenA.mint,
-        network as Network,
-        { authorities: tokenA.authorities }
-      );
-      
-      // ✅ KRİTİK DÜZELTME: Honeypot tespiti - swap verilerine göre doğrulama
-      // Honeypot = satılamayan coin demek
-      // - Eğer SADECE alım (buy) işlemi varsa ve satım (sell) YOKSA → honeypot olabilir
-      // - Eğer hem alım hem satım işlemi varsa → honeypot OLAMAZ (token satılabiliyor demektir)
-      if (tokenSecurity && tokenSecurity.evmSecurity) {
-        const hasSellTransactions = transactions.sellCount > 0;
-        const hasBuyTransactions = transactions.buyCount > 0;
-        
-        if (hasSellTransactions) {
-          // Satım işlemi varsa honeypot OLAMAZ - token satılabiliyor demektir
-          if (tokenSecurity.evmSecurity.isHoneypot) {
-            console.log(`⚠️ [Job ${job.id}] Honeypot flag detected BUT ${transactions.sellCount} sell transactions found`);
-            console.log(`✅ [Job ${job.id}] Overriding honeypot flag (token CAN be sold - NOT a honeypot)`);
-            tokenSecurity.evmSecurity.isHoneypot = false;
-            
-            // Remove honeypot from risk factors
-            tokenSecurity.riskFactors = tokenSecurity.riskFactors.filter(
-              (factor: string) => !factor.toLowerCase().includes('honeypot')
-            );
-            
-            // Update hasHighRisk if honeypot was the only high risk
-            if (tokenSecurity.riskFactors.length === 0) {
-              tokenSecurity.hasHighRisk = false;
-            }
-          }
-        } else if (hasBuyTransactions && !hasSellTransactions) {
-          // SADECE alım var, satım YOK → honeypot olabilir (Birdeye API doğru tespit etmiş olabilir)
-          if (tokenSecurity.evmSecurity.isHoneypot) {
-            console.log(`⚠️ [Job ${job.id}] Honeypot detected: ${transactions.buyCount} buy transactions but 0 sell transactions`);
-            console.log(`⚠️ [Job ${job.id}] Token appears to be a honeypot (can buy but cannot sell)`);
-            // Keep honeypot flag as true - this is likely correct
-          }
-        }
-      }
-      
-      if (tokenSecurity && tokenSecurity.riskFactors.length > 0) {
-        console.log(`⚠️ [Job ${job.id}] Token security risks found:`, tokenSecurity.riskFactors);
-      } else {
-        console.log(`✅ [Job ${job.id}] No major token security risks detected`);
-      }
-    } catch (error: any) {
-      console.warn(`⚠️ [Job ${job.id}] Token security check failed (non-fatal): ${error.message}`);
-      tokenSecurity = undefined;
-    }
     
     // ==================================================================================
     // SECURITY SCORE CALCULATION

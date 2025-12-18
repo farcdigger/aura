@@ -215,7 +215,7 @@ export default function DeepResearchPage() {
           <div className="p-8 border border-gray-300 dark:border-gray-700 rounded-lg text-center">
             <p className="text-lg mb-2">Connect your wallet to get started</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Phantom, Solflare, and other Solana wallets supported
+              MetaMask, Rainbow, Base Wallet, and other Base network wallets supported
             </p>
           </div>
         ) : (
