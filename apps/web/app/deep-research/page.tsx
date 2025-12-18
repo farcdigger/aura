@@ -5,8 +5,6 @@ import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DeepResearchModal from "@/components/DeepResearchModal";
-import GameMenu from "@/components/GameMenu";
-import { checkNFTOwnershipClientSide } from "@/lib/check-nft-ownership";
 
 export default function DeepResearchPage() {
   const { address, isConnected } = useAccount();
@@ -19,8 +17,6 @@ export default function DeepResearchPage() {
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
-  const [hasNFT, setHasNFT] = useState<boolean | null>(null);
-  const [isGamePlaying, setIsGamePlaying] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState<'solana' | 'base' | 'bsc'>('solana');
 
   // Fetch pricing info when wallet connects
@@ -29,37 +25,20 @@ export default function DeepResearchPage() {
       setIsInitialLoad(true);
       fetchPricingInfo(true);
       fetchAnalysisHistory();
-      checkNFT();
     }
   }, [isConnected, address]);
 
   // Refresh pricing info periodically to check for free tickets
-  // BUT: Don't refresh if a game is currently being played (prevents page jumps)
   // Use silent refresh (no loading state) to prevent layout shifts
   useEffect(() => {
-    if (isConnected && address && !isGamePlaying && !isInitialLoad) {
+    if (isConnected && address && !isInitialLoad) {
       const interval = setInterval(() => {
-        // Double check game is not playing before fetching
-        if (!isGamePlaying) {
-          fetchPricingInfo(false); // Silent refresh - no loading state
-        }
-      }, 30000); // Refresh every 30 seconds (reduced frequency to minimize impact)
+        fetchPricingInfo(false); // Silent refresh - no loading state
+      }, 30000); // Refresh every 30 seconds
       
       return () => clearInterval(interval);
     }
-  }, [isConnected, address, isGamePlaying, isInitialLoad]);
-
-  // Check NFT ownership
-  const checkNFT = async () => {
-    if (!address) return;
-    try {
-      const nftOwnership = await checkNFTOwnershipClientSide(address);
-      setHasNFT(nftOwnership);
-    } catch (error) {
-      console.error("Error checking NFT:", error);
-      setHasNFT(false);
-    }
-  };
+  }, [isConnected, address, isInitialLoad]);
 
   // Fetch analysis history
   const fetchAnalysisHistory = async () => {
@@ -119,7 +98,7 @@ export default function DeepResearchPage() {
           setIsInitialLoad(false);
           // Set default pricing info to prevent infinite loading
           setPricingInfo({
-            pricing: { priceUSDC: 0.50, hasNFT: false },
+            pricing: { priceUSDC: 1.50, hasNFT: false },
             limitInfo: { current: 0, limit: 140, remaining: 140 },
             trialPricing: { active: false },
           });
@@ -237,7 +216,7 @@ export default function DeepResearchPage() {
                     per analysis
                   </p>
                   <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <li>60% discount</li>
+                    <li>87% discount</li>
                     <li>Priority support</li>
                     <li>All features included</li>
                   </ul>
@@ -246,7 +225,7 @@ export default function DeepResearchPage() {
                 {/* Standard Pricing */}
                 <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-2">Standard</h3>
-                  <p className="text-3xl font-bold mb-1">$0.50</p>
+                  <p className="text-3xl font-bold mb-1">$1.50</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     per analysis
                   </p>
@@ -403,19 +382,6 @@ export default function DeepResearchPage() {
             )}
           </>
         )}
-
-            {/* Games Section (NFT Owners Only) */}
-            {hasNFT && (
-              <div className="mt-12 mb-8">
-                <GameMenu
-                  onFreeTicketWon={() => {
-                    // When free ticket is won, show a message
-                    alert("🎉 Congratulations! You won a free analysis ticket! You can now start an analysis without payment.");
-                  }}
-                  onGameStateChange={(playing) => setIsGamePlaying(playing)}
-                />
-              </div>
-            )}
 
         {/* Analysis History Section */}
         {isConnected && address && (

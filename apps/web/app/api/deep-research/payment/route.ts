@@ -1,6 +1,6 @@
 /**
  * x402 Payment endpoint for Deep Research
- * Pricing: $0.20 (NFT holders) vs $0.50 (standard)
+ * Pricing: $0.20 (NFT holders) vs $1.50 (standard)
  * 
  * Flow:
  * 1. Check NFT ownership (for pricing)
@@ -28,7 +28,7 @@ const TRIAL_PRICE = "1000"; // $0.001 USDC (tests payment system)
 
 // Regular pricing (USDC with 6 decimals)
 const PRICE_WITH_NFT = "200000";    // $0.20 USDC
-const PRICE_WITHOUT_NFT = "500000"; // $0.50 USDC
+const PRICE_WITHOUT_NFT = "1500000"; // $1.50 USDC
 
 /**
  * Check if we're in trial pricing period

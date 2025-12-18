@@ -35,7 +35,7 @@ const TRIAL_PRICING_START = new Date("2025-12-14T00:00:00Z");
 const TRIAL_PRICING_END = new Date("2025-12-18T00:00:00Z"); // 4 days: Dec 14, 15, 16, 17
 const TRIAL_PRICE = 0.001; // $0.001 USDC during trial (almost free, but tests payment system)
 const PRICE_WITH_NFT = 0.20; // $0.20 for NFT holders (after trial)
-const PRICE_WITHOUT_NFT = 0.50; // $0.50 for non-holders (after trial)
+const PRICE_WITHOUT_NFT = 1.50; // $1.50 for non-holders (after trial)
 const WEEKLY_LIMIT = 140;
 
 /**

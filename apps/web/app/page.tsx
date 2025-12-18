@@ -1776,7 +1776,6 @@ function HomePageContent() {
         {step === "mint" && alreadyMinted && (
           <div className="max-w-4xl mx-auto animate-fade-in">
             <div className="card text-center">
-              <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-200">Success!</h2>
               <p className="text-lg mb-6 text-gray-700 dark:text-gray-300">Your xFrora NFT has been minted!</p>
               
@@ -2199,7 +2198,6 @@ function HomePageContent() {
             <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8">
               {/* Success Header */}
               <div className="text-center mb-6">
-                <div className="text-6xl mb-4">🎉</div>
                 <h2 className="text-3xl font-bold mb-2">
                   {mintedTokenId ? `xFrora #${mintedTokenId}` : "Congratulations!"}
                 </h2>
