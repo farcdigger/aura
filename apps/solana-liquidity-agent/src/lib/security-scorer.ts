@@ -28,12 +28,12 @@ export function calculateSecurityScore(
   const earlyBuyersStillHoldingRatio = walletStats.smartMoneyAnalysis?.earlyBuyersStillHoldingRatio || 0; // 0-100%
   
   // Debug logging to understand why score might be 0
-  console.log('[SecurityScorer] 📊 Security score calculation:', {
-    reEntryRatio,
-    diamondHandsRatio,
-    earlyBuyersStillHoldingRatio,
-    hasSmartMoneyAnalysis: !!walletStats.smartMoneyAnalysis,
-  });
+  console.log('[SecurityScorer] 📊 Input Metrics:');
+  console.log(`  - Re-Entry Ratio: ${reEntryRatio.toFixed(2)}% (30% weight)`);
+  console.log(`  - Diamond Hands Ratio: ${diamondHandsRatio.toFixed(2)}% (40% weight)`);
+  console.log(`  - Early Buyers Still Holding: ${earlyBuyersStillHoldingRatio.toFixed(2)}% (30% weight)`);
+  console.log(`  - Has Smart Money Analysis: ${!!walletStats.smartMoneyAnalysis}`);
+  console.log(`  - Has Token Security Data: ${!!tokenSecurity}`);
 
   // Weighted average calculation
   // Re-entry ratio: 30% weight (shows confidence after selling)
@@ -53,8 +53,9 @@ export function calculateSecurityScore(
     (earlyBuyersStillHoldingRatio * weights.earlyBuyers);
 
   // Apply token security penalties (if available)
+  let penalty = 0;
   if (tokenSecurity) {
-    let penalty = 0;
+    console.log('[SecurityScorer] 🔍 Checking token security risks...');
     
     // EVM-specific penalties
     if (tokenSecurity.evmSecurity) {
@@ -105,7 +106,14 @@ export function calculateSecurityScore(
     }
     
     // Apply penalty (reduce score)
-    securityScore = Math.max(0, securityScore - penalty);
+    if (penalty > 0) {
+      console.log(`[SecurityScorer] ⚠️ Security Penalty Applied: -${penalty.toFixed(2)} points`);
+      securityScore = Math.max(0, securityScore - penalty);
+    } else {
+      console.log(`[SecurityScorer] ✅ No security penalties (token is safe)`);
+    }
+  } else {
+    console.log(`[SecurityScorer] ⚠️ No token security data available (skipping security checks)`);
   }
 
   // Ensure score is between 0-100

@@ -461,13 +461,23 @@ async function processAnalysis(job: Job<QueueJobData>) {
       tokenSecurity = undefined;
     }
     
+    // ==================================================================================
+    // SECURITY SCORE CALCULATION
+    // ==================================================================================
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔒 [Job ${job.id}] ========== SECURITY SCORE CALCULATION ==========`);
+    console.log(`${'='.repeat(80)}\n`);
+    
     // Calculate Security Score based on:
     // 1. Re-entry ratio (users who sold and bought back) - 30% weight
     // 2. Diamond hands ratio (users still holding) - 40% weight
     // 3. Early buyers still holding ratio - 30% weight
     // 4. Token security risks (EVM: taxes, honeypot, proxy; Solana: authorities)
     const securityScore = calculateSecurityScore(transactions, tokenSecurity);
-    console.log(`🔒 [Job ${job.id}] Security score calculated: ${securityScore}/100`);
+    
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔒 [Job ${job.id}] ✅ SECURITY SCORE CALCULATED: ${securityScore}/100`);
+    console.log(`${'='.repeat(80)}\n`);
     
     // Risk score is no longer used - kept for backward compatibility only
     const riskScore = 50; // Default value, not used in UI
