@@ -277,22 +277,34 @@ export async function POST(request: NextRequest) {
         }
         
         // Adjust max_tokens and temperature based on chat mode
-        // CoT and Depressionist modes need more tokens for longer, detailed responses
-        const maxTokens = (mode === "chain-of-thought" || mode === "depressionist") ? 2000 : 500;
-        const temperature = (mode === "chain-of-thought" || mode === "depressionist") ? 1.0 : 0.7;
+        // CoT and Deep Research modes need more tokens for longer, detailed responses
+        const maxTokens = (mode === "chain-of-thought" || mode === "deep-research") ? 2000 : 500;
+        const temperature = (mode === "chain-of-thought" || mode === "deep-research") ? 1.0 : 0.7;
+        
+        // For Deep Research mode, enable web search tool
+        const tools = mode === "deep-research" 
+          ? [{ type: "web_search_preview" as const }]
+          : undefined;
+        
+        const requestBody: any = {
+          model: MODEL,
+          messages: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          temperature: temperature, // Higher temp for creative modes
+          max_tokens: maxTokens,
+          stream: false, // Explicitly disable streaming for now
+        };
+        
+        // Add web search tool for Deep Research mode
+        if (tools) {
+          requestBody.tools = tools;
+        }
         
         const response = await axios.post(
           "https://api-beta.daydreams.systems/v1/chat/completions",
-          {
-            model: MODEL,
-            messages: messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-            temperature: temperature, // Higher temp for creative modes
-            max_tokens: maxTokens,
-            stream: false, // Explicitly disable streaming for now
-          },
+          requestBody,
           {
             headers: {
               Authorization: `Bearer ${env.INFERENCE_API_KEY}`,
