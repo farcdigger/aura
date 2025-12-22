@@ -281,10 +281,9 @@ export async function POST(request: NextRequest) {
         const maxTokens = (mode === "chain-of-thought" || mode === "deep-research") ? 2000 : 500;
         const temperature = (mode === "chain-of-thought" || mode === "deep-research") ? 1.0 : 0.7;
         
-        // For Deep Research mode, enable web search tool
-        const tools = mode === "deep-research" 
-          ? [{ type: "web_search_preview" as const }]
-          : undefined;
+        // Note: Web search tool may not be supported by Daydreams API yet
+        // For now, Deep Research mode will work without web search - model should use its training data
+        // If web search is needed, we can implement a custom function calling approach later
         
         const requestBody: any = {
           model: MODEL,
@@ -296,11 +295,6 @@ export async function POST(request: NextRequest) {
           max_tokens: maxTokens,
           stream: false, // Explicitly disable streaming for now
         };
-        
-        // Add web search tool for Deep Research mode
-        if (tools) {
-          requestBody.tools = tools;
-        }
         
         const response = await axios.post(
           "https://api-beta.daydreams.systems/v1/chat/completions",
@@ -477,8 +471,19 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error("Error in chat message endpoint:", error);
+    // Log detailed error for debugging
+    console.error("Detailed error:", {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { 
+        error: "Internal server error", 
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

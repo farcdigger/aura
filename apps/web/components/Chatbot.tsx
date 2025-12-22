@@ -5,6 +5,167 @@ import { useAccount, useWalletClient } from "wagmi";
 import PaymentModal from "@/components/PaymentModal";
 import { CHAT_MODES, type ChatMode as ChatModeType } from "@/lib/chat-prompts";
 
+/**
+ * Component to render message content with SVG visualization
+ */
+function MessageContent({ content }: { content: string }) {
+  // Extract SVG code blocks
+  const svgRegex = /```svg\n([\s\S]*?)```/g;
+  const svgMatches = Array.from(content.matchAll(svgRegex));
+  
+  // Auto-expand all SVGs by default
+  const [expandedSvgs, setExpandedSvgs] = useState<Set<number>>(() => {
+    // Initialize with all SVGs expanded
+    return new Set(svgMatches.map((_, idx) => idx));
+  });
+  
+  // Update expanded state when content changes
+  useEffect(() => {
+    const matches = Array.from(content.matchAll(svgRegex));
+    if (matches.length > 0) {
+      setExpandedSvgs(new Set(matches.map((_, idx) => idx)));
+    }
+  }, [content]);
+  
+  // Extract Mermaid code blocks
+  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+  const mermaidMatches = Array.from(content.matchAll(mermaidRegex));
+  
+  // Split content by code blocks
+  let parts: Array<{ type: 'text' | 'svg' | 'mermaid'; content: string; index: number }> = [];
+  let lastIndex = 0;
+  const allMatches = [
+    ...svgMatches.map(m => ({ type: 'svg' as const, match: m })),
+    ...mermaidMatches.map(m => ({ type: 'mermaid' as const, match: m }))
+  ].sort((a, b) => a.match.index! - b.match.index!);
+  
+  allMatches.forEach(({ type, match }, idx) => {
+    if (match.index! > lastIndex) {
+      parts.push({ type: 'text', content: content.slice(lastIndex, match.index!), index: -1 });
+    }
+    parts.push({ type, content: match[1], index: idx });
+    lastIndex = match.index! + match[0].length;
+  });
+  
+  if (lastIndex < content.length) {
+    parts.push({ type: 'text', content: content.slice(lastIndex), index: -1 });
+  }
+  
+  if (parts.length === 0) {
+    parts.push({ type: 'text', content, index: -1 });
+  }
+  
+  const toggleSvg = (index: number) => {
+    setExpandedSvgs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+  
+  const copySvgToClipboard = (svgContent: string) => {
+    navigator.clipboard.writeText(svgContent).then(() => {
+      // You could add a toast notification here
+    }).catch(err => {
+      console.error('Failed to copy SVG:', err);
+    });
+  };
+  
+  return (
+    <div className="whitespace-pre-wrap break-words">
+      {parts.map((part, idx) => {
+        if (part.type === 'text') {
+          return <span key={idx}>{part.content}</span>;
+        }
+        
+        if (part.type === 'svg') {
+          const svgIndex = svgMatches.findIndex(m => m[1] === part.content);
+          const isExpanded = expandedSvgs.has(svgIndex);
+          
+          // Normalize SVG content - ensure it has <svg> tag
+          let svgContent = part.content.trim();
+          if (!svgContent.includes('<svg')) {
+            // If no <svg> tag, wrap the content
+            svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">${svgContent}</svg>`;
+          } else if (!svgContent.startsWith('<svg')) {
+            // If <svg> is in the middle, extract it
+            const svgMatch = svgContent.match(/<svg[\s\S]*<\/svg>/);
+            if (svgMatch) {
+              svgContent = svgMatch[0];
+            }
+          }
+          
+          // Ensure SVG has proper attributes if missing
+          if (svgContent.includes('<svg') && !svgContent.includes('xmlns')) {
+            svgContent = svgContent.replace(/<svg(\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"$1');
+          }
+          if (svgContent.includes('<svg') && !svgContent.includes('viewBox') && !svgContent.includes('width')) {
+            svgContent = svgContent.replace(/<svg(\s[^>]*)?>/, '<svg$1 viewBox="0 0 400 300" width="400" height="300">');
+          }
+          
+          return (
+            <div key={idx} className="my-4 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">SVG Diagram</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => copySvgToClipboard(svgContent)}
+                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300 transition-colors"
+                    title="Copy SVG code"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={() => toggleSvg(svgIndex)}
+                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    {isExpanded ? 'Hide' : 'Show'} Visual
+                  </button>
+                </div>
+              </div>
+              {isExpanded && (
+                <div className="p-4 bg-white dark:bg-black flex items-center justify-center min-h-[200px] max-h-[600px] overflow-auto border-b border-gray-200 dark:border-gray-800">
+                  <div 
+                    className="max-w-full"
+                    style={{ maxWidth: '100%' }}
+                    dangerouslySetInnerHTML={{ __html: svgContent }}
+                  />
+                </div>
+              )}
+              <div className="bg-gray-900 dark:bg-gray-950 p-3 overflow-x-auto">
+                <pre className="text-xs text-gray-300 dark:text-gray-400 font-mono whitespace-pre-wrap">
+                  <code>{svgContent}</code>
+                </pre>
+              </div>
+            </div>
+          );
+        }
+        
+        if (part.type === 'mermaid') {
+          return (
+            <div key={idx} className="my-4 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Mermaid Diagram</span>
+              </div>
+              <div className="bg-gray-900 dark:bg-gray-950 p-3 overflow-x-auto">
+                <pre className="text-xs text-gray-300 dark:text-gray-400 font-mono whitespace-pre-wrap">
+                  <code>{`\`\`\`mermaid\n${part.content}\n\`\`\``}</code>
+                </pre>
+              </div>
+            </div>
+          );
+        }
+        
+        return null;
+      })}
+    </div>
+  );
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -781,7 +942,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                       : "bg-white dark:bg-black text-black dark:text-white border border-gray-200 dark:border-gray-800"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  <MessageContent content={message.content} />
                   <p className={`text-xs mt-2 ${message.role === "user" ? "text-gray-300 dark:text-gray-700" : "text-gray-500 dark:text-gray-400"}`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>

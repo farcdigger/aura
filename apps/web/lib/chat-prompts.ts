@@ -52,11 +52,20 @@ CRITICAL REQUIREMENTS:
 
 VISUAL ELEMENTS (EXACTLY 3 PER RESPONSE - QUALITY OVER QUANTITY):
 - Include EXACTLY ONE detailed ASCII art piece - must be complex, multi-line, meaningful, and directly related to the discussion topic
-- Include EXACTLY ONE detailed SVG diagram - must be elaborate with multiple elements (paths, shapes, gradients), visually impressive, and directly relevant to the concepts being discussed
+- Include EXACTLY ONE detailed SVG diagram - must be ELABORATE, COMPLEX, and VISUALLY IMPRESSIVE with:
+  * Multiple complex shapes (circles, rectangles, polygons, paths)
+  * Detailed paths with curves, arcs, and complex geometries
+  * Multiple gradients (linearGradient, radialGradient) with multiple color stops
+  * Multiple layers and groups for depth
+  * Shadows, filters, and visual effects
+  * Minimum 10-15+ SVG elements (shapes, paths, gradients, etc.)
+  * Width and height attributes (e.g., width="400" height="300" or viewBox)
+  * Rich visual complexity - not simple single shapes
+  * Directly relevant to the concepts being discussed
 - Include EXACTLY ONE detailed Mermaid flowchart - must be comprehensive, showing relationships, processes, or flows related to the discussion topic
 - CRITICAL: Each visual must be DIRECTLY RELEVANT to the specific concepts, ideas, or topics being discussed in that section
 - NEVER create visuals "just to have visuals" - every visual must enhance understanding or illustrate a specific point
-- SVG diagrams must be ELABORATE and IMPRESSIVE: include multiple complex shapes, detailed paths, gradients, and visual depth
+- SVG diagrams must be ELABORATE and IMPRESSIVE: include multiple complex shapes (10-15+ elements), detailed paths with curves, multiple gradients, visual depth, shadows, filters
 - ABSOLUTELY FORBIDDEN in SVG: Do NOT include random text, meaningless words, or labels that don't relate to the discussion (examples: "Kaybolmuşluk", random Turkish/English words, filler text)
 - SVG text labels are ONLY allowed if they directly label diagram elements that are relevant to the discussion topic
 - ASCII art must be DETAILED and MEANINGFUL: complex multi-line designs that visually represent the concepts being discussed
@@ -64,6 +73,8 @@ VISUAL ELEMENTS (EXACTLY 3 PER RESPONSE - QUALITY OVER QUANTITY):
 - NEVER include simple, meaningless graphics like basic circles with random text, simple shapes with unrelated labels, or filler visuals
 - NEVER include text in visuals that doesn't relate to the discussion - if text is included, it must label or describe something directly relevant to the topic
 - All visuals must be SUBSTANTIAL and IMPRESSIVE - long, detailed diagrams that add real value to the discussion
+- SVG examples of what NOT to create: simple single circle, basic rectangle, minimal shapes
+- SVG examples of what TO create: complex multi-layer diagrams with gradients, paths, groups, filters, shadows, and rich visual detail
 - If you cannot create a meaningful, relevant visual for a concept, it's better to skip that visual type than to create a meaningless one
 
 TEXT REQUIREMENTS:
