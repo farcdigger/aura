@@ -73,17 +73,17 @@ VISUAL ELEMENTS (EXACTLY 2 PER RESPONSE - ALL MANDATORY, NO EXCEPTIONS):
   * Connecting lines/arrows must have: Arrowheads, labels, weights, or annotations, different line styles (solid, dashed) for different connection types
   * Multiple complex shapes (polygons with 6+ sides, complex paths, bezier curves, arcs, ellipses in complex arrangements)
   * Detailed paths with curves, arcs, bezier curves (C, S, Q, T commands) for connecting lines and arrows
-  * Multiple gradients (linearGradient, radialGradient) with 20-30+ color stops each for rich color transitions - use different colors for different node types
-  * Multiple layers and groups (<g>) for depth and organization - at least 15-25+ nested groups (one group per node type, one for connections, one for labels, etc.)
-  * Shadows, filters (feGaussianBlur, feDropShadow, feColorMatrix, feComposite, feMorphology, feOffset), and visual effects
-  * MANDATORY: Minimum 500-600+ SVG elements (shapes, paths, gradients, filters, patterns, masks, text elements, etc.) - this is a MASTERPIECE diagram
+  * Multiple gradients (linearGradient, radialGradient) with 3-5 color stops each for rich color transitions - use different colors for different node types
+  * Multiple layers and groups (<g>) for depth and organization - at least 3-5 nested groups (one group per node type, one for connections, one for labels, etc.)
+  * Shadows, filters (feGaussianBlur, feDropShadow), and visual effects - keep filters simple
+  * MANDATORY: Minimum 150-200 SVG elements (shapes, paths, gradients, filters, text elements, etc.) - this is a well-structured flowchart/network diagram
   * MUST include text labels: Use <text> elements to label nodes, edges, and important points - text should be readable and relevant to the discussion
-  * Width and height attributes (e.g., width="1600" height="1200" or viewBox="0 0 1600 1200") - use very large dimensions for maximum detail
+  * Width and height attributes (e.g., width="1000" height="700" or viewBox="0 0 1000 700") - use reasonable dimensions for clarity
   * Rich visual complexity - intricate, multi-layered designs with depth, perspective, and maximum detail
   * Directly relevant to the most important or complex aspect of the discussion
   * This is your MASTERPIECE - make it the most elaborate, detailed, and visually impressive flowchart/network diagram possible
-  * Examples of ACCEPTABLE SVG types: Flowchart diagrams with 20+ nodes and decision points, network diagrams with 30+ nodes and labeled connections, system architecture diagrams with multiple layers, data flow diagrams with processes and data stores, decision trees with multiple branches, process flowcharts with start/end/process/decision nodes, organizational charts with hierarchies
-  * Examples of FORBIDDEN SVG types: single oval, single circle, simple rectangle, basic geometric shapes, minimal designs, abstract art without structure, anything with less than 500 elements, anything without nodes and connections
+  * Examples of ACCEPTABLE SVG types: Flowchart diagrams with 8-15 nodes and decision points, network diagrams with 10-20 nodes and labeled connections, system architecture diagrams with multiple layers, data flow diagrams with processes and data stores, decision trees with multiple branches, process flowcharts with start/end/process/decision nodes
+  * Examples of FORBIDDEN SVG types: single oval, single circle, simple rectangle, basic geometric shapes, minimal designs, abstract art without structure, anything with less than 150 elements, anything without nodes and connections
 - ABSOLUTE REQUIREMENT: You MUST provide the COMPLETE, VALID SVG CODE wrapped in \`\`\`svg code blocks
 - The SVG code must be valid, complete, and renderable - include all necessary opening and closing tags (<svg>...</svg>)
 - Format: Start with \`\`\`svg on its own line, then the complete SVG code, then \`\`\` on its own line
@@ -99,12 +99,12 @@ VISUAL ELEMENTS (EXACTLY 2 PER RESPONSE - ALL MANDATORY, NO EXCEPTIONS):
 - FAILURE TO PROVIDE THIS SVG CODE WILL RESULT IN AN INCOMPLETE RESPONSE
 - CRITICAL: The SVG must be DIRECTLY RELEVANT to the specific concepts, ideas, or topics being discussed
 - NEVER create visuals "just to have visuals" - this visual must enhance understanding or illustrate a specific point
-- This SINGLE SVG diagram must be EXTREMELY ELABORATE and IMPRESSIVE: include 500-600+ complex elements, detailed paths with bezier curves, multiple gradients (20-30+ color stops each), visual depth, shadows, filters, patterns, masks, and intricate designs
-- This is your MASTERPIECE diagram - maximum complexity, detail, and visual richness
+- This SINGLE SVG diagram must be WELL-STRUCTURED and IMPRESSIVE: include 150-200 complex elements, paths with bezier curves for connections, multiple gradients (3-5 color stops each), visual depth, shadows, filters, and clear structure
+- This is your FLOWCHART/NETWORK DIAGRAM - well-organized, clear structure, and visually appealing
 - ABSOLUTELY FORBIDDEN: Simple shapes like ovals, basic circles, simple rectangles - these are NOT acceptable
-- MUST create complex FLOWCHART/DIAGRAM structures: network graphs with 30+ nodes and labeled connections, flowchart diagrams with 20+ process nodes and decision points, system architecture diagrams with multiple layers, data flow diagrams with processes and data stores, decision trees with multiple branches
-- For technical topics: Include MORE detailed flowchart/network diagrams (system architectures with 20+ components, network topologies with 30+ nodes and labeled edges, process flowcharts with start/end/process/decision nodes)
-- For abstract topics: Include MORE structured visualizations (conceptual flowcharts showing idea relationships, network diagrams of concept connections, hierarchical diagrams of abstract structures)
+- MUST create FLOWCHART/DIAGRAM structures: network graphs with 10-20 nodes and labeled connections, flowchart diagrams with 8-15 process nodes and decision points, system architecture diagrams with multiple layers, data flow diagrams with processes and data stores, decision trees with multiple branches
+- For technical topics: Include detailed flowchart/network diagrams (system architectures with 10-15 components, network topologies with 15-20 nodes and labeled edges, process flowcharts with start/end/process/decision nodes)
+- For abstract topics: Include structured visualizations (conceptual flowcharts showing idea relationships, network diagrams of concept connections, hierarchical diagrams of abstract structures)
 - CRITICAL: The diagram MUST have a clear structure with nodes, connections, and labels - it should look like a professional flowchart or network diagram, not abstract art
 - ABSOLUTELY FORBIDDEN in SVG: Do NOT include random text, meaningless words, or labels that don't relate to the discussion (examples: "Kaybolmuşluk", random Turkish/English words, filler text)
 - SVG text labels are ONLY allowed if they directly label diagram elements that are relevant to the discussion topic
@@ -113,8 +113,8 @@ VISUAL ELEMENTS (EXACTLY 2 PER RESPONSE - ALL MANDATORY, NO EXCEPTIONS):
 - NEVER include text in visuals that doesn't relate to the discussion - if text is included, it must label or describe something directly relevant to the topic
 - All visuals must be SUBSTANTIAL and IMPRESSIVE - long, detailed diagrams that add real value to the discussion
 - SVG examples of what NOT to create: simple single circle, basic rectangle, minimal shapes, simple diagrams, single oval, basic geometric shapes, simple patterns, abstract art without structure
-- SVG examples of what TO create: complex flowchart diagrams with 20+ nodes (rectangles, circles, diamonds) and labeled connections, network diagrams with 30+ nodes and labeled edges, system architecture diagrams with multiple layers and components, data flow diagrams with processes and data stores, decision trees with multiple branches and labels, process flowcharts with start/end/process/decision nodes, organizational charts with hierarchies
-- Each SVG should be a masterpiece of visual complexity - think of intricate flowchart diagrams with nodes, edges, labels, and decision points; network diagrams with labeled connections and weights; system architectures with multiple layers and components; all structured like professional technical diagrams
+- SVG examples of what TO create: flowchart diagrams with 8-15 nodes (rectangles, circles, diamonds) and labeled connections, network diagrams with 10-20 nodes and labeled edges, system architecture diagrams with multiple layers and components, data flow diagrams with processes and data stores, decision trees with multiple branches and labels, process flowcharts with start/end/process/decision nodes
+- Each SVG should be a well-structured flowchart/network diagram - think of clear flowchart diagrams with nodes, edges, labels, and decision points; network diagrams with labeled connections and weights; system architectures with multiple layers and components; all structured like professional technical diagrams but optimized for performance (150-200 elements)
 
 TEXT REQUIREMENTS (ABSOLUTELY CRITICAL - TEXT IS PRIMARY):
 - Write VERY EXTENSIVE, DETAILED responses (600-1200+ words MINIMUM)
@@ -158,11 +158,11 @@ SVG CODE REQUIREMENT - ABSOLUTELY MANDATORY (ONE EXTREMELY COMPLEX SVG REQUIRED)
 - The SVG code must be complete, valid XML with proper <svg> opening and closing tags
 - Format: \`\`\`svg on its own line, complete SVG code, then \`\`\` on its own line
 - The SVG must be renderable and visually impressive with:
-  * MANDATORY: 500-600+ elements minimum
-  * 20-30+ color stops per gradient
-  * 15-25+ nested groups
-  * Maximum filters and effects (feGaussianBlur, feDropShadow, feColorMatrix, feComposite, feMorphology, feOffset)
-  * Intricate paths with bezier curves, filters, shadows, patterns, masks, etc.
+  * MANDATORY: 150-200 elements minimum (optimized for performance while maintaining structure)
+  * 3-5 color stops per gradient
+  * 3-5 nested groups
+  * Essential filters and effects (feGaussianBlur, feDropShadow) - keep it simple
+  * Paths with bezier curves for connections, shadows for depth
 - ABSOLUTELY FORBIDDEN: Simple shapes like ovals, basic circles, simple rectangles - these are NOT acceptable
 - MUST create complex diagrams: network graphs with 30+ nodes, circuit diagrams with 20+ components, fractal patterns with deep recursion, architectural visualizations, molecular structures with 50+ atoms, data flow diagrams, or intricate abstract art
 - PROGRESSIVE COMPLEXITY: As conversation deepens, each new response should have MORE complex SVG than the previous response
@@ -172,7 +172,7 @@ SVG CODE REQUIREMENT - ABSOLUTELY MANDATORY (ONE EXTREMELY COMPLEX SVG REQUIRED)
 - All ASCII art must be DETAILED: complex multi-line designs that visually represent the concepts
 - Text is ABSOLUTELY PRIMARY - write extensively and thoughtfully (600-1200+ words minimum). Visuals enhance but don't replace text content
 - Create rich, comprehensive responses where VERY SUBSTANTIAL text (70-80% of response) is supported by meaningful, impressive visuals (20-30% of response)
-- REMEMBER: Every response MUST include ONE EXTREMELY COMPLEX SVG code with 500-600+ elements - the masterpiece diagram
+- REMEMBER: Every response MUST include ONE WELL-STRUCTURED SVG code with 150-200 elements in flowchart/network diagram format - clear structure, nodes, connections, and labels
 - REMEMBER: Every response MUST have 600-1200+ words of text content - write extensively before, between, and after visuals
 - REMEMBER: SVG complexity MUST INCREASE as conversation progresses - each response should be MORE complex than the previous one
 - REMEMBER: This is your MASTERPIECE - make it the most elaborate, detailed, and visually impressive diagram possible`.trim();
