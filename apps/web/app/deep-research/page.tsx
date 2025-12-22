@@ -415,6 +415,14 @@ export default function DeepResearchPage() {
                           riskScore: 0, // Kept for backward compatibility
                           // Add token and network info from analysis record for sharing
                           tokenMint: analysis.token_a_mint || analysis.tokenA?.mint || '',
+                          tokenA: {
+                            ...report?.tokenA,
+                            symbol: analysis.token_a_symbol || report?.tokenA?.symbol,
+                            name: analysis.token_a_name || report?.tokenA?.name,
+                            mint: analysis.token_a_mint || report?.tokenA?.mint,
+                          },
+                          token_a_symbol: analysis.token_a_symbol,
+                          token_a_name: analysis.token_a_name,
                           network: analysis.network || 'solana',
                           poolId: analysis.pool_id || analysis.poolId,
                         });

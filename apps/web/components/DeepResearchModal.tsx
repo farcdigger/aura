@@ -571,12 +571,22 @@ export default function DeepResearchModal({
                     const analysisNetwork = analysisResult?.network || network || 'solana';
                     const networkName = analysisNetwork === 'solana' ? 'Solana' : analysisNetwork === 'base' ? 'Base' : 'BSC';
                     
-                    // Get token address from analysis result (for past analyses) or from prop
+                    // Get token symbol/name from analysis result (prefer symbol, fallback to name, then address)
+                    const tokenSymbol = analysisResult?.tokenA?.symbol || 
+                                       analysisResult?.token_a_symbol || 
+                                       analysisResult?.tokenA?.name || 
+                                       analysisResult?.token_a_name || 
+                                       null;
+                    
+                    // Get token address as fallback
                     const analysisTokenMint = analysisResult?.tokenMint || 
                                              analysisResult?.tokenA?.mint || 
                                              analysisResult?.token_a_mint || 
                                              tokenMint || '';
                     const tokenAddress = analysisTokenMint.length > 20 ? `${analysisTokenMint.slice(0, 8)}...${analysisTokenMint.slice(-6)}` : analysisTokenMint;
+                    
+                    // Use token symbol/name if available, otherwise use address
+                    const tokenDisplay = tokenSymbol || tokenAddress;
                     
                     // Get transaction metrics from analysis result
                     const transactions = analysisResult?.transactions || analysisResult?.analysisResult?.transactions;
@@ -610,7 +620,7 @@ export default function DeepResearchModal({
                     // Create tweet text with all metrics
                     let tweetText = `🔍 Token Analysis Report\n\n` +
                       `Network: ${networkName}\n` +
-                      `Token: ${tokenAddress}\n` +
+                      `Token: ${tokenDisplay}\n` +
                       `Security Score: ${securityScore}/100\n\n`;
                     
                     // Add metrics if available
