@@ -147,10 +147,10 @@ export default function DeepResearchPage() {
               </Link>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
-                  Deep Research on Solana
+                  Deep Research
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                  AI-powered liquidity analysis for Solana tokens
+                  AI-powered liquidity analysis for tokens
                 </p>
               </div>
             </div>
