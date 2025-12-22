@@ -128,10 +128,10 @@ function MessageContent({ content }: { content: string }) {
                 </div>
               </div>
               {isExpanded && (
-                <div className="p-4 bg-white dark:bg-black flex items-center justify-center min-h-[200px] max-h-[600px] overflow-auto border-b border-gray-200 dark:border-gray-800">
+                <div className="p-4 bg-white dark:bg-black flex items-center justify-center min-h-[400px] max-h-[800px] overflow-auto border-b border-gray-200 dark:border-gray-800">
                   <div 
-                    className="max-w-full"
-                    style={{ maxWidth: '100%' }}
+                    className="max-w-full w-full"
+                    style={{ maxWidth: '100%', width: '100%' }}
                     dangerouslySetInnerHTML={{ __html: svgContent }}
                   />
                 </div>
@@ -720,7 +720,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative w-full max-w-5xl h-[90vh] sm:h-[90vh] max-h-screen bg-white dark:bg-black flex flex-col border border-gray-200 dark:border-gray-800 overflow-hidden m-2 sm:m-0">
+      <div className="relative w-full max-w-7xl h-[90vh] sm:h-[90vh] max-h-screen bg-white dark:bg-black flex flex-col border border-gray-200 dark:border-gray-800 overflow-hidden m-2 sm:m-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -941,7 +941,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
                   </div>
                 )}
                 <div
-                  className={`max-w-[75%] rounded-lg px-4 py-3 ${
+                  className={`max-w-[90%] rounded-lg px-4 py-3 ${
                     message.role === "user"
                       ? "bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white"
                       : "bg-white dark:bg-black text-black dark:text-white border border-gray-200 dark:border-gray-800"
