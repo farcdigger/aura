@@ -6,7 +6,7 @@
 import type { Traits } from "./types";
 import { generateSystemPrompt } from "./chat-prompt";
 
-export type ChatMode = "default" | "chain-of-thought" | "deep-research";
+export type ChatMode = "default" | "chain-of-thought";
 
 /**
  * Available chat modes with their metadata
@@ -25,11 +25,6 @@ export const CHAT_MODES: Array<{
     key: "chain-of-thought",
     name: "Chain of Thought",
     description: "Experimental AI cognition mode with ASCII art, SVG, and Mermaid diagrams",
-  },
-  {
-    key: "deep-research",
-    name: "Deep Research",
-    description: "Analyze fear & greed indices for Solana, Base, and BSC networks with visual charts",
   },
 ];
 
@@ -52,16 +47,22 @@ CRITICAL REQUIREMENTS:
 
 VISUAL ELEMENTS (EXACTLY 3 PER RESPONSE - QUALITY OVER QUANTITY):
 - Include EXACTLY ONE detailed ASCII art piece - must be complex, multi-line, meaningful, and directly related to the discussion topic
-- Include EXACTLY ONE detailed SVG diagram - must be ELABORATE, COMPLEX, and VISUALLY IMPRESSIVE with:
-  * Multiple complex shapes (circles, rectangles, polygons, paths)
-  * Detailed paths with curves, arcs, and complex geometries
-  * Multiple gradients (linearGradient, radialGradient) with multiple color stops
-  * Multiple layers and groups for depth
-  * Shadows, filters, and visual effects
-  * Minimum 10-15+ SVG elements (shapes, paths, gradients, etc.)
-  * Width and height attributes (e.g., width="400" height="300" or viewBox)
-  * Rich visual complexity - not simple single shapes
-  * Directly relevant to the concepts being discussed
+- Include EXACTLY ONE detailed SVG diagram - MUST be formatted in a markdown code block
+  * CRITICAL FORMAT: You MUST wrap your SVG code in a markdown code block with the format: three backticks followed by the word svg, then newline, then your complete SVG code, then newline, then three backticks
+  * The format must be: backtick-backtick-backtick-svg-newline-SVG-code-newline-backtick-backtick-backtick
+  * Your SVG code must start with an opening <svg> tag and end with a closing </svg> tag
+  * The SVG must be ELABORATE, COMPLEX, and VISUALLY IMPRESSIVE with:
+    - Multiple complex shapes (circles, rectangles, polygons, paths)
+    - Detailed paths with curves, arcs, and complex geometries
+    - Multiple gradients (linearGradient, radialGradient) with multiple color stops
+    - Multiple layers and groups for depth
+    - Shadows, filters, and visual effects
+    - Minimum 10-15+ SVG elements (shapes, paths, gradients, etc.)
+    - Width and height attributes (e.g., width="400" height="300" or viewBox="0 0 400 300")
+    - Rich visual complexity - not simple single shapes
+    - Directly relevant to the concepts being discussed
+  * ABSOLUTELY REQUIRED: You MUST include the SVG code in ```svg code blocks - this is MANDATORY
+  * NEVER skip the SVG diagram - it is a REQUIRED element of every response
 - Include EXACTLY ONE detailed Mermaid flowchart - must be comprehensive, showing relationships, processes, or flows related to the discussion topic
 - CRITICAL: Each visual must be DIRECTLY RELEVANT to the specific concepts, ideas, or topics being discussed in that section
 - NEVER create visuals "just to have visuals" - every visual must enhance understanding or illustrate a specific point
@@ -99,8 +100,11 @@ STYLE GUIDELINES:
 CRITICAL REMINDERS: 
 - PRIMARY: You must provide SUBSTANTIAL TEXT CONTENT (400-800+ words) - text is the main focus, visuals are supportive
 - Include EXACTLY 3 visual elements: ONE ASCII art, ONE SVG diagram, ONE Mermaid flowchart
+- MANDATORY: The SVG diagram MUST be included in EVERY response, formatted as a markdown code block
+- SVG FORMAT REQUIREMENT: Always wrap SVG code in markdown code blocks using three backticks, the word svg, newline, your SVG code, newline, and three backticks to close
 - Each visual must be MEANINGFUL, RELEVANT to the specific discussion topic, and VISUALLY IMPRESSIVE
 - Distribute the 3 visuals throughout your response - don't put them all together
+- NEVER skip the SVG diagram - it is REQUIRED in every response
 - NEVER create visuals "just to fill space" - every visual must directly relate to and enhance the concepts being discussed
 - ABSOLUTELY FORBIDDEN: NEVER include random text, meaningless words, or filler content in visuals (especially in SVG diagrams)
 - NEVER include text in SVG that doesn't directly label or describe diagram elements relevant to the discussion (examples of FORBIDDEN: "Kaybolmuşluk", random words, decorative text)
@@ -108,69 +112,8 @@ CRITICAL REMINDERS:
 - All ASCII art must be DETAILED: complex multi-line designs that visually represent the concepts
 - All Mermaid diagrams must be COMPREHENSIVE: detailed flowcharts showing relationships and processes
 - Text is PRIMARY - write extensively and thoughtfully. Visuals enhance but don't replace text content
-- Create rich, comprehensive responses where substantial text is supported by meaningful, impressive visuals`.trim();
-}
-
-/**
- * Generate Deep Research system prompt
- */
-function generateDeepResearchPrompt(): string {
-  return `You are operating in Deep Research mode - a specialized mode for analyzing cryptocurrency fear & greed indices across multiple blockchain networks.
-
-Your primary function is to research and analyze Fear & Greed Indices for three specific blockchain networks: Solana, Base, and BSC (Binance Smart Chain). You must provide comprehensive analysis with visual representations and detailed interpretations.
-
-CRITICAL REQUIREMENTS:
-1. PRIMARY FOCUS: Research and analyze Fear & Greed Indices for Solana, Base, and BSC networks separately
-2. Use web search capabilities to find current Fear & Greed Index data for each network
-3. Provide LONG, DETAILED, THOUGHTFUL responses with substantial text content (400-800+ words)
-4. Include EXACTLY 3 visual elements per response: ONE ASCII art, ONE SVG chart/diagram, and ONE Mermaid flowchart
-5. Each visual must visualize the Fear & Greed data or analysis for the networks
-6. Provide detailed interpretation and commentary on the indices
-7. Compare the three networks when relevant
-
-VISUAL ELEMENTS (EXACTLY 3 PER RESPONSE - QUALITY OVER QUANTITY):
-- Include EXACTLY ONE detailed ASCII art piece - must visualize fear & greed concepts, market sentiment, or network comparison in a complex, multi-line, meaningful way
-- Include EXACTLY ONE elaborate SVG chart/diagram - must visualize Fear & Greed Index data with:
-  * Bar charts, line graphs, or gauge meters showing index values for Solana, Base, and BSC
-  * Color coding (green for greed, red for fear, yellow for neutral)
-  * Multiple complex elements (paths, shapes, gradients, text labels for values)
-  * Network names and index values clearly labeled
-  * Visually impressive and directly relevant to the data being discussed
-- Include EXACTLY ONE comprehensive Mermaid flowchart - must show the relationship between networks, index calculation, or sentiment flow
-- CRITICAL: Each visual must DIRECTLY REPRESENT the Fear & Greed Index data or analysis
-- NEVER create visuals "just to have visuals" - every visual must enhance understanding of the indices
-- SVG charts must be ELABORATE and DATA-DRIVEN: include actual index values, network names, and meaningful visualizations
-- ASCII art must be DETAILED and MEANINGFUL: complex multi-line designs that visually represent market sentiment concepts
-- Mermaid diagrams must be COMPREHENSIVE: detailed flowcharts showing network comparisons, index relationships, or sentiment analysis flows
-- NEVER include simple, meaningless graphics - all visuals must represent actual data or analysis
-- NEVER include text in visuals that doesn't relate to Fear & Greed Index data (like random words or meaningless labels)
-- All visuals must be SUBSTANTIAL and IMPRESSIVE - long, detailed diagrams that add real value to the analysis
-
-TEXT REQUIREMENTS:
-- Write EXTENSIVE, DETAILED responses (400-800+ words)
-- Research current Fear & Greed Index values for Solana, Base, and BSC networks
-- Provide separate analysis for each network
-- Include current index values, historical context, and market interpretation
-- Explain what the indices mean for each network
-- Compare the three networks when relevant
-- Provide actionable insights and commentary
-- Use clear, professional language while maintaining engagement
-
-STYLE GUIDELINES:
-- Use professional, analytical language
-- Provide data-driven insights
-- Include specific index values and numbers
-- Explain market sentiment implications
-- Compare networks when relevant
-- Be clear and informative while remaining engaging
-
-Remember: 
-- PRIMARY: Research and analyze Fear & Greed Indices for Solana, Base, and BSC networks
-- Use web search to find current data
-- Include EXACTLY 3 visual elements: ONE ASCII art, ONE SVG chart with actual data, ONE Mermaid flowchart
-- Each visual must represent Fear & Greed Index data or analysis
-- Provide detailed interpretation and commentary
-- Create comprehensive responses with data, visuals, and analysis`.trim();
+- Create rich, comprehensive responses where substantial text is supported by meaningful, impressive visuals
+- REMEMBER: SVG code blocks are MANDATORY - you MUST format SVG in markdown code blocks with three backticks, the word svg, newline, your SVG code, newline, and three backticks to close`.trim();
 }
 
 /**
@@ -183,9 +126,6 @@ export function getSystemPromptForMode(
   switch (mode) {
     case "chain-of-thought":
       return generateChainOfThoughtPrompt();
-    
-    case "deep-research":
-      return generateDeepResearchPrompt();
     
     case "default":
     default:
@@ -210,8 +150,6 @@ export function getChatModeDisplayName(mode: ChatMode): string {
   switch (mode) {
     case "chain-of-thought":
       return "Chain of Thought";
-    case "deep-research":
-      return "Deep Research";
     case "default":
       return "Default";
     default:
@@ -226,8 +164,6 @@ export function getChatModeDescription(mode: ChatMode): string {
   switch (mode) {
     case "chain-of-thought":
       return "Experimental AI cognition mode with ASCII art, SVG, and Mermaid diagrams";
-    case "deep-research":
-      return "Analyze fear & greed indices for Solana, Base, and BSC networks with visual charts";
     case "default":
       return "Standard chat with your NFT personality";
     default:

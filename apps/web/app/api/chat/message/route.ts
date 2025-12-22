@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       const traits = nftTraits || defaultTraits;
       systemPrompt = getSystemPromptForMode(mode, traits);
     } else {
-      // For other modes (chain-of-thought, depressionist), traits not needed
+      // For other modes (chain-of-thought), traits not needed
       systemPrompt = getSystemPromptForMode(mode);
     }
 
@@ -277,13 +277,9 @@ export async function POST(request: NextRequest) {
         }
         
         // Adjust max_tokens and temperature based on chat mode
-        // CoT and Deep Research modes need more tokens for longer, detailed responses
-        const maxTokens = (mode === "chain-of-thought" || mode === "deep-research") ? 2000 : 500;
-        const temperature = (mode === "chain-of-thought" || mode === "deep-research") ? 1.0 : 0.7;
-        
-        // Note: Web search tool may not be supported by Daydreams API yet
-        // For now, Deep Research mode will work without web search - model should use its training data
-        // If web search is needed, we can implement a custom function calling approach later
+        // CoT mode needs more tokens for longer, detailed responses
+        const maxTokens = mode === "chain-of-thought" ? 2000 : 500;
+        const temperature = mode === "chain-of-thought" ? 1.0 : 0.7;
         
         const requestBody: any = {
           model: MODEL,
