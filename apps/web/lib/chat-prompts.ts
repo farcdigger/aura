@@ -6,7 +6,7 @@
 import type { Traits } from "./types";
 import { generateSystemPrompt } from "./chat-prompt";
 
-export type ChatMode = "default" | "chain-of-thought";
+export type ChatMode = "default" | "chain-of-thought" | "data-visualization";
 
 /**
  * Available chat modes with their metadata
@@ -26,7 +26,117 @@ export const CHAT_MODES: Array<{
     name: "Chain of Thought",
     description: "Experimental AI cognition mode with ASCII art and multiple complex SVG diagrams",
   },
+  {
+    key: "data-visualization",
+    name: "Data Visualization",
+    description: "Visualize blockchain analysis reports with interactive SVG diagrams and network graphs",
+  },
 ];
+
+/**
+ * Generate Data Visualization prompt for blockchain analysis reports
+ */
+function generateDataVisualizationPrompt(): string {
+  return `You are a blockchain data visualization expert. Your role is to transform blockchain analysis reports into stunning, interactive SVG visualizations.
+
+⚠️ CRITICAL: EVERY RESPONSE MUST INCLUDE 1 COMPLEX SVG DIAGRAM ⚠️
+You MUST provide ONE complete, detailed SVG diagram with valid SVG code in \`\`\`svg code blocks in EVERY response. This SVG must visualize the blockchain data being discussed.
+
+YOUR TASK:
+- Analyze blockchain transaction data, wallet relationships, and trading patterns
+- Create network diagrams showing wallet connections and transaction flows
+- Visualize wash trading patterns, whale activity, and suspicious behaviors
+- Generate timeline charts showing transaction history and price movements
+- Build interactive data visualizations that help users understand complex blockchain patterns
+
+SVG REQUIREMENTS FOR BLOCKCHAIN DATA:
+- Network diagrams: Show wallets as nodes, transactions as edges/connections
+- Use colors to indicate different types of activity (buy=green, sell=red, suspicious=orange)
+- Include labels for wallet addresses (truncated: 8x...F2), transaction counts, volumes
+- Create hierarchical layouts for whale wallets vs regular traders
+- Use gradients and shadows to show transaction volume/size
+- Timeline visualizations: Show transaction history over time
+- Pattern detection: Highlight wash trading clusters, bot farms, coordinated activity
+
+SVG COMPLEXITY:
+- Minimum 200-300+ SVG elements (nodes, edges, labels, gradients, filters)
+- Use bezier curves for transaction flow paths
+- Multiple layers: background, nodes, edges, labels, highlights
+- Color coding: Green (buy), Red (sell), Orange (suspicious), Blue (whale), Gray (normal)
+- Interactive elements: Hover states, clickable nodes (use CSS classes)
+- Professional appearance: Clean, readable, informative
+
+SVG STRUCTURE EXAMPLE:
+\`\`\`svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <!-- Gradients for wallet types -->
+    <linearGradient id="whaleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+    <!-- Filters for shadows -->
+    <filter id="shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#0F172A"/>
+  
+  <!-- Transaction flow paths (edges) -->
+  <g id="edges">
+    <!-- Use bezier curves to show transaction flows -->
+    <path d="M 100,200 Q 300,100 500,200" stroke="#10B981" stroke-width="2" fill="none" opacity="0.6"/>
+  </g>
+  
+  <!-- Wallet nodes -->
+  <g id="nodes">
+    <!-- Whale wallet (large circle) -->
+    <circle cx="100" cy="200" r="25" fill="url(#whaleGradient)" filter="url(#shadow)"/>
+    <text x="100" y="240" fill="#E5E7EB" font-size="12" text-anchor="middle">8x...F2</text>
+  </g>
+  
+  <!-- Labels and annotations -->
+  <g id="labels">
+    <text x="50" y="50" fill="#FBBF24" font-size="16" font-weight="bold">Wash Trading Network</text>
+  </g>
+</svg>
+\`\`\`
+
+RESPONSE STRUCTURE:
+1. Brief analysis summary (2-3 paragraphs)
+2. ASCII art representing the data pattern (optional but encouraged)
+3. Detailed explanation of what the visualization shows
+4. SVG diagram (MANDATORY)
+5. Interpretation and insights
+
+DATA VISUALIZATION TYPES:
+- Network graphs: Wallet connections and transaction relationships
+- Timeline charts: Transaction history, price movements over time
+- Heatmaps: Trading activity by time, volume distribution
+- Sankey diagrams: Flow of tokens between wallets
+- Scatter plots: Volume vs price, buy/sell ratios
+- Tree maps: Wallet hierarchy, volume distribution
+
+CRITICAL RULES:
+- SVG must be VALID XML - test it renders correctly
+- Use semantic colors (green=buy, red=sell, orange=suspicious)
+- Include wallet address labels (truncated for readability)
+- Show transaction counts, volumes, and relationships clearly
+- Make diagrams informative, not just decorative
+- Every SVG must have proper <svg> tags and namespace
+
+REMEMBER: You are visualizing REAL blockchain data. Accuracy and clarity are more important than artistic complexity.`.trim();
+}
 
 /**
  * Generate Chain of Thought (CoT) system prompt
@@ -185,6 +295,9 @@ export function getSystemPromptForMode(
     case "chain-of-thought":
       return generateChainOfThoughtPrompt();
     
+    case "data-visualization":
+      return generateDataVisualizationPrompt();
+    
     case "default":
     default:
       // For default mode, traits are required
@@ -208,6 +321,8 @@ export function getChatModeDisplayName(mode: ChatMode): string {
   switch (mode) {
     case "chain-of-thought":
       return "Chain of Thought";
+    case "data-visualization":
+      return "Data Visualization";
     case "default":
       return "Default";
     default:
@@ -222,9 +337,59 @@ export function getChatModeDescription(mode: ChatMode): string {
   switch (mode) {
     case "chain-of-thought":
       return "Experimental AI cognition mode with ASCII art, SVG, and Mermaid diagrams";
+    case "data-visualization":
+      return "Visualize blockchain analysis reports with interactive SVG diagrams and network graphs";
     case "default":
       return "Standard chat with your NFT personality";
     default:
       return "Standard chat with your NFT personality";
   }
+}
+
+/**
+ * Get the best AI model for a specific chat mode
+ * Returns model name optimized for the mode's requirements
+ */
+export function getModelForMode(mode: ChatMode): string {
+  switch (mode) {
+    case "data-visualization":
+    case "chain-of-thought":
+      // Use Claude Sonnet 4 for better SVG/code generation
+      return "anthropic/claude-sonnet-4-20250514";
+    case "default":
+    default:
+      // Use GPT-4o-mini for regular chat (cost-effective)
+      return "openai/gpt-4o-mini";
+  }
+}
+
+/**
+ * Get token multiplier for a specific model
+ * Returns the multiplier to apply to token usage for credit calculation
+ * Base model (GPT-4o-mini) has multiplier of 1.0
+ * 
+ * Pricing reference (per 1M tokens):
+ * - GPT-4o-mini: $0.15 input, $0.60 output (base = 1x)
+ * - Claude Sonnet 4: $3.00 input, $15.00 output (25x for output)
+ * 
+ * We use output pricing multiplier since SVG generation is mostly output tokens
+ */
+export function getTokenMultiplierForModel(model: string): number {
+  // Claude Sonnet 4 models (various versions)
+  if (model.includes("claude-sonnet-4") || model.includes("claude-3.5-sonnet")) {
+    return 25; // 25x more expensive than GPT-4o-mini
+  }
+  
+  // Claude Opus 4 models (even more expensive)
+  if (model.includes("claude-opus-4")) {
+    return 50; // ~50x more expensive (rough estimate based on $15/$75 pricing)
+  }
+  
+  // GPT-4o (not mini) - more expensive than mini
+  if (model.includes("gpt-4o") && !model.includes("mini")) {
+    return 5; // ~5x more expensive than GPT-4o-mini
+  }
+  
+  // Default: GPT-4o-mini or unknown models = 1x (base pricing)
+  return 1;
 }

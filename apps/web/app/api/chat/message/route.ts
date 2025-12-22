@@ -11,10 +11,11 @@ import { db, tokens } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { ethers } from "ethers";
 import { generateSystemPrompt } from "@/lib/chat-prompt";
-import { getSystemPromptForMode, type ChatMode } from "@/lib/chat-prompts";
+import { getSystemPromptForMode, getModelForMode, getTokenMultiplierForModel, type ChatMode } from "@/lib/chat-prompts";
 import { updateTokenBalance } from "@/lib/chat-tokens-mock";
 
-const MODEL = "openai/gpt-4o-mini"; // Daydreams model name (gpt-5-nano not available)
+// Default model (will be overridden by getModelForMode based on chat mode)
+const DEFAULT_MODEL = "openai/gpt-4o-mini"; // Daydreams model name (gpt-5-nano not available)
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -277,12 +278,15 @@ export async function POST(request: NextRequest) {
         }
         
         // Adjust max_tokens and temperature based on chat mode
-        // CoT mode needs more tokens for longer, detailed responses
-        const maxTokens = mode === "chain-of-thought" ? 2000 : 500;
-        const temperature = mode === "chain-of-thought" ? 1.0 : 0.7;
+        // CoT and data-visualization modes need more tokens for longer, detailed responses
+        const maxTokens = (mode === "chain-of-thought" || mode === "data-visualization") ? 4000 : 500;
+        const temperature = (mode === "chain-of-thought" || mode === "data-visualization") ? 0.8 : 0.7;
+        
+        // Use optimized model for each mode (Claude for SVG generation, GPT-4o-mini for default)
+        const model = getModelForMode(mode);
         
         const requestBody: any = {
-          model: MODEL,
+          model: model,
           messages: messages.map((m) => ({
             role: m.role,
             content: m.content,
@@ -323,20 +327,27 @@ export async function POST(request: NextRequest) {
           mode,
         });
         
-        const tokensUsed = usage?.total_tokens || calculateTokensFromResponse(response.data);
+        const rawTokensUsed = usage?.total_tokens || calculateTokensFromResponse(response.data);
         
-        if (tokensUsed === 0) {
-          console.warn("⚠️ Warning: tokensUsed is 0, this might indicate an issue with token calculation");
+        if (rawTokensUsed === 0) {
+          console.warn("⚠️ Warning: rawTokensUsed is 0, this might indicate an issue with token calculation");
         }
         
-        // Deduct tokens from balance in database
-        const newBalance = Math.max(0, currentBalance - tokensUsed);
+        // Apply model-based token multiplier for credit calculation
+        const tokenMultiplier = getTokenMultiplierForModel(model);
+        const creditsToDeduct = Math.ceil(rawTokensUsed * tokenMultiplier);
         
-        console.log("💰 Balance update:", {
+        // Deduct credits from balance in database (using multiplier-adjusted amount)
+        const newBalance = Math.max(0, currentBalance - creditsToDeduct);
+        
+        console.log("💰 Balance update (with model multiplier):", {
           walletAddress: walletAddress.substring(0, 10) + "...",
           mode,
+          model,
+          rawTokensUsed,
+          tokenMultiplier,
+          creditsToDeduct,
           currentBalance,
-          tokensUsed,
           newBalance,
         });
         
@@ -349,12 +360,13 @@ export async function POST(request: NextRequest) {
           const { getMockTokenBalances } = await import("@/lib/chat-tokens-mock");
           const mockTokenBalances = getMockTokenBalances();
           const userData = mockTokenBalances.get(walletAddress.toLowerCase()) || { balance: 0, points: 0, totalTokensSpent: 0 };
-          totalTokensSpent = (userData.totalTokensSpent || 0) + tokensUsed;
+          // For points calculation, use raw tokens (not multiplied)
+          totalTokensSpent = (userData.totalTokensSpent || 0) + rawTokensUsed;
           // Calculate points based on total tokens spent: every 2,000 tokens = 1 point
           newPoints = Math.floor(totalTokensSpent / 2000);
           
           console.log("🎯 Points calculation (mock mode):", {
-            tokensUsed,
+            rawTokensUsed,
             previousTotalSpent: userData.totalTokensSpent || 0,
             totalTokensSpent,
             newPoints,
@@ -379,12 +391,13 @@ export async function POST(request: NextRequest) {
             ? Number(result[0].total_tokens_spent) || 0
             : 0;
           
-          totalTokensSpent = currentTotalSpent + tokensUsed;
+          // For points calculation, use raw tokens (not multiplied)
+          totalTokensSpent = currentTotalSpent + rawTokensUsed;
           // Calculate points based on total tokens spent: every 2,000 tokens = 1 point
           newPoints = Math.floor(totalTokensSpent / 2000);
           
           console.log("🎯 Points calculation:", {
-            tokensUsed,
+            rawTokensUsed,
             currentTotalSpent,
             totalTokensSpent,
             newPoints,
@@ -405,18 +418,25 @@ export async function POST(request: NextRequest) {
         // Check if balance is low
         if (newBalance <= 0) {
           // Return response but indicate low balance
+          // Note: tokensUsed in response is actually creditsToDeduct (multiplier applied)
           return NextResponse.json({
             response: assistantMessage,
-            tokensUsed,
+            tokensUsed: creditsToDeduct, // Credits deducted (raw tokens × multiplier)
+            rawTokensUsed: rawTokensUsed, // Actual tokens used (for transparency)
+            tokenMultiplier: tokenMultiplier, // Multiplier applied
             newBalance: newBalance,
             points: newPoints,
             lowBalance: true,
         });
       }
 
+        // Return response with credit information
+        // Note: tokensUsed in response is actually creditsToDeduct (multiplier applied)
         return NextResponse.json({
           response: assistantMessage,
-          tokensUsed,
+          tokensUsed: creditsToDeduct, // Credits deducted (raw tokens × multiplier)
+          rawTokensUsed: rawTokensUsed, // Actual tokens used (for transparency)
+          tokenMultiplier: tokenMultiplier, // Multiplier applied
           newBalance: newBalance,
           points: newPoints,
         });
