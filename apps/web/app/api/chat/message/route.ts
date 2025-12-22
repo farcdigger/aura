@@ -113,16 +113,28 @@ async function getNFTTraits(walletAddress: string): Promise<any | null> {
 
 /**
  * Calculate tokens from Daydreams response
+ * Fallback estimation if usage data is missing
  */
 function calculateTokensFromResponse(response: any): number {
   // Daydreams API should return usage information
-  // For now, estimate based on input/output tokens
-  if (response.usage) {
-    return response.usage.total_tokens || 0;
+  if (response?.usage?.total_tokens) {
+    return response.usage.total_tokens;
   }
   
   // Fallback: estimate based on message length
-  // This is approximate - should use actual API response
+  // Rough estimation: ~4 characters per token
+  if (response?.choices?.[0]?.message?.content) {
+    const content = response.choices[0].message.content;
+    const estimatedTokens = Math.ceil(content.length / 4);
+    console.warn("⚠️ Using fallback token estimation:", {
+      contentLength: content.length,
+      estimatedTokens,
+      note: "Daydreams API did not return usage data",
+    });
+    return estimatedTokens;
+  }
+  
+  console.warn("⚠️ Could not calculate tokens - no usage data and no content");
   return 0;
 }
 
@@ -264,6 +276,10 @@ export async function POST(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
         
+        // Adjust max_tokens based on chat mode
+        // CoT mode needs more tokens for longer, detailed responses
+        const maxTokens = mode === "chain-of-thought" ? 2000 : 500;
+        
         const response = await axios.post(
           "https://api-beta.daydreams.systems/v1/chat/completions",
           {
@@ -272,8 +288,8 @@ export async function POST(request: NextRequest) {
               role: m.role,
               content: m.content,
             })),
-            temperature: 0.7, // Slightly lower for faster responses
-            max_tokens: 500, // Reduced from 1000 to speed up generation
+            temperature: mode === "chain-of-thought" ? 1.0 : 0.7, // Higher temp for CoT creativity
+            max_tokens: maxTokens,
             stream: false, // Explicitly disable streaming for now
           },
           {
@@ -294,10 +310,32 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate tokens used
+        // Log usage for debugging
+        console.log("📊 Token usage from Daydreams API:", {
+          usage,
+          hasUsage: !!usage,
+          totalTokens: usage?.total_tokens,
+          promptTokens: usage?.prompt_tokens,
+          completionTokens: usage?.completion_tokens,
+          mode,
+        });
+        
         const tokensUsed = usage?.total_tokens || calculateTokensFromResponse(response.data);
+        
+        if (tokensUsed === 0) {
+          console.warn("⚠️ Warning: tokensUsed is 0, this might indicate an issue with token calculation");
+        }
         
         // Deduct tokens from balance in database
         const newBalance = Math.max(0, currentBalance - tokensUsed);
+        
+        console.log("💰 Balance update:", {
+          walletAddress: walletAddress.substring(0, 10) + "...",
+          mode,
+          currentBalance,
+          tokensUsed,
+          newBalance,
+        });
         
         // Calculate points: every 2,000 tokens spent = 1 point
         // We need to track total tokens spent across all messages
