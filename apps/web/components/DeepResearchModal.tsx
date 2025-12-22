@@ -569,12 +569,72 @@ export default function DeepResearchModal({
                     const networkName = network === 'solana' ? 'Solana' : network === 'base' ? 'Base' : 'BSC';
                     const tokenAddress = tokenMint.length > 20 ? `${tokenMint.slice(0, 8)}...${tokenMint.slice(-6)}` : tokenMint;
                     
-                    // Create tweet text
-                    const tweetText = `🔍 Token Analysis Report\n\n` +
+                    // Get transaction metrics from analysis result
+                    const transactions = analysisResult?.transactions || analysisResult?.analysisResult?.transactions;
+                    const walletStats = transactions?.walletStats;
+                    const smartMoney = walletStats?.smartMoneyAnalysis;
+                    const profitLoss = walletStats?.profitLossDistribution;
+                    
+                    // Extract metrics with fallbacks
+                    const diamondHands = walletStats?.diamondHandsRatio !== undefined 
+                      ? `${walletStats.diamondHandsRatio.toFixed(1)}%` 
+                      : 'N/A';
+                    const reEntry = walletStats?.reEntryRatio !== undefined 
+                      ? `${walletStats.reEntryRatio.toFixed(1)}%` 
+                      : 'N/A';
+                    const earlyBuyersHolding = smartMoney?.earlyBuyersStillHoldingRatio !== undefined 
+                      ? `${smartMoney.earlyBuyersStillHoldingRatio.toFixed(1)}%` 
+                      : 'N/A';
+                    const walletsInProfit = profitLoss?.profitLossRatio !== undefined 
+                      ? `${profitLoss.profitLossRatio.toFixed(1)}%` 
+                      : 'N/A';
+                    const avgProfit = profitLoss?.avgProfitPercent !== undefined 
+                      ? `${profitLoss.avgProfitPercent.toFixed(1)}%` 
+                      : 'N/A';
+                    const walletsInLoss = profitLoss?.profitLossRatio !== undefined 
+                      ? `${(100 - profitLoss.profitLossRatio).toFixed(1)}%` 
+                      : 'N/A';
+                    const newWalletActivity = walletStats?.newWalletRatio !== undefined 
+                      ? `${walletStats.newWalletRatio.toFixed(1)}%` 
+                      : 'N/A';
+                    
+                    // Create tweet text with all metrics
+                    let tweetText = `🔍 Token Analysis Report\n\n` +
                       `Network: ${networkName}\n` +
                       `Token: ${tokenAddress}\n` +
-                      `Security Score: ${securityScore}/100\n\n` +
-                      `Full analysis available at xFrora\n\n` +
+                      `Security Score: ${securityScore}/100\n\n`;
+                    
+                    // Add metrics if available
+                    if (diamondHands !== 'N/A' || reEntry !== 'N/A' || earlyBuyersHolding !== 'N/A' || 
+                        walletsInProfit !== 'N/A' || newWalletActivity !== 'N/A') {
+                      tweetText += `📊 Key Metrics:\n`;
+                      
+                      if (diamondHands !== 'N/A') {
+                        tweetText += `💎 Diamond Hands: ${diamondHands}\n`;
+                      }
+                      if (reEntry !== 'N/A') {
+                        tweetText += `🔄 Re-Entry: ${reEntry}\n`;
+                      }
+                      if (earlyBuyersHolding !== 'N/A') {
+                        tweetText += `👥 Early Buyers Still Holding: ${earlyBuyersHolding}\n`;
+                      }
+                      if (walletsInProfit !== 'N/A') {
+                        tweetText += `📈 Wallets in Profit: ${walletsInProfit}\n`;
+                        if (avgProfit !== 'N/A') {
+                          tweetText += `💰 Avg Profit: ${avgProfit}\n`;
+                        }
+                        if (walletsInLoss !== 'N/A') {
+                          tweetText += `📉 Wallets in Loss: ${walletsInLoss}\n`;
+                        }
+                      }
+                      if (newWalletActivity !== 'N/A') {
+                        tweetText += `🆕 New Wallet Activity: ${newWalletActivity}\n`;
+                      }
+                      
+                      tweetText += `\n`;
+                    }
+                    
+                    tweetText += `Visit xfroranft.xyz to generate your own analysis\n\n` +
                       `#CryptoAnalysis #TokenResearch #DeFi`;
                     
                     // Open Twitter Web Intent
