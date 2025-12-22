@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import PaymentModal from "@/components/PaymentModal";
+import { CHAT_MODES, type ChatMode as ChatModeType } from "@/lib/chat-prompts";
 
 interface Message {
   role: "user" | "assistant";
@@ -16,7 +17,7 @@ interface ChatbotProps {
   walletAddress: string | null;
 }
 
-type ChatMode = "chat" | "image";
+type ViewMode = "chat" | "image";
 
 interface ImageResult {
   id: string;
@@ -40,24 +41,27 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [nftTraits, setNftTraits] = useState<any | null>(null);
   const [nftImage, setNftImage] = useState<string | null>(null);
-  const [mode, setMode] = useState<ChatMode>("chat");
+  const [viewMode, setViewMode] = useState<ViewMode>("chat");
+  const [chatMode, setChatMode] = useState<ChatModeType>("default");
+  const [showModeMenu, setShowModeMenu] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const modeButtons: { key: ChatMode; label: string }[] = [
+  const viewModeButtons: { key: ViewMode; label: string }[] = [
     { key: "chat", label: "Chat" },
     { key: "image", label: "Images" },
   ];
   const showModeToggle = true;
 
-  const getStorageKey = (wallet: string | null) => {
+  const getStorageKey = (wallet: string | null, mode: ChatModeType = "default") => {
     if (!wallet) return null;
-    return `chatbot_messages_${wallet.toLowerCase()}`;
+    return `chatbot_messages_${wallet.toLowerCase()}_${mode}`;
   };
 
   const getImageStorageKey = (wallet: string | null) => {
@@ -65,11 +69,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     return `chatbot_images_${wallet.toLowerCase()}`;
   };
 
-  const loadMessagesFromStorage = (wallet: string | null) => {
+  const loadMessagesFromStorage = (wallet: string | null, mode: ChatModeType) => {
     if (typeof window === "undefined" || !wallet) return [];
     
     try {
-      const storageKey = getStorageKey(wallet);
+      const storageKey = getStorageKey(wallet, mode);
       if (!storageKey) return [];
       
       const stored = localStorage.getItem(storageKey);
@@ -86,11 +90,11 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     return [];
   };
 
-  const saveMessagesToStorage = (wallet: string | null, msgs: Message[]) => {
+  const saveMessagesToStorage = (wallet: string | null, msgs: Message[], mode: ChatModeType) => {
     if (typeof window === "undefined" || !wallet) return;
     
     try {
-      const storageKey = getStorageKey(wallet);
+      const storageKey = getStorageKey(wallet, mode);
       if (!storageKey) return;
       
       localStorage.setItem(storageKey, JSON.stringify(msgs));
@@ -135,7 +139,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
 
   useEffect(() => {
     if (walletAddress) {
-      const loadedMessages = loadMessagesFromStorage(walletAddress);
+      const loadedMessages = loadMessagesFromStorage(walletAddress, chatMode);
       setMessages(loadedMessages);
       const loadedImages = loadImageResultsFromStorage(walletAddress);
       setImageResults(loadedImages);
@@ -145,13 +149,13 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     }
     setImagePrompt("");
     setImageError(null);
-  }, [walletAddress]);
+  }, [walletAddress, chatMode]);
 
   useEffect(() => {
     if (walletAddress && messages.length > 0) {
-      saveMessagesToStorage(walletAddress, messages);
+      saveMessagesToStorage(walletAddress, messages, chatMode);
     }
-  }, [messages, walletAddress]);
+  }, [messages, walletAddress, chatMode]);
 
   useEffect(() => {
     if (walletAddress && imageResults.length > 0) {
@@ -258,6 +262,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
             content: m.content,
           })),
           nftTraits: nftTraits,
+          chatMode: chatMode,
         }),
       });
 
@@ -375,20 +380,20 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   };
 
   const handleNewChat = () => {
-    if (mode === "chat") {
+    if (viewMode === "chat") {
       // Clear only chat messages
-    setMessages([]);
-    if (walletAddress) {
-      const storageKey = getStorageKey(walletAddress);
-      if (storageKey) {
-        try {
-          localStorage.removeItem(storageKey);
-        } catch (error) {
-          console.error("Error clearing messages from localStorage:", error);
+      setMessages([]);
+      if (walletAddress) {
+        const storageKey = getStorageKey(walletAddress, chatMode);
+        if (storageKey) {
+          try {
+            localStorage.removeItem(storageKey);
+          } catch (error) {
+            console.error("Error clearing messages from localStorage:", error);
+          }
         }
       }
-    }
-    } else if (mode === "image") {
+    } else if (viewMode === "image") {
       // Clear only image results
       setImageResults([]);
       setImagePrompt("");
@@ -405,6 +410,41 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
     }
     fetchTokenBalance();
   };
+
+  const handleChatModeChange = (newMode: ChatModeType) => {
+    // Reset chat when mode changes
+    setMessages([]);
+    setChatMode(newMode);
+    setShowModeMenu(false);
+    
+    // Clear localStorage for old mode
+    if (walletAddress) {
+      const oldStorageKey = getStorageKey(walletAddress, chatMode);
+      if (oldStorageKey) {
+        try {
+          localStorage.removeItem(oldStorageKey);
+        } catch (error) {
+          console.error("Error clearing old mode messages:", error);
+        }
+      }
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowModeMenu(false);
+      }
+    };
+
+    if (showModeMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [showModeMenu]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -568,13 +608,13 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
             </div>
             {showModeToggle && (
               <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 sm:pl-4 flex-shrink-0">
-                {modeButtons.map((button) => (
+                {viewModeButtons.map((button) => (
                   <button
                     key={button.key}
                     type="button"
-                    onClick={() => setMode(button.key)}
+                    onClick={() => setViewMode(button.key)}
                     className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-colors whitespace-nowrap ${
-                      mode === button.key
+                      viewMode === button.key
                         ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white"
                         : "text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900"
                     }`}
@@ -586,6 +626,50 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Menu Button */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowModeMenu(!showModeMenu)}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-black dark:text-white bg-white dark:bg-black rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 border border-gray-200 dark:border-gray-800 whitespace-nowrap flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="hidden sm:inline">Menu</span>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {showModeMenu && (
+                <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 overflow-hidden">
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Chat Modes
+                    </div>
+                    {CHAT_MODES.map((mode) => (
+                      <button
+                        key={mode.key}
+                        onClick={() => handleChatModeChange(mode.key)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors mb-1 ${
+                          chatMode === mode.key
+                            ? "bg-black dark:bg-white text-white dark:text-black"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-900 dark:text-gray-100"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{mode.name}</div>
+                        <div className={`text-xs mt-0.5 ${
+                          chatMode === mode.key
+                            ? "text-gray-200 dark:text-gray-700"
+                            : "text-gray-500 dark:text-gray-400"
+                        }`}>
+                          {mode.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <button
               onClick={handleNewChat}
               className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-black dark:text-white bg-white dark:bg-black rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 border border-gray-200 dark:border-gray-800 whitespace-nowrap"
@@ -603,7 +687,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           </div>
         </div>
 
-        {mode === "chat" && (
+        {viewMode === "chat" && (
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white dark:bg-black">
           {checkingNFT ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -738,7 +822,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
         </div>
         )}
 
-        {mode === "image" && (
+        {viewMode === "image" && (
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white dark:bg-black">
           {checkingNFT ? (
             renderLoadingState()
@@ -880,7 +964,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           </div>
         )}
 
-        {mode === "chat" && (hasNFT || (tokenBalance !== null && tokenBalance > 0)) && (
+        {viewMode === "chat" && (hasNFT || (tokenBalance !== null && tokenBalance > 0)) && (
           <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-800">
               {tokenBalance !== null && tokenBalance <= 0 && (
               <div className="mb-3 p-3 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">

@@ -11,6 +11,7 @@ import { db, tokens } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { ethers } from "ethers";
 import { generateSystemPrompt } from "@/lib/chat-prompt";
+import { getSystemPromptForMode, type ChatMode } from "@/lib/chat-prompts";
 import { updateTokenBalance } from "@/lib/chat-tokens-mock";
 
 const MODEL = "openai/gpt-4o-mini"; // Daydreams model name (gpt-5-nano not available)
@@ -131,7 +132,7 @@ function calculateTokensFromResponse(response: any): number {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, message, conversationHistory, nftTraits: providedTraits } = body;
+    const { walletAddress, message, conversationHistory, nftTraits: providedTraits, chatMode } = body;
 
     if (!walletAddress || !message) {
       return NextResponse.json(
@@ -182,25 +183,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get NFT traits for system prompt
-    // Use provided traits if available (from component cache), otherwise fetch
+    // Determine chat mode (default to "default" if not provided)
+    const mode: ChatMode = (chatMode as ChatMode) || "default";
+    
+    // Get NFT traits for system prompt (only needed for default mode)
     let nftTraits = providedTraits;
-    if (!nftTraits) {
+    if (mode === "default" && !nftTraits) {
       // Only fetch if not provided (shouldn't happen in normal flow, but fallback)
       nftTraits = await getNFTTraits(walletAddress);
     }
     
-    // Generate system prompt based on NFT traits
-    // If no traits found, use default
-    const defaultTraits = {
-      description: "a mysterious digital entity",
-      main_colors: ["#000000", "#FFFFFF"],
-      style: "digital-art",
-      accessory: "glowing aura",
-    };
-    
-    const traits = nftTraits || defaultTraits;
-    const systemPrompt = generateSystemPrompt(traits);
+    // Generate system prompt based on mode
+    let systemPrompt: string;
+    if (mode === "default") {
+      // For default mode, use NFT traits
+      const defaultTraits = {
+        description: "a mysterious digital entity",
+        main_colors: ["#000000", "#FFFFFF"],
+        style: "digital-art",
+        accessory: "glowing aura",
+      };
+      const traits = nftTraits || defaultTraits;
+      systemPrompt = getSystemPromptForMode(mode, traits);
+    } else {
+      // For other modes (like chain-of-thought), traits not needed
+      systemPrompt = getSystemPromptForMode(mode);
+    }
 
     // Build messages array
     // If conversationHistory is empty, this is a new chat - start with system prompt
