@@ -560,14 +560,23 @@ export default function DeepResearchModal({
             </div>
 
             {/* Action Buttons */}
-            {analysisResult?.recordId && (
+            {(analysisResult?.recordId || analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis) && (
               <div className="mt-4 space-y-3">
                 {/* Share on X Button */}
                 <button
                   onClick={() => {
                     const securityScore = analysisResult?.securityScore || analysisResult?.analysisResult?.securityScore || 'N/A';
-                    const networkName = network === 'solana' ? 'Solana' : network === 'base' ? 'Base' : 'BSC';
-                    const tokenAddress = tokenMint.length > 20 ? `${tokenMint.slice(0, 8)}...${tokenMint.slice(-6)}` : tokenMint;
+                    
+                    // Get network from analysis result (for past analyses) or from prop
+                    const analysisNetwork = analysisResult?.network || network || 'solana';
+                    const networkName = analysisNetwork === 'solana' ? 'Solana' : analysisNetwork === 'base' ? 'Base' : 'BSC';
+                    
+                    // Get token address from analysis result (for past analyses) or from prop
+                    const analysisTokenMint = analysisResult?.tokenMint || 
+                                             analysisResult?.tokenA?.mint || 
+                                             analysisResult?.token_a_mint || 
+                                             tokenMint || '';
+                    const tokenAddress = analysisTokenMint.length > 20 ? `${analysisTokenMint.slice(0, 8)}...${analysisTokenMint.slice(-6)}` : analysisTokenMint;
                     
                     // Get transaction metrics from analysis result
                     const transactions = analysisResult?.transactions || analysisResult?.analysisResult?.transactions;

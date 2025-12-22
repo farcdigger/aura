@@ -413,7 +413,14 @@ export default function DeepResearchPage() {
                           securityScore: securityScore, // Ensure securityScore is at top level
                           analysisResult: report, // Keep nested structure for backward compatibility
                           riskScore: 0, // Kept for backward compatibility
+                          // Add token and network info from analysis record for sharing
+                          tokenMint: analysis.token_a_mint || analysis.tokenA?.mint || '',
+                          network: analysis.network || 'solana',
+                          poolId: analysis.pool_id || analysis.poolId,
                         });
+                        // Set token mint and network for modal
+                        setTokenMint(analysis.token_a_mint || analysis.tokenA?.mint || '');
+                        setSelectedNetwork((analysis.network || 'solana') as 'solana' | 'base' | 'bsc');
                         setShowModal(true);
                       }}
                     >
