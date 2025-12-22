@@ -337,7 +337,7 @@ export default function DeepResearchModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-black p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 rounded-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-black p-6 max-w-6xl w-full border border-gray-200 dark:border-gray-800 rounded-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-black dark:text-white">
@@ -548,9 +548,9 @@ export default function DeepResearchModal({
 
             {/* Analysis Report - Only show the AI-generated risk analysis */}
             <div className="prose dark:prose-invert max-w-none">
-              <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg max-h-[600px] overflow-y-auto border border-gray-200 dark:border-gray-800">
+              <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-lg max-h-[70vh] overflow-y-auto border border-gray-200 dark:border-gray-800">
                 {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis ? (
-                  <ReactMarkdown className="text-sm">
+                  <ReactMarkdown className="text-base leading-relaxed">
                     {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis}
                   </ReactMarkdown>
                 ) : (
@@ -559,9 +559,37 @@ export default function DeepResearchModal({
               </div>
             </div>
 
-            {/* Save Button */}
+            {/* Action Buttons */}
             {analysisResult?.recordId && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
+                {/* Share on X Button */}
+                <button
+                  onClick={() => {
+                    const securityScore = analysisResult?.securityScore || analysisResult?.analysisResult?.securityScore || 'N/A';
+                    const networkName = network === 'solana' ? 'Solana' : network === 'base' ? 'Base' : 'BSC';
+                    const tokenAddress = tokenMint.length > 20 ? `${tokenMint.slice(0, 8)}...${tokenMint.slice(-6)}` : tokenMint;
+                    
+                    // Create tweet text
+                    const tweetText = `🔍 Token Analysis Report\n\n` +
+                      `Network: ${networkName}\n` +
+                      `Token: ${tokenAddress}\n` +
+                      `Security Score: ${securityScore}/100\n\n` +
+                      `Full analysis available at xFrora\n\n` +
+                      `#CryptoAnalysis #TokenResearch #DeFi`;
+                    
+                    // Open Twitter Web Intent
+                    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                    window.open(twitterUrl, '_blank', 'width=550,height=420');
+                  }}
+                  className="w-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  Share on X
+                </button>
+
+                {/* Save Button */}
                 {isSaved ? (
                   <div className="w-full px-6 py-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 font-semibold rounded-lg text-center">
                     ✓ Saved to History
