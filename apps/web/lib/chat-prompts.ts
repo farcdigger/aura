@@ -354,8 +354,8 @@ export function getModelForMode(mode: ChatMode): string {
   switch (mode) {
     case "data-visualization":
     case "chain-of-thought":
-      // Use Claude Sonnet 4 for better SVG/code generation
-      return "anthropic/claude-sonnet-4-20250514";
+      // Use GPT-4o for better SVG/code generation (25x multiplier applied)
+      return "openai/gpt-4o";
     case "default":
     default:
       // Use GPT-4o-mini for regular chat (cost-effective)
@@ -375,7 +375,12 @@ export function getModelForMode(mode: ChatMode): string {
  * We use output pricing multiplier since SVG generation is mostly output tokens
  */
 export function getTokenMultiplierForModel(model: string): number {
-  // Claude Sonnet 4 models (various versions)
+  // GPT-4o (not mini) - 25x multiplier for SVG/code generation modes
+  if (model.includes("gpt-4o") && !model.includes("mini")) {
+    return 25; // 25x more expensive than GPT-4o-mini
+  }
+  
+  // Claude Sonnet 4 models (various versions) - fallback option
   if (model.includes("claude-sonnet-4") || model.includes("claude-3.5-sonnet")) {
     return 25; // 25x more expensive than GPT-4o-mini
   }
@@ -383,11 +388,6 @@ export function getTokenMultiplierForModel(model: string): number {
   // Claude Opus 4 models (even more expensive)
   if (model.includes("claude-opus-4")) {
     return 50; // ~50x more expensive (rough estimate based on $15/$75 pricing)
-  }
-  
-  // GPT-4o (not mini) - more expensive than mini
-  if (model.includes("gpt-4o") && !model.includes("mini")) {
-    return 5; // ~5x more expensive than GPT-4o-mini
   }
   
   // Default: GPT-4o-mini or unknown models = 1x (base pricing)
