@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       const traits = nftTraits || defaultTraits;
       systemPrompt = getSystemPromptForMode(mode, traits);
     } else {
-      // For other modes (like chain-of-thought), traits not needed
+      // For other modes (chain-of-thought, depressionist), traits not needed
       systemPrompt = getSystemPromptForMode(mode);
     }
 
@@ -276,9 +276,10 @@ export async function POST(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
         
-        // Adjust max_tokens based on chat mode
-        // CoT mode needs more tokens for longer, detailed responses
-        const maxTokens = mode === "chain-of-thought" ? 2000 : 500;
+        // Adjust max_tokens and temperature based on chat mode
+        // CoT and Depressionist modes need more tokens for longer, detailed responses
+        const maxTokens = (mode === "chain-of-thought" || mode === "depressionist") ? 2000 : 500;
+        const temperature = (mode === "chain-of-thought" || mode === "depressionist") ? 1.0 : 0.7;
         
         const response = await axios.post(
           "https://api-beta.daydreams.systems/v1/chat/completions",
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
               role: m.role,
               content: m.content,
             })),
-            temperature: mode === "chain-of-thought" ? 1.0 : 0.7, // Higher temp for CoT creativity
+            temperature: temperature, // Higher temp for creative modes
             max_tokens: maxTokens,
             stream: false, // Explicitly disable streaming for now
           },
