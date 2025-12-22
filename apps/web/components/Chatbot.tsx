@@ -108,67 +108,36 @@ function MessageContent({ content }: { content: string }) {
           }
           
           return (
-            <div key={idx} className="my-4 border-2 border-blue-300 dark:border-blue-700 rounded-lg overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 px-4 py-3 flex items-center justify-between border-b-2 border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm font-bold text-blue-700 dark:text-blue-300">SVG Görseli</span>
-                </div>
+            <div key={idx} className="my-4 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 dark:bg-gray-900 px-3 py-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">SVG Diagram</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => copySvgToClipboard(svgContent)}
-                    className="text-xs px-3 py-1.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md transition-colors font-medium flex items-center gap-1"
-                    title="SVG kodunu kopyala"
+                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300 transition-colors"
+                    title="Copy SVG code"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Kopyala
+                    Copy
                   </button>
                   <button
                     onClick={() => toggleSvg(svgIndex)}
-                    className="text-xs px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md text-gray-700 dark:text-gray-300 transition-colors font-medium"
+                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300 transition-colors"
                   >
-                    {isExpanded ? 'Gizle' : 'Göster'}
+                    {isExpanded ? 'Hide' : 'Show'} Visual
                   </button>
                 </div>
               </div>
               {isExpanded && (
-                <div className="p-6 bg-gradient-to-br from-white to-gray-50 dark:from-black dark:to-gray-900 flex items-center justify-center min-h-[250px] max-h-[700px] overflow-auto border-b-2 border-gray-200 dark:border-gray-800">
+                <div className="p-4 bg-white dark:bg-black flex items-center justify-center min-h-[200px] max-h-[600px] overflow-auto border-b border-gray-200 dark:border-gray-800">
                   <div 
-                    className="max-w-full w-full flex items-center justify-center"
+                    className="max-w-full"
                     style={{ maxWidth: '100%' }}
                     dangerouslySetInnerHTML={{ __html: svgContent }}
                   />
                 </div>
               )}
-              <div className="bg-gray-900 dark:bg-gray-950 p-4 overflow-x-auto">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">SVG Kodu</span>
-                  <button
-                    onClick={(e) => {
-                      const textarea = document.createElement('textarea');
-                      textarea.value = svgContent;
-                      document.body.appendChild(textarea);
-                      textarea.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(textarea);
-                      // Visual feedback
-                      const btn = e.currentTarget as HTMLButtonElement;
-                      const originalText = btn.textContent;
-                      btn.textContent = '✓ Kopyalandı!';
-                      setTimeout(() => {
-                        btn.textContent = originalText;
-                      }, 2000);
-                    }}
-                    className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
-                  >
-                    Hepsini Kopyala
-                  </button>
-                </div>
-                <pre className="text-xs text-gray-300 dark:text-gray-400 font-mono whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+              <div className="bg-gray-900 dark:bg-gray-950 p-3 overflow-x-auto">
+                <pre className="text-xs text-gray-300 dark:text-gray-400 font-mono whitespace-pre-wrap">
                   <code>{svgContent}</code>
                 </pre>
               </div>
@@ -209,7 +178,7 @@ interface ChatbotProps {
   walletAddress: string | null;
 }
 
-type ViewMode = "chat" | "image";
+type ViewMode = "chat" | "image" | "svg";
 
 interface ImageResult {
   id: string;
@@ -240,6 +209,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [svgCode, setSvgCode] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -248,6 +218,7 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
   const viewModeButtons: { key: ViewMode; label: string }[] = [
     { key: "chat", label: "Chat" },
     { key: "image", label: "Images" },
+    { key: "svg", label: "SVG Viewer" },
   ];
   const showModeToggle = true;
 
@@ -599,6 +570,9 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           }
         }
       }
+    } else if (viewMode === "svg") {
+      // Clear SVG code
+      setSvgCode("");
     }
     fetchTokenBalance();
   };
@@ -1030,6 +1004,101 @@ export default function Chatbot({ isOpen, onClose, walletAddress }: ChatbotProps
           )}
           <div ref={messagesEndRef} />
         </div>
+        )}
+
+        {viewMode === "svg" && (
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white dark:bg-black">
+            <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 p-4 bg-gray-50/70 dark:bg-white/5">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">SVG Viewer</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Paste your SVG code below to preview it. This is useful for viewing SVG diagrams generated in Chain of Thought mode.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* SVG Code Input */}
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-gray-900 dark:text-white">
+                    SVG Code
+                  </label>
+                  <textarea
+                    value={svgCode}
+                    onChange={(e) => setSvgCode(e.target.value)}
+                    placeholder="Paste your SVG code here...&#10;&#10;Example:&#10;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 400 300&quot;&gt;&#10;  &lt;circle cx=&quot;200&quot; cy=&quot;150&quot; r=&quot;50&quot; fill=&quot;#3b82f6&quot; /&gt;&#10;&lt;/svg&gt;"
+                    className="w-full h-96 px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none text-sm font-mono"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSvgCode("")}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (svgCode.trim()) {
+                          navigator.clipboard.writeText(svgCode).then(() => {
+                            // Could add toast notification here
+                          }).catch(err => {
+                            console.error('Failed to copy:', err);
+                          });
+                        }
+                      }}
+                      disabled={!svgCode.trim()}
+                      className="px-4 py-2 text-sm font-medium text-white dark:text-black bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Copy Code
+                    </button>
+                  </div>
+                </div>
+
+                {/* SVG Preview */}
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Preview
+                  </label>
+                  <div className="w-full h-96 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-black overflow-auto flex items-center justify-center p-4">
+                    {svgCode.trim() ? (
+                      <div 
+                        className="max-w-full max-h-full"
+                        dangerouslySetInnerHTML={{ __html: svgCode }}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-400 dark:text-gray-600">
+                        <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm">SVG preview will appear here</p>
+                      </div>
+                    )}
+                  </div>
+                  {svgCode.trim() && (
+                    <button
+                      onClick={() => {
+                        try {
+                          const blob = new Blob([svgCode], { type: 'image/svg+xml' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `svg-diagram-${Date.now()}.svg`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
+                        } catch (error) {
+                          console.error("Error downloading SVG:", error);
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-white dark:text-black bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Download SVG
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {viewMode === "image" && (

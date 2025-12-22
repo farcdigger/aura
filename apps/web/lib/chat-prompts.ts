@@ -47,22 +47,18 @@ CRITICAL REQUIREMENTS:
 
 VISUAL ELEMENTS (EXACTLY 3 PER RESPONSE - QUALITY OVER QUANTITY):
 - Include EXACTLY ONE detailed ASCII art piece - must be complex, multi-line, meaningful, and directly related to the discussion topic
-- Include EXACTLY ONE detailed SVG diagram - MUST be formatted in a markdown code block
-  * CRITICAL FORMAT: You MUST wrap your SVG code in a markdown code block with the format: three backticks followed by the word svg, then newline, then your complete SVG code, then newline, then three backticks
-  * The format must be: backtick-backtick-backtick-svg-newline-SVG-code-newline-backtick-backtick-backtick
-  * Your SVG code must start with an opening <svg> tag and end with a closing </svg> tag
-  * The SVG must be ELABORATE, COMPLEX, and VISUALLY IMPRESSIVE with:
-    - Multiple complex shapes (circles, rectangles, polygons, paths)
-    - Detailed paths with curves, arcs, and complex geometries
-    - Multiple gradients (linearGradient, radialGradient) with multiple color stops
-    - Multiple layers and groups for depth
-    - Shadows, filters, and visual effects
-    - Minimum 10-15+ SVG elements (shapes, paths, gradients, etc.)
-    - Width and height attributes (e.g., width="400" height="300" or viewBox="0 0 400 300")
-    - Rich visual complexity - not simple single shapes
-    - Directly relevant to the concepts being discussed
-  * ABSOLUTELY REQUIRED: You MUST include the SVG code in ```svg code blocks - this is MANDATORY
-  * NEVER skip the SVG diagram - it is a REQUIRED element of every response
+- Include EXACTLY ONE detailed SVG diagram - must be ELABORATE, COMPLEX, and VISUALLY IMPRESSIVE with:
+  * Multiple complex shapes (circles, rectangles, polygons, paths)
+  * Detailed paths with curves, arcs, and complex geometries
+  * Multiple gradients (linearGradient, radialGradient) with multiple color stops
+  * Multiple layers and groups for depth
+  * Shadows, filters, and visual effects
+  * Minimum 10-15+ SVG elements (shapes, paths, gradients, etc.)
+  * Width and height attributes (e.g., width="400" height="300" or viewBox)
+  * Rich visual complexity - not simple single shapes
+  * Directly relevant to the concepts being discussed
+  * CRITICAL: You MUST provide the COMPLETE SVG CODE wrapped in \`\`\`svg code blocks - the user needs the actual SVG code to view the diagram
+  * The SVG code must be valid, complete, and renderable - include all necessary opening and closing tags
 - Include EXACTLY ONE detailed Mermaid flowchart - must be comprehensive, showing relationships, processes, or flows related to the discussion topic
 - CRITICAL: Each visual must be DIRECTLY RELEVANT to the specific concepts, ideas, or topics being discussed in that section
 - NEVER create visuals "just to have visuals" - every visual must enhance understanding or illustrate a specific point
@@ -100,20 +96,17 @@ STYLE GUIDELINES:
 CRITICAL REMINDERS: 
 - PRIMARY: You must provide SUBSTANTIAL TEXT CONTENT (400-800+ words) - text is the main focus, visuals are supportive
 - Include EXACTLY 3 visual elements: ONE ASCII art, ONE SVG diagram, ONE Mermaid flowchart
-- MANDATORY: The SVG diagram MUST be included in EVERY response, formatted as a markdown code block
-- SVG FORMAT REQUIREMENT: Always wrap SVG code in markdown code blocks using three backticks, the word svg, newline, your SVG code, newline, and three backticks to close
 - Each visual must be MEANINGFUL, RELEVANT to the specific discussion topic, and VISUALLY IMPRESSIVE
 - Distribute the 3 visuals throughout your response - don't put them all together
-- NEVER skip the SVG diagram - it is REQUIRED in every response
 - NEVER create visuals "just to fill space" - every visual must directly relate to and enhance the concepts being discussed
 - ABSOLUTELY FORBIDDEN: NEVER include random text, meaningless words, or filler content in visuals (especially in SVG diagrams)
 - NEVER include text in SVG that doesn't directly label or describe diagram elements relevant to the discussion (examples of FORBIDDEN: "Kaybolmuşluk", random words, decorative text)
 - All SVG diagrams must be ELABORATE: complex, detailed, with multiple elements, gradients, paths, and meaningful visualizations WITHOUT random or meaningless text
+- MANDATORY: You MUST provide the COMPLETE, VALID SVG CODE in \`\`\`svg code blocks - users need the actual code to view the diagram. The SVG must be complete with all opening and closing tags, proper XML structure, and be immediately renderable
 - All ASCII art must be DETAILED: complex multi-line designs that visually represent the concepts
 - All Mermaid diagrams must be COMPREHENSIVE: detailed flowcharts showing relationships and processes
 - Text is PRIMARY - write extensively and thoughtfully. Visuals enhance but don't replace text content
-- Create rich, comprehensive responses where substantial text is supported by meaningful, impressive visuals
-- REMEMBER: SVG code blocks are MANDATORY - you MUST format SVG in markdown code blocks with three backticks, the word svg, newline, your SVG code, newline, and three backticks to close`.trim();
+- Create rich, comprehensive responses where substantial text is supported by meaningful, impressive visuals`.trim();
 }
 
 /**
