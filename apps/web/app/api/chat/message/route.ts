@@ -278,9 +278,9 @@ export async function POST(request: NextRequest) {
         }
         
         // Adjust max_tokens and temperature based on chat mode
-        // CoT and data-visualization modes need more tokens for longer, detailed responses
-        const maxTokens = (mode === "chain-of-thought" || mode === "data-visualization") ? 4000 : 500;
-        const temperature = (mode === "chain-of-thought" || mode === "data-visualization") ? 0.8 : 0.7;
+        // CoT mode needs more tokens for longer, detailed responses
+        const maxTokens = mode === "chain-of-thought" ? 4000 : 500;
+        const temperature = mode === "chain-of-thought" ? 0.8 : 0.7;
         
         // Use optimized model for each mode (Claude for SVG generation, GPT-4o-mini for default)
         const model = getModelForMode(mode);
