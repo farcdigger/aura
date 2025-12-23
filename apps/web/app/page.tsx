@@ -1220,7 +1220,8 @@ function HomePageContent() {
       
       // Provide more helpful error messages
       if (errorMessage.includes("revert") || errorMessage.includes("execution reverted")) {
-        setError(`Minting failed: Transaction reverted. ${err.reason || err.data?.message || ""}\n\nPossible causes:\n- User already minted\n- Max supply reached\n- Invalid signature\n- Contract error`);
+        const revertReason = err.reason || err.data?.message || "";
+        setError(`Minting failed: Transaction reverted. ${revertReason}\n\nPossible causes:\n- User already minted\n- Max supply reached\n- Invalid signature\n- Contract error`);
       } else if (errorMessage.includes("user rejected") || errorMessage.includes("User denied")) {
         setError("Minting cancelled by user");
       } else if (errorMessage.includes("insufficient funds")) {
