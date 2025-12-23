@@ -86,7 +86,7 @@ export default async function YamaAgentPage() {
         {latest ? (
           <>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 text-sm text-gray-600 shadow-inner dark:border-gray-800/80 dark:bg-gray-800/60 dark:text-gray-300">
+              <div className="rounded-xl border border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 text-sm text-gray-600 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] dark:text-gray-300">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Generated at
                 </p>
@@ -96,7 +96,7 @@ export default async function YamaAgentPage() {
                     : "Unknown"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 text-sm text-gray-600 shadow-inner dark:border-gray-800/80 dark:bg-gray-800/60 dark:text-gray-300">
+              <div className="rounded-xl border border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 text-sm text-gray-600 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] dark:text-gray-300">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Model
                 </p>
@@ -104,7 +104,7 @@ export default async function YamaAgentPage() {
                   {latest.modelUsed}
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 text-sm text-gray-600 shadow-inner dark:border-gray-800/80 dark:bg-gray-800/60 dark:text-gray-300">
+              <div className="rounded-xl border border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 text-sm text-gray-600 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] dark:text-gray-300">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Tokens in prompt
                 </p>

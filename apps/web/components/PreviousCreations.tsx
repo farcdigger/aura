@@ -23,7 +23,7 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
 
   return (
     <div className="mt-16 animate-fade-in">
-      <h2 className="text-3xl font-bold text-center mb-8 text-black dark:text-white">
+      <h2 className="text-4xl md:text-5xl font-light text-center mb-12 text-gray-900 dark:text-gray-50 tracking-tight">
         {creations.length > 0 ? "Previous Creations" : "Example Creations"}
       </h2>
 
@@ -31,9 +31,9 @@ export default function PreviousCreations({ creations = [] }: PreviousCreationsP
         {displayCreations.map((creation, index) => (
           <div
             key={creation.id || index}
-            className="card hover:scale-105 cursor-pointer transition-all duration-300"
+            className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 hover:scale-105 cursor-pointer transition-all duration-500 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_18px_60px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_18px_60px_rgb(255,255,255,0.12)]"
           >
-            <div className="aspect-square rounded-lg bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
+            <div className="aspect-square rounded-xl bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-800/50 flex items-center justify-center overflow-hidden">
               {/* xFrora image or real NFT image */}
               {creation.image && (creation.image.startsWith("http") || creation.image.startsWith("ipfs://") || creation.image.startsWith("/")) ? (
                 <>

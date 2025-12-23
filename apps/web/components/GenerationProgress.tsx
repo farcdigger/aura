@@ -42,10 +42,10 @@ export default function GenerationProgress() {
   const currentPhrase = PHRASES[index] || PHRASES[PHRASES.length - 1];
 
   return (
-    <div className="text-center text-sm text-black dark:text-white mt-4 space-y-3">
-      <div className="relative h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+    <div className="text-center text-sm text-gray-900 dark:text-gray-100 mt-4 space-y-3">
+      <div className="relative h-3 bg-gray-200/50 dark:bg-gray-800/50 rounded-full overflow-hidden shadow-inner">
         <div
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-black via-gray-700 to-black dark:from-white dark:via-gray-300 dark:to-white transition-all duration-500"
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 dark:from-gray-300 dark:via-gray-400 dark:to-gray-300 transition-all duration-500 rounded-full"
           style={{ width: `${progress}%` }}
         />
       </div>

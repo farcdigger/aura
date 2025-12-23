@@ -93,17 +93,17 @@ export default function ReferralsPage() {
     : "";
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
-      <nav className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link href="/" className="text-lg sm:text-xl font-bold text-black dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-950">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/40 dark:bg-black/40 backdrop-blur-2xl border-b border-gray-200/30 dark:border-gray-800/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/" className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
                 XFRORA
               </Link>
-              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Referrals</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400 font-light">Referrals</span>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-4">
               <ThemeToggle />
               <ConnectButton />
             </div>
@@ -111,12 +111,12 @@ export default function ReferralsPage() {
         </div>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-        <h1 className="text-3xl font-bold text-black dark:text-white mb-6">
+      <main className="pt-24 max-w-2xl mx-auto px-6 lg:px-8 py-12">
+        <h1 className="text-4xl md:text-5xl font-light text-gray-900 dark:text-gray-50 mb-6 tracking-tight">
           Invite Friends & Earn Rewards
         </h1>
         
-        <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 p-6 rounded-lg mb-8">
+        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 p-6 rounded-xl mb-8 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
           <h2 className="text-lg font-semibold text-black dark:text-white mb-4">
             How it works
           </h2>
@@ -150,39 +150,39 @@ export default function ReferralsPage() {
           <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase mb-1">Total Referrals</p>
-                <p className="text-3xl font-bold text-black dark:text-white">{stats.totalReferrals}</p>
+              <div className="p-5 border border-gray-200/50 dark:border-gray-800/50 rounded-xl text-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider font-medium">Total Referrals</p>
+                <p className="text-3xl font-light text-gray-900 dark:text-gray-50">{stats.totalReferrals}</p>
               </div>
-              <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase mb-1">Credits Earned</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.totalCreditsEarned.toLocaleString()}</p>
+              <div className="p-5 border border-gray-200/50 dark:border-gray-800/50 rounded-xl text-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider font-medium">Credits Earned</p>
+                <p className="text-3xl font-light text-green-600 dark:text-green-400">{stats.totalCreditsEarned.toLocaleString()}</p>
               </div>
-              <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-center bg-blue-50 dark:bg-blue-900/10">
-                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase mb-1">USDC Pending</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">${stats.usdcPending.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Paid after sale ends</p>
+              <div className="p-5 border border-blue-300/50 dark:border-blue-700/50 rounded-xl text-center bg-blue-100/50 dark:bg-blue-900/30 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider font-medium">USDC Pending</p>
+                <p className="text-3xl font-light text-blue-600 dark:text-blue-400">${stats.usdcPending.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-light">Paid after sale ends</p>
               </div>
-              <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase mb-1">USDC Paid</p>
-                <p className="text-3xl font-bold text-gray-600 dark:text-gray-400">${stats.usdcPaid.toFixed(2)}</p>
+              <div className="p-5 border border-gray-200/50 dark:border-gray-800/50 rounded-xl text-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider font-medium">USDC Paid</p>
+                <p className="text-3xl font-light text-gray-600 dark:text-gray-400">${stats.usdcPaid.toFixed(2)}</p>
               </div>
             </div>
 
             {/* Link Generation */}
-            <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg">
-              <h3 className="font-bold text-black dark:text-white mb-4">Your Referral Link</h3>
+            <div className="p-6 border border-gray-200/50 dark:border-gray-800/50 rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Your Referral Link</h3>
               
               {referralCode ? (
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input 
                     readOnly 
                     value={referralLink}
-                    className="flex-1 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs sm:text-sm text-black dark:text-white min-w-0"
+                    className="flex-1 px-4 py-3 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm border-2 border-gray-300/50 dark:border-gray-700/50 rounded-xl text-sm text-gray-900 dark:text-gray-100 min-w-0 shadow-sm"
                   />
                   <button
                     onClick={() => navigator.clipboard.writeText(referralLink)}
-                    className="px-3 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black font-semibold rounded hover:opacity-90 text-sm sm:text-base whitespace-nowrap"
+                    className="px-5 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 font-medium rounded-xl border border-gray-300/20 dark:border-gray-700/20 hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 whitespace-nowrap shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
                   >
                     Copy
                   </button>
@@ -191,7 +191,7 @@ export default function ReferralsPage() {
                 <button
                   onClick={createCode}
                   disabled={creating}
-                  className="w-full py-2.5 sm:py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded hover:opacity-90 disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 font-medium rounded-xl border border-gray-300/20 dark:border-gray-700/20 hover:bg-white/30 dark:hover:bg-black/30 disabled:opacity-50 transition-all duration-300 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
                 >
                   {creating ? "Creating..." : "Generate Referral Link"}
                 </button>

@@ -1234,46 +1234,34 @@ function HomePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-950">
       {/* Navbar - Top */}
-      <nav className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/40 dark:bg-black/40 backdrop-blur-2xl border-b border-gray-200/30 dark:border-gray-800/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
               <img 
                 src="/frora-logo.png" 
                 alt="XFRORA Logo" 
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover transition-opacity duration-300 group-hover:opacity-80"
               />
-              <span className="text-lg sm:text-xl font-bold text-gray-800 uppercase dark:text-slate-100">XFRORA</span>
-            </div>
+              <span className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">XFRORA</span>
+            </Link>
             
             {/* Right: User Info & Buttons */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-4">
               <ThemeToggle />
-              {/* Design Demo - Test için */}
-              <Link
-                href="/design-demo"
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-black px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-medium text-black dark:text-white shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-gray-900 sm:text-sm whitespace-nowrap"
-              >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                </svg>
-                <span className="hidden sm:inline">Design Demo</span>
-                <span className="sm:hidden">Demo</span>
-              </Link>
               {/* Deep Research */}
               {address && (
                 <Link
                   href="/deep-research"
-                  className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-purple-600/30 bg-purple-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-purple-900 shadow-sm backdrop-blur transition-all hover:bg-purple-100 dark:border-purple-400/30 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30 sm:text-sm whitespace-nowrap"
+                  className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300/30 dark:border-gray-700/30 bg-white/30 dark:bg-black/30 backdrop-blur-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]"
                 >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  <span className="hidden sm:inline">Deep Research</span>
-                  <span className="sm:hidden">Research</span>
+                  Deep Research
                 </Link>
               )}
               
@@ -1373,7 +1361,7 @@ function HomePageContent() {
         onClick={() => setMenuOpen(!menuOpen)}
         aria-expanded={menuOpen}
         aria-label="Toggle menu"
-        className="fixed top-2 right-2 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-gray-900/15 bg-white/70 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-900 shadow-sm backdrop-blur transition-all hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white sm:text-sm"
+        className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300/30 dark:border-gray-700/30 bg-white/30 dark:bg-black/30 backdrop-blur-xl text-sm font-medium text-gray-700 dark:text-gray-300 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] transition-all hover:bg-white/40 dark:hover:bg-black/40"
       >
         <span className="flex flex-col gap-0.5">
           <span className="block h-0.5 w-4 sm:w-5 rounded-full bg-current"></span>
@@ -1394,11 +1382,11 @@ function HomePageContent() {
           
           {/* Dropdown Menu */}
           <div 
-            className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[60] w-[calc(100vw-1rem)] sm:w-80 max-w-sm rounded-2xl border border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/90 animate-in slide-in-from-top-2"
+            className="fixed top-20 right-4 z-[60] w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl border border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-2xl shadow-[0_25px_70px_rgb(0,0,0,0.22)] dark:shadow-[0_25px_70px_rgb(255,255,255,0.15)] animate-in slide-in-from-top-2"
             onClick={(e) => e.stopPropagation()}
           >
             {isConnected && address && (
-              <div className="border-b border-gray-100/70 px-4 py-3 text-sm dark:border-gray-800/80">
+              <div className="border-b border-gray-200/30 dark:border-gray-800/30 px-4 py-3 text-sm">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Wallet stats
                 </p>
@@ -1416,7 +1404,7 @@ function HomePageContent() {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                   closeMenu();
                 }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 w-full text-left rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -1444,7 +1432,7 @@ function HomePageContent() {
                   setYamaAgentLoading(true);
                   closeMenu();
                 }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -1455,7 +1443,7 @@ function HomePageContent() {
                 href="https://opensea.io/collection/xfrora"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
                 onClick={closeMenu}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1467,7 +1455,7 @@ function HomePageContent() {
                 href="https://x.com/XFroraNFT"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
                 onClick={closeMenu}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -1478,7 +1466,7 @@ function HomePageContent() {
               
               <Link
                 href="/leaderboard"
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
                 onClick={closeMenu}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1489,7 +1477,7 @@ function HomePageContent() {
 
               <Link
                 href="/referrals"
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
                 onClick={closeMenu}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1504,7 +1492,7 @@ function HomePageContent() {
                     setShowPaymentModal(true);
                     closeMenu();
                   }}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 w-full text-left rounded-lg"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1518,7 +1506,7 @@ function HomePageContent() {
                   setChatbotOpen(true);
                   closeMenu();
                 }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-black dark:text-white w-full text-left"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 w-full text-left rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1530,22 +1518,23 @@ function HomePageContent() {
         </>
       )}
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <Hero xUser={xUser} mintStats={mintStats} loadingStats={statsLoading} />
+      <div className="pt-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16 lg:py-20">
+          {/* Hero Section */}
+          <Hero xUser={xUser} mintStats={mintStats} loadingStats={statsLoading} />
         
-        {/* Error Message */}
+          {/* Error Message */}
           {error && (
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className="bg-red-50 border border-red-300 text-red-700 p-4 rounded-lg">
-              <p className="text-sm font-medium">{error}</p>
-            </div>
+            <div className="max-w-4xl mx-auto mb-8">
+              <div className="bg-red-100/50 dark:bg-red-900/30 border border-red-300/50 dark:border-red-700/50 text-red-700 dark:text-red-300 p-4 rounded-xl backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <p className="text-sm font-medium">{error}</p>
+              </div>
             </div>
           )}
           
         {/* 3-Card Layout - Always show all 3 steps */}
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 1: Connect X Profile */}
             <StepCard
               icon="x"
@@ -1571,7 +1560,7 @@ function HomePageContent() {
                   </button>
                     <button
                       onClick={disconnectX}
-                      className="px-4 py-2 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full"
+                      className="px-4 py-2 text-sm bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-red-300/30 dark:border-red-700/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] w-full"
                     >
                       Disconnect
                     </button>
@@ -1690,7 +1679,7 @@ function HomePageContent() {
               <h3 className="text-2xl font-bold mb-4 text-gray-800">Your xFrora NFT</h3>
               
               {paymentReady && (
-                <div className="mb-4 border border-yellow-400 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-sm text-black dark:text-white">
+                <div className="mb-4 border border-yellow-300/50 dark:border-yellow-700/50 bg-yellow-100/50 dark:bg-yellow-900/30 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 rounded-xl backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)]">
                   Payment received! Click &quot;Complete Mint&quot; to finish on-chain minting.
                 </div>
               )}
@@ -1754,10 +1743,10 @@ function HomePageContent() {
               
               {/* Traits */}
               {generated.traits && (
-                <div className="text-left max-w-md mx-auto border border-gray-200 dark:border-gray-800 p-4 mb-6">
-                  <h4 className="font-semibold mb-2 text-black dark:text-white">Traits:</h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{generated.traits.description}</p>
-                </div>
+              <div className="text-left max-w-md mx-auto border border-gray-200/50 dark:border-gray-800/50 p-5 mb-6 rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+                <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Traits:</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-light">{generated.traits.description}</p>
+              </div>
               )}
               
               {/* Mint Button - Below Image */}
@@ -1786,9 +1775,9 @@ function HomePageContent() {
         {/* Success Screen */}
         {step === "mint" && alreadyMinted && (
           <div className="max-w-4xl mx-auto animate-fade-in">
-            <div className="card text-center">
-              <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-200">Success!</h2>
-              <p className="text-lg mb-6 text-gray-700 dark:text-gray-300">Your xFrora NFT has been minted!</p>
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 text-center shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
+              <h2 className="text-4xl font-light mb-4 text-gray-900 dark:text-gray-50 tracking-tight">Success!</h2>
+              <p className="text-lg mb-6 text-gray-600 dark:text-gray-400 font-light">Your xFrora NFT has been minted!</p>
               
               {mintedTokenId && (
                 <div className="mb-6">

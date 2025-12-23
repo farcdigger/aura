@@ -68,10 +68,10 @@ export default function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-black p-4 sm:p-6 max-w-md w-full border border-gray-200 dark:border-gray-800 rounded-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h3 className="text-xl sm:text-2xl font-bold text-black dark:text-white">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-2xl p-6 sm:p-8 max-w-md w-full border border-gray-200/50 dark:border-gray-800/50 rounded-2xl max-h-[90vh] overflow-y-auto shadow-[0_25px_70px_rgb(0,0,0,0.22)] dark:shadow-[0_25px_70px_rgb(255,255,255,0.15)]">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-2xl sm:text-3xl font-light text-gray-900 dark:text-gray-50 tracking-tight">
             Add Tokens
           </h3>
           <button
@@ -83,16 +83,16 @@ export default function PaymentModal({
             </svg>
           </button>
         </div>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 font-light">
           Choose an amount to add tokens to your account. NFT ownership will be verified during payment.
         </p>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {paymentOptions.map((amount) => (
             <button
               key={amount}
               onClick={() => handlePaymentOption(amount)}
               disabled={processing}
-              className="px-3 sm:px-4 py-3 sm:py-4 bg-black dark:bg-white text-white dark:text-black border border-black dark:border-white font-semibold hover:bg-gray-900 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+              className="px-4 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 border border-gray-300/20 dark:border-gray-700/20 font-medium hover:bg-white/30 dark:hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-xl text-sm sm:text-base shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
             >
               ${amount} USD
             </button>

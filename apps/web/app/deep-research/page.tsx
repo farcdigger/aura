@@ -133,23 +133,23 @@ export default function DeepResearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-950 text-black dark:text-white">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/40 dark:bg-black/40 backdrop-blur-2xl border-b border-gray-200/30 dark:border-gray-800/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link 
                 href="/"
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
               >
                 ← Back to Home
               </Link>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">
+                <h1 className="text-2xl sm:text-3xl font-light text-gray-900 dark:text-gray-50 tracking-tight">
                   Deep Research
                 </h1>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 font-light">
                   AI-powered liquidity analysis for tokens
                 </p>
               </div>
@@ -167,19 +167,19 @@ export default function DeepResearchPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="pt-24 max-w-4xl mx-auto px-6 lg:px-8 py-12">
         
         {/* Hero Section */}
         <div className="mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl font-light text-gray-900 dark:text-gray-50 mb-4 tracking-tight">
             Uncover Hidden Insights
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-light">
             Get comprehensive AI analysis of any token with 10,000+ swap transactions, 
             whale tracking, and market sentiment.
           </p>
           {/* Multi-Chain Support Info */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="p-5 bg-blue-100/50 dark:bg-blue-900/30 border border-blue-300/50 dark:border-blue-700/50 rounded-xl backdrop-blur-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
             <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
               ✅ Multi-Chain Support
             </p>
@@ -254,7 +254,7 @@ export default function DeepResearchPage() {
 
               {/* Global Weekly Limit */}
               {pricingInfo?.limitInfo && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+                <div className="p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-semibold text-sm">Platform Capacity</p>
@@ -360,7 +360,7 @@ export default function DeepResearchPage() {
                         ? "e.g. C2omVhcvt3DDY77S2KZzawFJQeETZofgZ4eNWWkXpump"
                         : "e.g. 0x1234567890123456789012345678901234567890"
                     }
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                    className="w-full px-5 py-3.5 border-2 border-gray-300/50 dark:border-gray-700/50 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:bg-white/80 dark:focus:bg-gray-900/80 focus:ring-4 focus:ring-gray-400/10 dark:focus:ring-gray-600/10 transition-all duration-200 shadow-sm focus:shadow-md"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                     {selectedNetwork === 'solana'
@@ -374,7 +374,7 @@ export default function DeepResearchPage() {
                 <button
                   onClick={handleStartAnalysis}
                   disabled={!tokenMint.trim()}
-                  className="w-full px-6 py-4 bg-black dark:bg-white text-white dark:text-black text-lg font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-6 py-4 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 text-lg font-medium rounded-xl border border-gray-300/20 dark:border-gray-700/20 hover:bg-white/30 dark:hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
                 >
                   Start Analysis
                 </button>
@@ -386,7 +386,7 @@ export default function DeepResearchPage() {
         {/* Analysis History Section */}
         {isConnected && address && (
           <div className="mt-16 pt-16 border-t border-gray-200 dark:border-gray-800">
-            <h2 className="text-2xl font-bold mb-6">Your Analysis History</h2>
+            <h2 className="text-2xl font-light text-gray-900 dark:text-gray-50 mb-6 tracking-tight">Your Analysis History</h2>
             
             {loadingHistory ? (
               <div className="text-center py-8 text-gray-600 dark:text-gray-400">
@@ -406,7 +406,7 @@ export default function DeepResearchPage() {
                   return (
                     <div
                       key={analysis.id}
-                      className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                      className="border border-gray-200/50 dark:border-gray-800/50 rounded-xl p-5 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-900/60 cursor-pointer transition-all duration-300 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_18px_60px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_18px_60px_rgb(255,255,255,0.12)]"
                       onClick={() => {
                         setSelectedAnalysis({
                           ...report, // Spread the report to include all fields

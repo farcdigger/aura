@@ -336,11 +336,11 @@ export default function DeepResearchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-black p-6 max-w-6xl w-full border border-gray-200 dark:border-gray-800 rounded-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-2xl p-6 sm:p-8 max-w-6xl w-full border border-gray-200/50 dark:border-gray-800/50 rounded-2xl max-h-[90vh] overflow-y-auto shadow-[0_25px_70px_rgb(0,0,0,0.22)] dark:shadow-[0_25px_70px_rgb(255,255,255,0.15)]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-black dark:text-white">
+          <h3 className="text-2xl sm:text-3xl font-light text-gray-900 dark:text-gray-50 tracking-tight">
             {status === "payment" && "Complete Payment"}
             {status === "processing" && "Analyzing..."}
             {status === "completed" && "Analysis Complete"}
@@ -386,7 +386,7 @@ export default function DeepResearchModal({
               </div>
             )}
             
-            <div className="mb-6 p-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+            <div className="mb-6 p-6 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
               <div className="mb-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Token</p>
                 <p className="font-mono text-sm break-all">{tokenMint}</p>
@@ -404,7 +404,7 @@ export default function DeepResearchModal({
 
             <button
               onClick={handlePayment}
-              className="w-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 font-medium rounded-xl border border-gray-300/20 dark:border-gray-700/20 hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
             >
               Pay with USDC
             </button>
@@ -476,9 +476,9 @@ export default function DeepResearchModal({
 
             {/* Progress Bar */}
             <div className="max-w-md mx-auto">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+              <div className="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-3 mb-2 shadow-inner">
                 <div
-                  className="bg-black dark:bg-white h-2 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 dark:from-gray-300 dark:via-gray-400 dark:to-gray-300 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -504,7 +504,7 @@ export default function DeepResearchModal({
         {/* Completed Stage */}
         {status === "completed" && analysisResult && (
           <div>
-            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+            <div className="mb-6 p-5 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold">Analysis Complete</p>
                 {(() => {
@@ -548,7 +548,7 @@ export default function DeepResearchModal({
 
             {/* Analysis Report - Only show the AI-generated risk analysis */}
             <div className="prose dark:prose-invert max-w-none">
-              <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-lg max-h-[70vh] overflow-y-auto border border-gray-200 dark:border-gray-800">
+              <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-8 rounded-xl max-h-[70vh] overflow-y-auto border border-gray-200/50 dark:border-gray-800/50 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)]">
                 {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis ? (
                   <ReactMarkdown className="text-base leading-relaxed">
                     {analysisResult?.riskAnalysis || analysisResult?.analysisResult?.riskAnalysis}
@@ -709,7 +709,7 @@ export default function DeepResearchModal({
 
             <button
               onClick={onClose}
-              className="w-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl text-gray-900 dark:text-gray-100 font-medium rounded-xl border border-gray-300/20 dark:border-gray-700/20 hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_10px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_10px_40px_rgb(255,255,255,0.08)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.18)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.12)]"
             >
               Close
             </button>
