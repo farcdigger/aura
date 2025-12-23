@@ -75,7 +75,7 @@ export default function DesignDemoPage() {
             {/* Hero Cards - Soft Design */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
               {/* Left Card */}
-              <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-500">
+              <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="w-12 h-12 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center">
                     <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,13 +87,13 @@ export default function DesignDemoPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Optimize edilmiş performans</p>
                   </div>
                 </div>
-                <button className="px-6 py-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/30 dark:border-gray-700/30 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                <button className="px-6 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   Keşfet
                 </button>
               </div>
 
               {/* Right Card */}
-              <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-500">
+              <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="w-12 h-12 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center">
                     <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,7 +105,7 @@ export default function DesignDemoPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Kendine özgü tasarım</p>
                   </div>
                 </div>
-                <button className="px-6 py-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/30 dark:border-gray-700/30 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                <button className="px-6 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   İncele
                 </button>
               </div>
@@ -127,13 +127,13 @@ export default function DesignDemoPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {/* Primary - Glassmorphism */}
-              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-lg">
+              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Primary</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Ana aksiyonlar için</p>
                 </div>
                 <div className="space-y-4">
-                  <button className="w-full px-6 py-3.5 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 hover:border-gray-400/50 dark:hover:border-gray-600/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <button className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                     Primary Button
                   </button>
                   <button className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-600 dark:text-gray-400 font-medium cursor-not-allowed opacity-50">
@@ -143,32 +143,32 @@ export default function DesignDemoPage() {
               </div>
 
               {/* Secondary - Glassmorphism */}
-              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-lg">
+              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Secondary</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">İkincil aksiyonlar için</p>
                 </div>
                 <div className="space-y-4">
-                  <button className="w-full px-6 py-3.5 bg-white/30 dark:bg-black/30 backdrop-blur-xl border-2 border-gray-300/50 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/40 dark:hover:bg-black/40 hover:border-gray-400/60 dark:hover:border-gray-600/60 transition-all duration-300">
+                  <button className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl border-2 border-gray-300/30 dark:border-gray-700/30 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 hover:border-gray-400/40 dark:hover:border-gray-600/40 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                     Secondary Button
                   </button>
-                  <button className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl border-2 border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-600 dark:text-gray-400 font-medium cursor-not-allowed opacity-50">
+                  <button className="w-full px-6 py-3.5 bg-white/10 dark:bg-black/10 backdrop-blur-xl border-2 border-gray-300/10 dark:border-gray-700/10 rounded-xl text-gray-600 dark:text-gray-400 font-medium cursor-not-allowed opacity-50 shadow-[0_4px_15px_rgb(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgb(255,255,255,0.03)]">
                     Disabled
                   </button>
                 </div>
               </div>
 
               {/* Ghost - Glassmorphism */}
-              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-lg">
+              <div className="bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-gray-200/30 dark:border-gray-800/30 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Ghost</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Minimal aksiyonlar için</p>
                 </div>
                 <div className="space-y-4">
-                  <button className="w-full px-6 py-3.5 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/30 dark:border-gray-700/30 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300">
+                  <button className="w-full px-6 py-3.5 bg-white/15 dark:bg-black/15 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/25 dark:hover:bg-black/25 transition-all duration-300 shadow-[0_6px_25px_rgb(0,0,0,0.06)] dark:shadow-[0_6px_25px_rgb(255,255,255,0.04)] hover:shadow-[0_10px_35px_rgb(0,0,0,0.10)] dark:hover:shadow-[0_10px_35px_rgb(255,255,255,0.06)]">
                     Ghost Button
                   </button>
-                  <button className="w-full px-6 py-3.5 bg-white/10 dark:bg-black/10 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-600 dark:text-gray-400 font-medium cursor-not-allowed opacity-50">
+                  <button className="w-full px-6 py-3.5 bg-white/10 dark:bg-black/10 backdrop-blur-xl border border-gray-300/10 dark:border-gray-700/10 rounded-xl text-gray-600 dark:text-gray-400 font-medium cursor-not-allowed opacity-50 shadow-[0_4px_15px_rgb(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgb(255,255,255,0.03)]">
                     Disabled
                   </button>
                 </div>
@@ -197,7 +197,7 @@ export default function DesignDemoPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Standard Card */}
-              <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-500">
+              <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500">
                 <div className="w-14 h-14 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center mb-6">
                   <svg className="w-7 h-7 text-gray-700 dark:text-gray-300" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -209,13 +209,13 @@ export default function DesignDemoPage() {
                 <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed text-sm">
                   Temel card stili - genel kullanım için optimize edilmiş.
                 </p>
-                <button className="w-full px-6 py-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                <button className="w-full px-6 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   Action
                 </button>
               </div>
 
               {/* Elevated Card */}
-              <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-2 border-gray-300/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-500">
+              <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-2 border-gray-300/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-[0_12px_40px_rgb(0,0,0,0.10)] dark:shadow-[0_12px_40px_rgb(255,255,255,0.06)] hover:shadow-[0_20px_60px_rgb(0,0,0,0.15)] dark:hover:shadow-[0_20px_60px_rgb(255,255,255,0.10)] transition-all duration-500">
                 <div className="w-14 h-14 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center mb-6">
                   <svg className="w-7 h-7 text-gray-700 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="3" y="6" width="18" height="14" rx="2" />
@@ -229,13 +229,13 @@ export default function DesignDemoPage() {
                 <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed text-sm">
                   Önemli içerikler için - daha belirgin görünüm.
                 </p>
-                <button className="w-full px-6 py-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                <button className="w-full px-6 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   Action
                 </button>
               </div>
 
               {/* Glass Card */}
-              <div className="bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl border border-gray-200/40 dark:border-gray-800/40 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-500">
+              <div className="bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl border border-gray-200/40 dark:border-gray-800/40 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500">
                 <div className="w-14 h-14 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 flex items-center justify-center mb-6">
                   <svg className="w-7 h-7 text-gray-700 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -249,7 +249,7 @@ export default function DesignDemoPage() {
                 <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed text-sm">
                   Hero sections için - glassmorphism efekti.
                 </p>
-                <button className="w-full px-6 py-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md">
+                <button className="w-full px-6 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   Action
                 </button>
               </div>
@@ -277,7 +277,7 @@ export default function DesignDemoPage() {
               ].map((step, idx) => (
                 <div
                   key={idx}
-                  className={`bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-2 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-500 cursor-pointer ${
+                  className={`bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-2 rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500 cursor-pointer ${
                     selectedCard === idx ? "border-gray-400 dark:border-gray-600" : ""
                   } ${
                     step.status === "connected"
@@ -334,8 +334,8 @@ export default function DesignDemoPage() {
 
                   <button className={`w-full px-6 py-3.5 font-medium rounded-xl transition-all duration-300 ${
                     step.status === "idle"
-                      ? "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 text-gray-900 dark:text-gray-100 hover:bg-white/50 dark:hover:bg-black/50 shadow-sm hover:shadow-md"
-                      : "bg-white/30 dark:bg-black/30 backdrop-blur-xl border border-gray-300/30 dark:border-gray-700/30 text-gray-900 dark:text-gray-100 hover:bg-white/40 dark:hover:bg-black/40"
+                      ? "bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 text-gray-900 dark:text-gray-100 hover:bg-white/30 dark:hover:bg-black/30 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]"
+                      : "bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 text-gray-900 dark:text-gray-100 hover:bg-white/30 dark:hover:bg-black/30 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]"
                   }`}>
                     {step.status === "idle" ? "Get Started" : step.status === "connected" ? "Continue" : "View"}
                   </button>
@@ -362,7 +362,7 @@ export default function DesignDemoPage() {
               </p>
             </div>
 
-            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-lg">
+            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -421,7 +421,7 @@ export default function DesignDemoPage() {
                 { label: "Remaining", value: "4,321" },
                 { label: "Total Supply", value: "5,555" },
               ].map((stat, idx) => (
-                <div key={idx} className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-500">
+                <div key={idx} className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_15px_50px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_50px_rgb(255,255,255,0.08)] transition-all duration-500">
                   <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3 font-medium">
                     {stat.label}
                   </p>
@@ -451,7 +451,7 @@ export default function DesignDemoPage() {
               </p>
             </div>
 
-            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-lg">
+            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-base font-medium text-gray-900 dark:text-gray-100">Mint Progress</p>
@@ -483,7 +483,7 @@ export default function DesignDemoPage() {
               </p>
             </div>
 
-            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-lg">
+            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]">
               <div className="flex flex-wrap gap-4 justify-center">
                 <div className="inline-flex items-center gap-2 bg-green-100/50 dark:bg-green-900/30 border border-green-300/50 dark:border-green-700/50 text-green-700 dark:text-green-300 px-4 py-2 rounded-lg text-sm font-medium">
                   <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -514,7 +514,7 @@ export default function DesignDemoPage() {
           </div>
           
           <div className="relative max-w-4xl mx-auto px-6 lg:px-8 text-center">
-            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-16 shadow-xl">
+            <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-16 shadow-[0_12px_40px_rgb(0,0,0,0.10)] dark:shadow-[0_12px_40px_rgb(255,255,255,0.06)]">
               <div className="inline-block mb-6">
                 <span className="px-4 py-1.5 bg-white/30 dark:bg-black/30 backdrop-blur-md border border-gray-300/30 dark:border-gray-700/30 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Professional Design
@@ -531,11 +531,11 @@ export default function DesignDemoPage() {
               <div className="flex gap-4 justify-center">
                 <Link 
                   href="/" 
-                  className="px-8 py-4 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-gray-300/40 dark:border-gray-700/40 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 shadow-sm hover:shadow-md"
+                  className="px-8 py-4 bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]"
                 >
                   Ana Sayfaya Dön
                 </Link>
-                <button className="px-8 py-4 bg-white/30 dark:bg-black/30 backdrop-blur-xl border-2 border-gray-300/50 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300">
+                <button className="px-8 py-4 bg-white/20 dark:bg-black/20 backdrop-blur-xl border-2 border-gray-300/30 dark:border-gray-700/30 rounded-xl text-gray-900 dark:text-gray-100 font-medium hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgb(255,255,255,0.08)]">
                   Geri Bildirim Ver
                 </button>
               </div>
