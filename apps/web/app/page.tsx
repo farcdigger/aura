@@ -2297,6 +2297,7 @@ function HomePageContent() {
             </div>
           )}
         </div>
+      </div>
     </div>
   );
 }
