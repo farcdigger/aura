@@ -556,14 +556,14 @@ function identifyImportantMoments(
   const moments: Array<{
     log: GameLog;
     importance: number;
-    type: string;
+    type: 'critical' | 'discovery' | 'flee' | 'high_damage' | 'death' | 'first_battle';
   }> = [];
   
   let firstBattleFound = false;
   
   for (const log of logs) {
     let importance = 1;
-    let type = 'normal';
+    let type: 'critical' | 'discovery' | 'flee' | 'high_damage' | 'death' | 'first_battle' = 'first_battle';
     
     if (log.eventType === 'Attack') {
       const damage = log.data.damage || 0;
