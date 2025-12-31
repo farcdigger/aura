@@ -1,0 +1,53 @@
+{
+  "name": "loot-survivor-saga",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:bibliotheca": "tsx scripts/test-bibliotheca.ts",
+    "test:api": "tsx scripts/test-api.ts",
+    "test:story": "tsx scripts/test-story.ts",
+    "test:torii": "tsx scripts/test-torii-api.ts",
+    "test:deployments": "tsx scripts/test-deployment-names.ts",
+    "test:decode": "tsx scripts/test-felt252-decode.ts",
+    "test:event-check": "tsx scripts/test-event-check.ts",
+    "test:pages": "tsx scripts/test-pages-column.ts",
+    "delete:saga": "tsx scripts/delete-saga.ts",
+    "discover:schema": "tsx scripts/discover-schema.ts",
+    "cleanup:queue": "tsx scripts/cleanup-queue.ts",
+    "clear:queue": "tsx scripts/clear-queue.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "axios": "^1.7.0",
+    "bullmq": "^5.0.0",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.0.0",
+    "get-starknet-core": "^3.0.0",
+    "ioredis": "^5.3.0",
+    "lucide-react": "^0.400.0",
+    "nanoid": "^5.0.0",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "replicate": "^0.34.0",
+    "starknet": "^5.24.0",
+    "typescript": "^5.5.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "dotenv": "^17.2.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.21.0"
+  }
+}
