@@ -581,6 +581,7 @@ function identifyImportantMoments(
         type = 'high_damage';
       } else {
         importance = 2; // Normal saldırı
+        type = 'high_damage'; // Default to high_damage for normal attacks
       }
     } else if (log.eventType === 'Flee') {
       importance = 7; // Kaçış önemli
@@ -592,10 +593,14 @@ function identifyImportantMoments(
         type = 'discovery';
       } else {
         importance = 3; // Genel keşif
+        type = 'discovery'; // Default to discovery
       }
     } else if (log.eventType === 'Died') {
       importance = 10; // Ölüm en önemli
       type = 'death';
+    } else {
+      // Skip moments that don't match the type union
+      continue;
     }
     
     moments.push({ log, importance, type });
