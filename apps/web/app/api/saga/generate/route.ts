@@ -10,22 +10,35 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     // Get saga API URL from environment or use default
-    // In production (same domain): Both apps are on xfroranft.xyz, so use relative path
-    // In development: Try localhost:3001 (default saga app port) or use environment variable
+    // IMPORTANT: In production, saga app might be on same domain or different domain
+    // If NEXT_PUBLIC_SAGA_API_URL is set, use it. Otherwise, try to construct from current request
     let sagaApiUrl: string;
     
     if (process.env.NEXT_PUBLIC_SAGA_API_URL) {
-      // Explicitly set via environment variable
-      sagaApiUrl = `${process.env.NEXT_PUBLIC_SAGA_API_URL}/api/saga/generate`;
+      // Explicitly set via environment variable (production or development)
+      const baseUrl = process.env.NEXT_PUBLIC_SAGA_API_URL.replace(/\/$/, ''); // Remove trailing slash
+      sagaApiUrl = `${baseUrl}/api/saga/generate`;
     } else if (process.env.NODE_ENV === 'production') {
-      // Production: Same domain, use relative path
-      sagaApiUrl = '/api/saga/generate';
+      // Production: Try to get base URL from request headers
+      const host = req.headers.get('host');
+      const protocol = req.headers.get('x-forwarded-proto') || 'https';
+      if (host) {
+        sagaApiUrl = `${protocol}://${host}/api/saga/generate`;
+      } else {
+        // Fallback: Use relative path (will only work if saga app is in same Next.js app)
+        sagaApiUrl = '/api/saga/generate';
+      }
     } else {
       // Development: Default to localhost:3001 (saga app default port)
       sagaApiUrl = 'http://localhost:3001/api/saga/generate';
     }
     
     console.log('[Saga Generate Proxy] Forwarding to:', sagaApiUrl);
+    console.log('[Saga Generate Proxy] Environment:', {
+      NEXT_PUBLIC_SAGA_API_URL: process.env.NEXT_PUBLIC_SAGA_API_URL || 'not set',
+      NODE_ENV: process.env.NODE_ENV,
+      host: req.headers.get('host')
+    });
     
     // Forward the request to saga API
     const response = await fetch(sagaApiUrl, {
