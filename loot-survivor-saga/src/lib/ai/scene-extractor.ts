@@ -38,38 +38,16 @@ export function extractScenes(
   
   // PROTOTYPE MODE: 1 event varsa, özel işlem
   if (logs.length === 1) {
-    console.log('[Scene Extractor] 🎯 PROTOTYPE MODE: 1 event found, creating 18 scenes from adventurer + 2 scenes from event');
+    console.log('[Scene Extractor] 🎯 PROTOTYPE MODE: 1 event found, creating 12 victory scenes + 8 death sequence scenes');
     
-    // İlk 18 sahneyi adventurer data'sından oluştur
-    const adventurerScenes = generateScenesFromAdventurer(adventurer, 18);
-    scenes.push(...adventurerScenes);
+    // İlk 12 sahne: Hayal ürünü zaferler (farklı canavarlarla savaş, kahramanca zaferler)
+    const victoryScenes = generateVictoryScenes(adventurer, 12);
+    scenes.push(...victoryScenes);
     
-    // Son 2 sahneyi (19 ve 20) event'ten oluştur
-    const lastEvent = logs[0];
-    const importantMoments = identifyImportantMoments(logs, adventurer);
-    
-    if (importantMoments.length > 0) {
-      const moment = importantMoments[0];
-      
-      // Panel 19: Event'in ilk anı (örneğin kaçış başlangıcı)
-      const scene19 = createSceneFromEvent(moment, adventurer, 19, 'before');
-      scenes.push(scene19);
-      
-      // Panel 20: Event'in sonucu (ölüm veya kaçış sonucu)
-      if (adventurer.health === 0) {
-        // Ölüm sahnesi
-        scenes.push(createDeathScene(adventurer, 20));
-      } else {
-        // Event'in sonucu (kaçış başarılı vs)
-        const scene20 = createSceneFromEvent(moment, adventurer, 20, 'after');
-        scenes.push(scene20);
-      }
-    } else {
-      // Event'ten sahne oluşturulamazsa, normal sahne oluştur
-      const scene19 = createSceneFromEvent({ log: lastEvent, importance: 10, type: 'flee' }, adventurer, 19, 'before');
-      scenes.push(scene19);
-      scenes.push(createDeathScene(adventurer, 20));
-    }
+    // Son 8 sahne: Ölüm anı event'ine göre (ölüm anına gelene kadar + ölüm anı)
+    const deathEvent = logs[0];
+    const deathSequenceScenes = generateDeathSequenceScenes(deathEvent, adventurer, 13);
+    scenes.push(...deathSequenceScenes);
   } else if (logs.length > 1) {
     // Birden fazla event varsa, normal işlem
     const importantMoments = identifyImportantMoments(logs, adventurer);
@@ -97,7 +75,254 @@ export function extractScenes(
 }
 
 /**
+ * Hayal ürünü zafer sahneleri oluştur (ilk 12 sahne)
+ * Farklı canavarlarla savaş, kahramanca zaferler, canavarları öldürme anları
+ */
+function generateVictoryScenes(adventurer: AdventurerData, count: number): GameScene[] {
+  const scenes: GameScene[] = [];
+  const weaponName = getItemName(adventurer.equipment.weapon?.id || 0);
+  const chestName = getItemName(adventurer.equipment.chest?.id || 0);
+  const { strength, dexterity, vitality } = adventurer.stats;
+  
+  // Farklı canavarlar listesi (her sahne için farklı)
+  const monsters = [
+    'Skeleton Warrior', 'Goblin Chief', 'Zombie Horde', 'Orc Warlord',
+    'Troll Guardian', 'Giant Spider', 'Dark Knight', 'Dragon Wyrmling',
+    'Demon Imp', 'Lich Apprentice', 'Beast of Shadows', 'Ancient Guardian'
+  ];
+  
+  // Farklı zafer anları
+  const victoryActions = [
+    'Heroic sword strike defeating',
+    'Powerful critical hit slaying',
+    'Swift dodge and counter-attack vanquishing',
+    'Mighty blow crushing',
+    'Precise strike defeating',
+    'Brutal combo finishing',
+    'Epic battle ending with victory over',
+    'Legendary combat triumph against',
+    'Masterful technique defeating',
+    'Unstoppable charge vanquishing',
+    'Heroic stand victorious over',
+    'Final strike slaying'
+  ];
+  
+  for (let i = 0; i < count; i++) {
+    const monster = monsters[i % monsters.length];
+    const action = victoryActions[i % victoryActions.length];
+    const turnNumber = (i + 1) * 10;
+    
+    const speechBubbles = [
+      `${monster} falls! Victory is mine!`,
+      `Another beast defeated! ${weaponName} strikes true!`,
+      `The ${monster} is no more! I am unstoppable!`,
+      `Heroic victory! ${monster} defeated!`,
+      `My ${weaponName} never fails! ${monster} vanquished!`,
+      `Epic battle won! ${monster} slain!`,
+      `The legend grows! ${monster} defeated!`,
+      `Another triumph! ${monster} falls before me!`,
+      `Unstoppable! ${monster} defeated!`,
+      `Victory! ${monster} is no match for my ${weaponName}!`,
+      `Heroic stand! ${monster} vanquished!`,
+      `Legendary combat! ${monster} defeated!`
+    ];
+    
+    const location = inferLocation(turnNumber, adventurer.level);
+    const description = `Heroic adventurer wielding ${weaponName}, wearing ${chestName}, ${action} ${monster}, epic victory moment, ${monster} defeated and falling, hero standing triumphant, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing, pen and ink illustration, in ${location}, detailed linework, hatching and crosshatching techniques, high contrast, monochrome, no colors`;
+    
+    scenes.push({
+      panelNumber: i + 1,
+      turnNumber,
+      sceneType: 'battle',
+      monster,
+      action: `${action} ${monster}`,
+      location,
+      equipment: adventurer.equipment,
+      stats: adventurer.stats,
+      description,
+      speechBubble: speechBubbles[i % speechBubbles.length]
+    });
+  }
+  
+  return scenes;
+}
+
+/**
+ * Ölüm anı event'ine göre 8 sahne oluştur (son 8 sahne)
+ * Ölüm anına gelene kadar olan olaylar (hayal ürünü + event verileri) + ölüm anı
+ */
+function generateDeathSequenceScenes(
+  deathEvent: GameLog,
+  adventurer: AdventurerData,
+  startPanelNumber: number
+): GameScene[] {
+  const scenes: GameScene[] = [];
+  const weaponName = getItemName(adventurer.equipment.weapon?.id || 0);
+  const chestName = getItemName(adventurer.equipment.chest?.id || 0);
+  const { strength, dexterity, vitality } = adventurer.stats;
+  
+  // Event'ten gelen bilgiler
+  const eventType = deathEvent.eventType;
+  const eventDamage = deathEvent.data.damage || 0;
+  const eventLocation = deathEvent.data.locationName || deathEvent.data.beastName || 'Unknown Location';
+  const eventBeastName = deathEvent.data.beastName || 'Beast';
+  const eventCriticalHit = deathEvent.data.criticalHit || false;
+  
+  // İlk 7 sahne: Ölüm anına gelene kadar olan olaylar (hayal ürünü + event verilerine göre)
+  const deathSequenceActions = [
+    // Panel 13: Canavarla karşılaşma
+    {
+      action: `Encountering the ${eventBeastName} at ${eventLocation}`,
+      speechBubble: `A powerful ${eventBeastName} blocks my path!`,
+      sceneType: 'battle' as const,
+      description: `Adventurer wielding ${weaponName}, encountering ${eventBeastName} at ${eventLocation}, tense confrontation, both combatants sizing each other up, dynamic action scene, motion lines, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 14: İlk saldırı
+    {
+      action: `First strike against ${eventBeastName}`,
+      speechBubble: `Take this! ${weaponName} strikes!`,
+      sceneType: 'battle' as const,
+      description: `Adventurer attacking ${eventBeastName} with ${weaponName}, powerful sword strike, ${eventBeastName} reacting, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 15: Canavar karşı saldırı
+    {
+      action: `${eventBeastName} counter-attacks`,
+      speechBubble: `The ${eventBeastName} strikes back!`,
+      sceneType: 'battle' as const,
+      description: `${eventBeastName} attacking adventurer, adventurer blocking with ${weaponName}, intense combat exchange, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 16: Yaralanma
+    {
+      action: `Taking damage from ${eventBeastName}`,
+      speechBubble: `I'm wounded! But I must continue!`,
+      sceneType: 'battle' as const,
+      description: `Adventurer taking damage from ${eventBeastName}, showing pain and determination, ${weaponName} still ready, dynamic action scene, motion lines, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 17: Son çare saldırısı
+    {
+      action: `Desperate final attack against ${eventBeastName}`,
+      speechBubble: `This is my last chance! ${weaponName}, don't fail me!`,
+      sceneType: 'battle' as const,
+      description: `Adventurer making desperate final attack with ${weaponName} against ${eventBeastName}, all-or-nothing strike, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 18: Kaçma denemesi (eğer event Flee ise)
+    eventType === 'Flee' ? {
+      action: `Attempting to flee from ${eventBeastName}`,
+      speechBubble: `I must escape! This is too dangerous!`,
+      sceneType: 'rest' as const,
+      description: `Adventurer attempting to flee from ${eventBeastName}, running away, ${eventBeastName} pursuing, desperate escape attempt, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    } : {
+      action: `${eventBeastName} prepares final attack`,
+      speechBubble: `The ${eventBeastName} is too strong!`,
+      sceneType: 'battle' as const,
+      description: `${eventBeastName} preparing devastating attack, adventurer exhausted and wounded, ${weaponName} lowered, dynamic action scene, motion lines, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    },
+    // Panel 19: Ölüm anı öncesi (event'e göre)
+    eventType === 'BeastAttack' ? {
+      action: `${eventBeastName} delivers ${eventDamage} damage${eventCriticalHit ? ' (CRITICAL HIT!)' : ''}`,
+      speechBubble: `The ${eventBeastName} strikes! ${eventDamage} damage!${eventCriticalHit ? ' A critical hit!' : ''}`,
+      sceneType: 'battle' as const,
+      description: `${eventBeastName} delivering ${eventDamage} damage${eventCriticalHit ? ' with CRITICAL HIT' : ''} to adventurer at ${eventLocation}, adventurer reeling from the blow, ${weaponName} dropping, dynamic action scene, motion lines, speed effects, dramatic shadows, bright flash${eventCriticalHit ? ' and heavy impact' : ''}, classic comic book style, black and white charcoal drawing`
+    } : eventType === 'Attack' ? {
+      action: `Final attack dealing ${eventDamage} damage${eventCriticalHit ? ' (CRITICAL HIT!)' : ''}`,
+      speechBubble: `My last strike! ${eventDamage} damage!${eventCriticalHit ? ' Critical hit!' : ''}`,
+      sceneType: 'battle' as const,
+      description: `Adventurer making final attack with ${weaponName} dealing ${eventDamage} damage${eventCriticalHit ? ' with CRITICAL HIT' : ''} to ${eventBeastName} at ${eventLocation}, but it's not enough, dynamic action scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    } : eventType === 'Flee' ? {
+      action: `Flee attempt fails`,
+      speechBubble: `I couldn't escape...`,
+      sceneType: 'death' as const,
+      description: `Adventurer's flee attempt failed, ${eventBeastName} catches up, adventurer cornered, ${weaponName} dropped, dynamic action scene, motion lines, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    } : {
+      action: `Final confrontation with ${eventBeastName}`,
+      speechBubble: `This is the end...`,
+      sceneType: 'battle' as const,
+      description: `Final confrontation between adventurer and ${eventBeastName} at ${eventLocation}, adventurer exhausted, ${weaponName} barely held, dynamic action scene, motion lines, dramatic shadows, classic comic book style, black and white charcoal drawing`
+    }
+  ];
+  
+  // İlk 7 sahneyi oluştur
+  for (let i = 0; i < 7; i++) {
+    const seqAction = deathSequenceActions[i];
+    const location = inferLocation((startPanelNumber + i) * 10, adventurer.level);
+    
+    scenes.push({
+      panelNumber: startPanelNumber + i,
+      turnNumber: (startPanelNumber + i) * 10,
+      sceneType: seqAction.sceneType,
+      monster: eventBeastName,
+      action: seqAction.action,
+      location,
+      equipment: adventurer.equipment,
+      stats: adventurer.stats,
+      description: seqAction.description + `, in ${location}`,
+      speechBubble: seqAction.speechBubble
+    });
+  }
+  
+  // Panel 20: Ölüm anı (event'ten gelen verilerle)
+  const deathScene = createDeathSceneFromEvent(deathEvent, adventurer, startPanelNumber + 7);
+  scenes.push(deathScene);
+  
+  return scenes;
+}
+
+/**
+ * Event'ten ölüm sahnesi oluştur (Panel 20 - en son sahne)
+ */
+function createDeathSceneFromEvent(
+  deathEvent: GameLog,
+  adventurer: AdventurerData,
+  panelNumber: number
+): GameScene {
+  const weaponName = getItemName(adventurer.equipment.weapon?.id || 0);
+  const eventType = deathEvent.eventType;
+  const eventDamage = deathEvent.data.damage || 0;
+  const eventLocation = deathEvent.data.locationName || deathEvent.data.beastName || 'Unknown Location';
+  const eventBeastName = deathEvent.data.beastName || 'Beast';
+  const eventCriticalHit = deathEvent.data.criticalHit || false;
+  
+  let action = '';
+  let speechBubble = '';
+  let description = '';
+  
+  if (eventType === 'BeastAttack') {
+    action = `Final blow from ${eventBeastName} - Death`;
+    speechBubble = `The ${eventBeastName}'s ${eventDamage} damage${eventCriticalHit ? ' critical hit' : ''}... This is where my journey ends...`;
+    description = `The hero's final moments. ${eventBeastName} delivers the killing blow${eventCriticalHit ? ' with a CRITICAL HIT' : ''} dealing ${eventDamage} damage at ${eventLocation}. Adventurer falls, ${weaponName} dropping from hand, health reaches zero. The adventure ends. Dramatic death scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing, pen and ink illustration, high contrast, monochrome, no colors`;
+  } else if (eventType === 'Attack') {
+    action = `Final attack fails - Death`;
+    speechBubble = `My ${eventDamage} damage${eventCriticalHit ? ' critical' : ''} strike wasn't enough... The ${eventBeastName}... finishes me...`;
+    description = `The hero's final moments. Adventurer's last attack with ${weaponName} dealing ${eventDamage} damage${eventCriticalHit ? ' (CRITICAL HIT)' : ''} to ${eventBeastName} at ${eventLocation}, but it's not enough. ${eventBeastName} counter-attacks and defeats the hero. Adventurer falls, health reaches zero. The adventure ends. Dramatic death scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing, pen and ink illustration, high contrast, monochrome, no colors`;
+  } else if (eventType === 'Flee') {
+    action = `Flee attempt fails - Death`;
+    speechBubble = `I couldn't escape... The ${eventBeastName} caught me... This is where my journey ends...`;
+    description = `The hero's final moments. Adventurer's flee attempt failed. ${eventBeastName} catches up and delivers the final blow at ${eventLocation}. Adventurer falls, ${weaponName} dropping, health reaches zero. The adventure ends. Dramatic death scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing, pen and ink illustration, high contrast, monochrome, no colors`;
+  } else {
+    action = `Final moments - Death`;
+    speechBubble = `This is where my journey ends...`;
+    description = `The hero's final moments. Health reaches zero. The adventure ends. Dramatic death scene, motion lines, speed effects, dramatic shadows, classic comic book style, black and white charcoal drawing, pen and ink illustration, high contrast, monochrome, no colors`;
+  }
+  
+  const location = inferLocation(9999, adventurer.level);
+  
+  return {
+    panelNumber,
+    turnNumber: 9999,
+    sceneType: 'death',
+    monster: eventBeastName,
+    action,
+    location,
+    equipment: adventurer.equipment,
+    stats: adventurer.stats,
+    description: description + `, in ${location}`,
+    speechBubble
+  };
+}
+
+/**
  * Event'ten sahne oluştur (PROTOTYPE MODE için - before/after varyasyonları)
+ * @deprecated Artık generateDeathSequenceScenes kullanılıyor
  */
 function createSceneFromEvent(
   moment: { log: GameLog; importance: number; type: string },
