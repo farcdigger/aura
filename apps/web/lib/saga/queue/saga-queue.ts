@@ -176,8 +176,8 @@ export function createSagaWorker() {
 
       // Import here to avoid circular dependencies
       const { fetchGameData } = await import('@/lib/blockchain/bibliotheca');
-      const { extractScenes, createComicPages } = await import('@/lib/ai/scene-extractor');
-      const { generateComicPages: generateComicPageImages } = await import('@/lib/ai/image-generator');
+      const { extractScenes, createComicPages } = await import('../ai/scene-extractor');
+      const { generateComicPages: generateComicPageImages } = await import('../ai/image-generator');
       // supabase already imported above (line 104)
 
       // Helper function to update progress in both job and database
