@@ -427,7 +427,7 @@ function generateScenesFromAdventurer(adventurer: AdventurerData, targetScenes: 
     const currentLevel = Math.max(1, Math.floor(level * progress));
     
     let sceneType: GameScene['sceneType'] = 'battle';
-    let monster = getMonsterForLevel(currentLevel, i);
+    let monster: string | undefined = getMonsterForLevel(currentLevel, i);
     let action = '';
     let speechBubble = '';
     
