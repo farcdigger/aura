@@ -151,7 +151,7 @@ export function createSagaWorker() {
       }
       
       // Check if saga exists in database (additional validation)
-      const { supabase } = await import('@/lib/database/supabase');
+      const { supabase } = await import('../database/supabase');
       const { data: existingSaga, error: checkError } = await supabase
         .from('sagas')
         .select('id, status')
@@ -175,7 +175,7 @@ export function createSagaWorker() {
       console.log(`[Worker] Job ID: ${job.id}, Attempt: ${job.attemptsMade + 1}`);
 
       // Import here to avoid circular dependencies
-      const { fetchGameData } = await import('@/lib/blockchain/bibliotheca');
+      const { fetchGameData } = await import('../blockchain/bibliotheca');
       const { extractScenes, createComicPages } = await import('../ai/scene-extractor');
       const { generateComicPages: generateComicPageImages } = await import('../ai/image-generator');
       // supabase already imported above (line 104)
@@ -505,7 +505,7 @@ export function getOrCreateWorker(): ReturnType<typeof createSagaWorker> {
       // Failed job'ları database'de işaretle
       if (job?.data?.sagaId) {
         try {
-          const { supabase } = await import('@/lib/database/supabase');
+          const { supabase } = await import('../database/supabase');
           const sagaId = job.data.sagaId;
           
           // UUID formatını kontrol et
