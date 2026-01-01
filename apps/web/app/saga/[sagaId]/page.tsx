@@ -164,6 +164,23 @@ export default function SagaViewerPage() {
     };
     const currentMessage = stepMessages[saga.current_step || 'pending'] || 'Generating saga...';
 
+    // Auto-trigger worker if stuck (every 5 seconds)
+    useEffect(() => {
+      const triggerWorker = async () => {
+        try {
+          await fetch('/api/saga/process', { method: 'POST' });
+        } catch (err) {
+          console.error('[SagaViewer] Failed to trigger worker:', err);
+        }
+      };
+      
+      // Trigger worker immediately, then every 5 seconds
+      triggerWorker();
+      const interval = setInterval(triggerWorker, 5000);
+      
+      return () => clearInterval(interval);
+    }, [saga.status]);
+
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-6">
@@ -175,13 +192,18 @@ export default function SagaViewerPage() {
           <div className="w-full bg-gray-200 border-2 border-black rounded-none h-8 mb-2 overflow-hidden">
             <div 
               className="bg-black h-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${Math.min(progress, 99)}%` }}
             />
           </div>
-          <p className="text-black text-sm font-semibold">{progress}%</p>
+          <p className="text-black text-sm font-semibold">{Math.min(progress, 99)}%</p>
           
           {saga.current_step && (
             <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">{saga.current_step}</p>
+          )}
+          
+          {/* Warning if stuck */}
+          {progress >= 100 && saga.status !== 'completed' && (
+            <p className="text-orange-600 text-xs mt-4 italic">Processing may be delayed. Please wait...</p>
           )}
         </div>
       </div>
