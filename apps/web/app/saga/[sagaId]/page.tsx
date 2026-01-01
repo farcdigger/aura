@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 
@@ -22,6 +22,8 @@ interface Saga {
   story_text?: string;
   pages?: ComicPage[];
   total_pages?: number;
+  progress_percent?: number;
+  current_step?: string;
   generation_time_seconds?: number;
   cost_usd?: number;
 }
@@ -32,31 +34,102 @@ export default function SagaViewerPage() {
   const [saga, setSaga] = useState<Saga | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchSaga = async () => {
+    try {
+      const url = `/api/saga/${sagaId}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error('Failed to fetch saga');
+      }
+      const data = await res.json();
+      setSaga(data);
+      
+      // If saga is completed or failed, stop polling
+      if (data.status === 'completed' || data.status === 'failed') {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pollStatus = async () => {
+    try {
+      const url = `/api/saga/${sagaId}/status`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error('Failed to fetch status');
+      }
+      const statusData = await res.json();
+      
+      // Update saga with status data
+      setSaga((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: statusData.status,
+          progress_percent: statusData.progress_percent || 0,
+          current_step: statusData.current_step,
+          story_text: statusData.story_text || prev.story_text,
+          total_pages: statusData.total_pages || prev.total_pages,
+          pages: statusData.pages || prev.pages
+        };
+      });
+
+      // If completed, fetch full saga data
+      if (statusData.status === 'completed' || statusData.status === 'failed') {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        // Fetch full saga data
+        await fetchSaga();
+      }
+    } catch (err: any) {
+      console.error('[SagaViewer] Status poll error:', err);
+    }
+  };
 
   useEffect(() => {
-    const fetchSaga = async () => {
-      try {
-        // Use the saga app's API endpoint (same domain)
-        // Saga API is on the same domain, so use relative path
-        const url = `/api/saga/${sagaId}`;
-        
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error('Failed to fetch saga');
-        }
-        const data = await res.json();
-        setSaga(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (sagaId) {
       fetchSaga();
     }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, [sagaId]);
+
+  // Start polling if saga is pending or generating
+  useEffect(() => {
+    if (saga && (saga.status === 'pending' || saga.status === 'generating_story' || saga.status === 'generating_images' || saga.status === 'rendering')) {
+      // Start polling every 2 seconds
+      if (!pollingIntervalRef.current) {
+        pollingIntervalRef.current = setInterval(pollStatus, 2000);
+      }
+    } else {
+      // Stop polling if saga is completed or failed
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [saga?.status]);
 
   if (loading) {
     return (
@@ -80,13 +153,36 @@ export default function SagaViewerPage() {
     );
   }
 
-  if (saga.status === 'pending' || saga.status === 'processing') {
+  // Show generating screen with progress
+  if (saga.status === 'pending' || saga.status === 'generating_story' || saga.status === 'generating_images' || saga.status === 'rendering') {
+    const progress = saga.progress_percent || 0;
+    const stepMessages: Record<string, string> = {
+      'pending': 'Initializing...',
+      'generating_story': 'Generating story...',
+      'generating_images': 'Creating comic pages...',
+      'rendering': 'Finalizing...'
+    };
+    const currentMessage = stepMessages[saga.current_step || 'pending'] || 'Generating saga...';
+
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-black text-lg">Generating saga...</p>
-          <p className="text-gray-600 text-sm mt-2">This may take a few minutes</p>
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-black mb-4">{currentMessage}</h2>
+          <p className="text-gray-600 text-sm mb-6">This may take a few minutes</p>
+          
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-200 border-2 border-black rounded-none h-8 mb-2 overflow-hidden">
+            <div 
+              className="bg-black h-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-black text-sm font-semibold">{progress}%</p>
+          
+          {saga.current_step && (
+            <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">{saga.current_step}</p>
+          )}
         </div>
       </div>
     );
