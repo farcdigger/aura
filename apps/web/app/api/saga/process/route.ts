@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
     const { extractScenes, createComicPages } = await import('@/lib/saga/ai/scene-extractor');
     const { generateComicPages: generateComicPageImages } = await import('@/lib/saga/ai/image-generator');
     
-    // Check saga status
+    // Check saga status and last update time
     const { data: existingSaga } = await supabase
       .from('sagas')
-      .select('id, status')
+      .select('id, status, updated_at, current_step, progress_percent')
       .eq('id', sagaId)
       .single();
     
@@ -58,6 +58,25 @@ export async function POST(req: NextRequest) {
         message: `Saga already ${existingSaga.status}`,
         status: existingSaga.status
       });
+    }
+    
+    // If saga is already processing images, check if it's actively being processed
+    // (updated in last 60 seconds means it's still being processed)
+    if (existingSaga.status === 'generating_images' && existingSaga.updated_at) {
+      const lastUpdate = new Date(existingSaga.updated_at).getTime();
+      const now = Date.now();
+      const secondsSinceUpdate = (now - lastUpdate) / 1000;
+      
+      // If updated recently (within 60 seconds), don't start a new process
+      if (secondsSinceUpdate < 60) {
+        console.log(`[Process] Saga ${sagaId} is already being processed (updated ${Math.floor(secondsSinceUpdate)}s ago), skipping...`);
+        return NextResponse.json({
+          message: 'Saga is already being processed',
+          status: existingSaga.status,
+          progress: existingSaga.progress_percent || 0,
+          lastUpdate: secondsSinceUpdate
+        });
+      }
     }
     
     // Process job directly (this will be async, but we return immediately)

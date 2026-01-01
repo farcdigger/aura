@@ -61,6 +61,42 @@ export async function generateImage(
 
   } catch (error: any) {
     console.error('Image generation error:', error);
+    
+    // Check for rate limit error (429)
+    if (error.status === 429 || 
+        error.message?.includes('429') || 
+        error.message?.includes('rate limit') ||
+        error.message?.includes('Too Many Requests')) {
+      
+      // Try to extract retry_after from error response
+      let retryAfter = 10; // Default 10 seconds
+      
+      // Check response headers
+      if (error.response?.headers) {
+        const retryAfterHeader = error.response.headers.get?.('retry-after') || 
+                                error.response.headers['retry-after'];
+        if (retryAfterHeader) {
+          retryAfter = parseInt(retryAfterHeader) || 10;
+        }
+      }
+      
+      // Try to parse from error message (JSON format)
+      try {
+        const errorDetail = error.message?.match(/"retry_after":\s*(\d+)/);
+        if (errorDetail) {
+          retryAfter = parseInt(errorDetail[1]) || 10;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
+      // Create a custom error with retry_after info
+      const rateLimitError: any = new Error(`Rate limit exceeded. Retry after ${retryAfter} seconds.`);
+      rateLimitError.status = 429;
+      rateLimitError.retryAfter = retryAfter;
+      throw rateLimitError;
+    }
+    
     throw new Error(`Failed to generate image: ${error.message}`);
   }
 }
@@ -181,19 +217,36 @@ export async function generateComicPages(
       } catch (error: any) {
         lastError = error;
         
-        if (error.message?.includes('429') || 
+        if (error.status === 429 || 
+            error.message?.includes('429') || 
             error.message?.includes('rate limit') ||
-            error.message?.includes('Too Many Requests') ||
-            error.status === 429) {
+            error.message?.includes('Too Many Requests')) {
           
-          let retryAfter = 10;
-          if (error.response?.headers?.get?.('retry-after')) {
-            retryAfter = parseInt(error.response.headers.get('retry-after')) || 10;
-          } else if (error.response?.headers?.['retry-after']) {
-            retryAfter = parseInt(error.response.headers['retry-after']) || 10;
+          // Extract retry_after from error
+          let retryAfter = error.retryAfter || 10;
+          
+          // Try response headers
+          if (!retryAfter && error.response?.headers) {
+            retryAfter = parseInt(error.response.headers.get?.('retry-after') || 
+                                 error.response.headers['retry-after'] || '10') || 10;
           }
           
-          console.warn(`[Image Generator] Rate limit hit (page ${i + 1}/${pages.length}), waiting ${retryAfter}s...`);
+          // Try to parse from error message
+          if (!retryAfter) {
+            try {
+              const match = error.message?.match(/"retry_after":\s*(\d+)/);
+              if (match) {
+                retryAfter = parseInt(match[1]) || 10;
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }
+          
+          // Add extra buffer (2 seconds) to avoid hitting limit again
+          retryAfter = Math.max(retryAfter + 2, 12);
+          
+          console.warn(`[Image Generator] Rate limit hit (page ${i + 1}/${pages.length}), waiting ${retryAfter}s before retry... (${retries} retries left)`);
           await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
           retries--;
         } else {

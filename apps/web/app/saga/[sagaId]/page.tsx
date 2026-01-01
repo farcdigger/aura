@@ -133,7 +133,7 @@ export default function SagaViewerPage() {
     };
   }, [saga?.status]);
 
-  // Auto-trigger worker if saga is generating (every 5 seconds)
+  // Auto-trigger worker if saga is generating (every 15 seconds to avoid rate limits)
   useEffect(() => {
     if (!saga || (saga.status !== 'pending' && saga.status !== 'generating_story' && saga.status !== 'generating_images' && saga.status !== 'rendering')) {
       return;
@@ -147,9 +147,9 @@ export default function SagaViewerPage() {
       }
     };
     
-    // Trigger worker immediately, then every 5 seconds
+    // Trigger worker immediately, then every 15 seconds (reduced frequency to avoid Replicate rate limits)
     triggerWorker();
-    const interval = setInterval(triggerWorker, 5000);
+    const interval = setInterval(triggerWorker, 15000);
     
     return () => clearInterval(interval);
   }, [saga?.status]);
