@@ -35,15 +35,16 @@ export async function POST(req: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Check if job was picked up
-    const afterJobs = await sagaQueue.getJobs(['waiting', 'active']);
-    console.log(`[Process] After worker init: ${afterJobs.length} jobs in queue`);
+    const afterWaitingJobs = await sagaQueue.getJobs(['waiting']);
+    const afterActiveJobs = await sagaQueue.getJobs(['active']);
+    console.log(`[Process] After worker init: ${afterWaitingJobs.length} waiting, ${afterActiveJobs.length} active`);
     
     return NextResponse.json({
       message: 'Worker initialized, job processing started',
       waiting: waitingJobs.length,
       active: activeJobs.length,
-      afterWaiting: afterJobs.filter(j => j.state === 'waiting').length,
-      afterActive: afterJobs.filter(j => j.state === 'active').length
+      afterWaiting: afterWaitingJobs.length,
+      afterActive: afterActiveJobs.length
     });
   } catch (error: any) {
     console.error('[Process] Error:', error);
