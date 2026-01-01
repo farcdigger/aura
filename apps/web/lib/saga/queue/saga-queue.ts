@@ -232,8 +232,8 @@ export function createSagaWorker() {
       let pageImages;
       try {
         // Comic pages generation with progress updates
-        const pagesForGeneration = comicPages.map(page => ({
-          panels: page.scenes.map(scene => ({
+        const pagesForGeneration = comicPages.map((page: any) => ({
+          panels: page.scenes.map((scene: any) => ({
             speechBubble: scene.speechBubble,
             imagePrompt: scene.description // Individual scene description (for backward compatibility)
           })),
