@@ -133,6 +133,27 @@ export default function SagaViewerPage() {
     };
   }, [saga?.status]);
 
+  // Auto-trigger worker if saga is generating (every 5 seconds)
+  useEffect(() => {
+    if (!saga || (saga.status !== 'pending' && saga.status !== 'generating_story' && saga.status !== 'generating_images' && saga.status !== 'rendering')) {
+      return;
+    }
+
+    const triggerWorker = async () => {
+      try {
+        await fetch('/api/saga/process', { method: 'POST' });
+      } catch (err) {
+        console.error('[SagaViewer] Failed to trigger worker:', err);
+      }
+    };
+    
+    // Trigger worker immediately, then every 5 seconds
+    triggerWorker();
+    const interval = setInterval(triggerWorker, 5000);
+    
+    return () => clearInterval(interval);
+  }, [saga?.status]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -165,23 +186,6 @@ export default function SagaViewerPage() {
       'rendering': 'Finalizing...'
     };
     const currentMessage = stepMessages[saga.current_step || 'pending'] || 'Generating saga...';
-
-    // Auto-trigger worker if stuck (every 5 seconds)
-    useEffect(() => {
-      const triggerWorker = async () => {
-        try {
-          await fetch('/api/saga/process', { method: 'POST' });
-        } catch (err) {
-          console.error('[SagaViewer] Failed to trigger worker:', err);
-        }
-      };
-      
-      // Trigger worker immediately, then every 5 seconds
-      triggerWorker();
-      const interval = setInterval(triggerWorker, 5000);
-      
-      return () => clearInterval(interval);
-    }, [saga.status]);
 
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
