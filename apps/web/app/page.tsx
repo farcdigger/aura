@@ -1251,7 +1251,7 @@ function HomePageContent() {
             </Link>
             
             {/* Right: User Info & Buttons */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <ThemeToggle />
               
               {/* Deep Research */}
@@ -1300,7 +1300,8 @@ function HomePageContent() {
                 )}
               </Link> */}
               
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Wallet button - hidden on mobile to avoid overlap with menu */}
+              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
                 {xUser && (
                   <div className="hidden lg:flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 rounded-full text-xs sm:text-sm dark:bg-slate-800 dark:text-slate-100">
                     <span className="text-gray-700 dark:text-slate-100">@{xUser.username}</span>
@@ -1369,12 +1370,12 @@ function HomePageContent() {
         </div>
       </nav>
 
-      {/* Menu Button - Fixed top right */}
+      {/* Menu Button - Fixed top right, responsive positioning */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         aria-expanded={menuOpen}
         aria-label="Toggle menu"
-        className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300/30 dark:border-gray-700/30 bg-white/30 dark:bg-black/30 backdrop-blur-xl text-sm font-medium text-gray-700 dark:text-gray-300 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] transition-all hover:bg-white/40 dark:hover:bg-black/40"
+        className="fixed top-4 right-4 sm:top-4 sm:right-4 z-[60] inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-xl border border-gray-300/30 dark:border-gray-700/30 bg-white/30 dark:bg-black/30 backdrop-blur-xl text-sm font-medium text-gray-700 dark:text-gray-300 shadow-[0_8px_30px_rgb(0,0,0,0.10)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.06)] transition-all hover:bg-white/40 dark:hover:bg-black/40"
       >
         <span className="flex flex-col gap-0.5">
           <span className="block h-0.5 w-4 sm:w-5 rounded-full bg-current"></span>
@@ -1449,6 +1450,18 @@ function HomePageContent() {
                   <span>Deep Research</span>
                 </Link>
               )}
+
+              {/* Loot Survivor Saga */}
+              <Link
+                href="/saga"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/30 dark:hover:bg-gray-900/30 transition-colors text-gray-900 dark:text-gray-100 rounded-lg"
+                onClick={closeMenu}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>Loot Survivor Saga</span>
+              </Link>
               
               {/* Yama Agent button temporarily hidden for maintenance */}
               {/* <Link
