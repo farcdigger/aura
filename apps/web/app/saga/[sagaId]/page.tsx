@@ -173,9 +173,11 @@ export default function SagaViewerPage() {
       }
     };
     
-    // Trigger worker immediately, then every 15 seconds (reduced frequency to avoid Replicate rate limits)
+    // Trigger worker immediately, then every 30 seconds (reduced frequency to avoid Replicate rate limits)
+    // Replicate free tier: 6 requests/minute = 10s/request minimum
+    // We use 30s to be safe and avoid hitting rate limits
     triggerWorker();
-    const interval = setInterval(triggerWorker, 15000);
+    const interval = setInterval(triggerWorker, 30000);
     
     return () => clearInterval(interval);
   }, [saga?.status]);

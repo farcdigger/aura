@@ -157,6 +157,26 @@ export async function POST(req: NextRequest) {
       }
     }
     
+    // Rate limit protection: if saga is generating_images and was created less than 15 seconds ago, skip
+    // This prevents multiple concurrent requests to Replicate API
+    if (existingSaga.status === 'generating_images') {
+      const createdTime = new Date(existingSaga.created_at).getTime();
+      const now = Date.now();
+      const secondsSinceCreated = (now - createdTime) / 1000;
+      
+      // If saga was created less than 15 seconds ago, it's likely still processing the first image
+      // Don't start a new process to avoid rate limits
+      if (secondsSinceCreated < 15) {
+        console.log(`[Process] Saga ${sagaId} was created ${Math.floor(secondsSinceCreated)}s ago, skipping to avoid rate limits...`);
+        return NextResponse.json({
+          message: 'Saga is being processed, waiting to avoid rate limits',
+          status: existingSaga.status,
+          progress: existingSaga.progress_percent || 0,
+          waitTime: 15 - secondsSinceCreated
+        });
+      }
+    }
+    
     // Process job directly (this will be async, but we return immediately)
     // The job will continue processing in the background
     processJobDirectly(job, sagaId, gameId, userWallet, supabase, fetchGameData, extractScenes, createComicPages, generateComicPageImages)
@@ -362,7 +382,39 @@ async function processJobDirectly(
   } catch (error: any) {
     console.error(`[Process] ❌ Error processing saga ${sagaId}:`, error);
     
-    // Mark saga as failed
+    // Check if it's a rate limit error
+    const isRateLimit = error.status === 429 || 
+                        error.message?.includes('429') || 
+                        error.message?.includes('rate limit') ||
+                        error.message?.includes('Too Many Requests') ||
+                        error.message?.includes('Rate limit exceeded');
+    
+    if (isRateLimit) {
+      // Extract retry_after from error
+      let retryAfter = error.retryAfter || 10;
+      
+      // Try to parse from error message
+      try {
+        const match = error.message?.match(/retry_after[":\s]*(\d+)/i) || 
+                     error.message?.match(/retry after[":\s]*(\d+)/i);
+        if (match) {
+          retryAfter = parseInt(match[1]) || 10;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
+      // Add buffer (5 seconds) to be safe
+      retryAfter = Math.max(retryAfter + 5, 15);
+      
+      console.warn(`[Process] ⚠️  Rate limit hit for saga ${sagaId}, will retry after ${retryAfter}s`);
+      
+      // Don't mark as failed - just log and let it retry later
+      // The saga will remain in generating_images status and can be retried
+      return; // Exit gracefully, don't throw
+    }
+    
+    // For non-rate-limit errors, mark as failed
     await supabase
       .from('sagas')
       .update({

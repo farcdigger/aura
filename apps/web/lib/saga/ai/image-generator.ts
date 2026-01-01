@@ -188,17 +188,21 @@ export async function generateComicPages(
 ): Promise<ImageGenerationResult[]> {
   const results: ImageGenerationResult[] = [];
   
-  // Sequential generation (rate limit için)
-  for (let i = 0; i < pages.length; i++) {
-    let retries = 3;
-    let lastError: any = null;
-    
-    while (retries > 0) {
-      try {
-        // Rate limit için delay (ilk request hariç)
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 10000));
-        }
+    // Sequential generation (rate limit için)
+    // Replicate free tier: 6 requests/minute = 10s/request minimum
+    // We use 12s between requests to be safe
+    for (let i = 0; i < pages.length; i++) {
+      let retries = 3;
+      let lastError: any = null;
+      
+      while (retries > 0) {
+        try {
+          // Rate limit için delay (ilk request hariç)
+          // Minimum 12 seconds between requests (6 requests/minute = 10s/request, we use 12s for safety)
+          if (i > 0) {
+            console.log(`[Image Generator] Waiting 12s before generating page ${i + 1}/${pages.length} (rate limit protection)...`);
+            await new Promise(resolve => setTimeout(resolve, 12000));
+          }
         
         // Eğer page'de imagePrompt varsa onu kullan (scene-extractor'dan geliyor)
         const result = await generateComicPage(
