@@ -47,54 +47,68 @@ export async function POST(req: NextRequest) {
     let existingSaga: any = null;
     let actualSagaId = sagaId;
     
+    console.log(`[Process] 🔍 Looking for saga with ID: ${sagaId}, gameId: ${gameId}`);
+    
     const { data: sagaById, error: sagaError } = await supabase
       .from('sagas')
-      .select('id, status, updated_at, current_step, progress_percent')
+      .select('id, status, updated_at, current_step, progress_percent, game_id')
       .eq('id', sagaId)
       .single();
     
+    console.log(`[Process] Saga lookup by ID result:`, { 
+      found: !!sagaById, 
+      error: sagaError?.message,
+      sagaId: sagaById?.id,
+      status: sagaById?.status 
+    });
+    
     if (sagaById && !sagaError) {
       existingSaga = sagaById;
+      console.log(`[Process] ✅ Found saga by ID: ${sagaById.id}, status: ${sagaById.status}`);
     } else {
-      console.warn(`[Process] Saga ${sagaId} not found by ID. Error:`, sagaError);
+      console.warn(`[Process] Saga ${sagaId} not found by ID. Error:`, sagaError?.message || 'No error but no data');
       
       // Try to find saga by game_id as fallback
       if (gameId) {
-        console.log(`[Process] Trying to find saga by game_id: ${gameId}`);
+        // Clean gameId (remove # prefix if present)
+        const cleanGameId = gameId.toString().replace(/^#?ID:/, '').trim();
+        console.log(`[Process] Trying to find saga by game_id: ${cleanGameId} (original: ${gameId})`);
+        
         const { data: sagaByGameId, error: gameIdError } = await supabase
           .from('sagas')
-          .select('id, status, updated_at, current_step, progress_percent')
-          .eq('game_id', gameId)
+          .select('id, status, updated_at, current_step, progress_percent, game_id')
+          .eq('game_id', cleanGameId)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
+        
+        console.log(`[Process] Saga lookup by game_id result:`, { 
+          found: !!sagaByGameId, 
+          error: gameIdError?.message,
+          sagaId: sagaByGameId?.id,
+          status: sagaByGameId?.status 
+        });
         
         if (sagaByGameId && !gameIdError) {
           console.log(`[Process] ✅ Found saga by game_id: ${sagaByGameId.id} (expected: ${sagaId})`);
           existingSaga = sagaByGameId;
           actualSagaId = sagaByGameId.id;
         } else {
-          // Saga not found by game_id either, remove job
-          console.warn(`[Process] Saga not found by game_id either. Removing job.`);
-          try {
-            await job.remove();
-          } catch (e) {
-            // Ignore errors
-          }
+          // Saga not found by game_id either, but don't remove job - it might be processing
+          console.warn(`[Process] Saga not found by game_id either. Error: ${gameIdError?.message || 'No saga found'}`);
+          // Don't remove job - it might be in progress
           return NextResponse.json({ 
             message: 'Saga not found in database',
-            error: sagaError?.message || gameIdError?.message
+            error: sagaError?.message || gameIdError?.message,
+            sagaId,
+            gameId: cleanGameId
           }, { status: 200 });
         }
       } else {
-        // No gameId to search by, remove job
-        try {
-          await job.remove();
-        } catch (e) {
-          // Ignore errors
-        }
+        // No gameId to search by
+        console.warn(`[Process] No gameId provided, cannot search by game_id`);
         return NextResponse.json({ 
-          message: 'Saga not found in database',
+          message: 'Saga not found in database and no gameId provided',
           error: sagaError?.message 
         }, { status: 200 });
       }
@@ -120,6 +134,8 @@ export async function POST(req: NextRequest) {
       const now = Date.now();
       const secondsSinceUpdate = (now - lastUpdate) / 1000;
       
+      console.log(`[Process] Saga ${sagaId} status: ${existingSaga.status}, last update: ${Math.floor(secondsSinceUpdate)}s ago`);
+      
       // If updated recently (within 60 seconds), don't start a new process
       if (secondsSinceUpdate < 60) {
         console.log(`[Process] Saga ${sagaId} is already being processed (updated ${Math.floor(secondsSinceUpdate)}s ago), skipping...`);
@@ -129,6 +145,9 @@ export async function POST(req: NextRequest) {
           progress: existingSaga.progress_percent || 0,
           lastUpdate: secondsSinceUpdate
         });
+      } else {
+        // Saga hasn't been updated in 60+ seconds, it might be stuck - continue processing
+        console.log(`[Process] Saga ${sagaId} hasn't been updated in ${Math.floor(secondsSinceUpdate)}s, continuing processing...`);
       }
     }
     
@@ -278,15 +297,49 @@ async function processJobDirectly(
       completed_at: new Date().toISOString()
     };
     
-    const { error: updateError } = await supabase
+    console.log(`[Process] 💾 Saving saga ${sagaId} to database...`);
+    console.log(`[Process] Update data:`, {
+      status: updateData.status,
+      total_pages: updateData.total_pages,
+      total_panels: updateData.total_panels,
+      hasPages: !!updateData.pages,
+      pagesLength: Array.isArray(updateData.pages) ? updateData.pages.length : 0
+    });
+    
+    const { data: updatedSaga, error: updateError } = await supabase
       .from('sagas')
       .update(updateData)
       .eq('id', sagaId)
-      .select()
+      .select('id, status, total_pages, total_panels, pages')
       .single();
     
     if (updateError) {
+      console.error(`[Process] ❌ Database update failed:`, updateError);
       throw new Error(`Database update failed: ${updateError.message}`);
+    }
+    
+    if (!updatedSaga) {
+      console.error(`[Process] ❌ Saga not found after update`);
+      throw new Error('Saga not found after update');
+    }
+    
+    console.log(`[Process] ✅ Saga ${sagaId} saved successfully:`, {
+      id: updatedSaga.id,
+      status: updatedSaga.status,
+      total_pages: updatedSaga.total_pages,
+      hasPages: !!updatedSaga.pages,
+      pagesLength: Array.isArray(updatedSaga.pages) ? updatedSaga.pages.length : 0
+    });
+    
+    // Verify status was updated correctly
+    if (updatedSaga.status !== 'completed') {
+      console.error(`[Process] ⚠️  WARNING: Saga status is ${updatedSaga.status}, expected 'completed'`);
+      // Force update status
+      await supabase
+        .from('sagas')
+        .update({ status: 'completed' })
+        .eq('id', sagaId);
+      console.log(`[Process] ✅ Force-updated status to 'completed'`);
     }
     
     // Final progress update
