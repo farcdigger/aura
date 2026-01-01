@@ -255,7 +255,7 @@ IMPORTANT: Each panel MUST have a speechBubble! Characters should speak or have 
       const pageNumber = Math.floor(i / panelsPerPage) + 1;
       
       // Her sayfa için detaylı açıklama oluştur (4 panelin özeti)
-      const pageDescription = `Page ${pageNumber}: ${pagePanels.map((p, idx) => {
+      const pageDescription = `Page ${pageNumber}: ${pagePanels.map((p: StoryPanel, idx: number) => {
         const panelNum = (pageNumber - 1) * 4 + idx + 1;
         // Speech bubble'dan veya scene type'dan açıklama çıkar
         let desc = '';
