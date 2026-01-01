@@ -1,17 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useWalletClient } from 'wagmi';
 import { wrapFetchWithPayment } from 'x402-fetch';
+import Link from 'next/link';
+
+interface SagaListItem {
+  id: string;
+  game_id: string;
+  status: string;
+  story_text?: string;
+  total_pages?: number;
+  created_at: string;
+  completed_at?: string;
+}
 
 export default function SagaPage() {
   const [gameId, setGameId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sagaHistory, setSagaHistory] = useState<SagaListItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+
+  // Fetch saga history when wallet is connected
+  useEffect(() => {
+    if (isConnected && address) {
+      fetchSagaHistory();
+    }
+  }, [isConnected, address]);
+
+  const fetchSagaHistory = async () => {
+    if (!address) return;
+    
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/saga/list?wallet=${address.toLowerCase()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSagaHistory(data.sagas || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch saga history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,6 +247,98 @@ export default function SagaPage() {
         >
           <p className="italic">Your saga will be generated using AI-powered story and image generation</p>
         </div>
+
+        {/* Saga History Section */}
+        {isConnected && address && (
+          <div className="mt-16 bg-white border-4 border-black p-8 md:p-10 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transform rotate-[-0.2deg]">
+            <h2 
+              className="text-3xl md:text-4xl font-bold text-black mb-6 text-center uppercase tracking-wide"
+              style={{ 
+                fontFamily: 'Georgia, serif',
+                textShadow: '2px 2px 0px rgba(0,0,0,0.2), 1px 1px 2px rgba(0,0,0,0.3)'
+              }}
+            >
+              Your Saga History
+            </h2>
+
+            {loadingHistory ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Loading your sagas...</p>
+              </div>
+            ) : sagaHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <p 
+                  className="text-gray-600 italic"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  No sagas yet. Generate your first saga above!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sagaHistory.map((saga) => (
+                  <Link
+                    key={saga.id}
+                    href={`/saga/${saga.id}`}
+                    className="block bg-white border-4 border-black p-6 hover:bg-gray-50 transition-all transform hover:scale-[1.01]"
+                    style={{
+                      boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+                      fontFamily: 'Georgia, serif'
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span 
+                            className="font-bold text-lg text-black"
+                            style={{ textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}
+                          >
+                            Game ID: {saga.game_id}
+                          </span>
+                          <span 
+                            className={`px-3 py-1 text-xs font-bold border-2 border-black ${
+                              saga.status === 'completed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : saga.status === 'failed'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                            style={{ boxShadow: '2px 2px 0px rgba(0,0,0,1)' }}
+                          >
+                            {saga.status.toUpperCase()}
+                          </span>
+                        </div>
+                        {saga.story_text && (
+                          <p 
+                            className="text-gray-700 text-sm mb-2 italic"
+                            style={{ textShadow: '1px 1px 0px rgba(255,255,255,0.8)' }}
+                          >
+                            {saga.story_text}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-gray-600">
+                          {saga.total_pages && (
+                            <span>{saga.total_pages} pages</span>
+                          )}
+                          <span>
+                            {new Date(saga.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <span className="text-black font-bold text-xl">→</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
