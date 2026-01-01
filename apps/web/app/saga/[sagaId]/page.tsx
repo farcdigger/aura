@@ -15,10 +15,12 @@ interface ComicPage {
   }>;
 }
 
+type SagaStatus = 'pending' | 'generating_story' | 'generating_images' | 'rendering' | 'completed' | 'failed';
+
 interface Saga {
   id: string;
   game_id: string;
-  status: string;
+  status: SagaStatus;
   story_text?: string;
   pages?: ComicPage[];
   total_pages?: number;
