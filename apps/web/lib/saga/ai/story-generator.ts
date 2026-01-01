@@ -66,19 +66,19 @@ EXAMPLE PANEL:
   // Equipment names helper
   const { getItemName } = await import('../blockchain/loot-items');
   
-  const getEquipmentName = (item: { id: number; xp: number } | null) => {
+  const getEquipmentName = (item: { id: number; name?: string; type?: string } | null) => {
     return item ? getItemName(item.id) : null;
   };
   
   const equipmentList = [
-    adventurer.equipment.weapon ? `Weapon: ${getEquipmentName(adventurer.equipment.weapon)} (XP: ${adventurer.equipment.weapon.xp})` : null,
-    adventurer.equipment.chest ? `Chest: ${getEquipmentName(adventurer.equipment.chest)} (XP: ${adventurer.equipment.chest.xp})` : null,
-    adventurer.equipment.head ? `Head: ${getEquipmentName(adventurer.equipment.head)} (XP: ${adventurer.equipment.head.xp})` : null,
-    adventurer.equipment.waist ? `Waist: ${getEquipmentName(adventurer.equipment.waist)} (XP: ${adventurer.equipment.waist.xp})` : null,
-    adventurer.equipment.foot ? `Foot: ${getEquipmentName(adventurer.equipment.foot)} (XP: ${adventurer.equipment.foot.xp})` : null,
-    adventurer.equipment.hand ? `Hand: ${getEquipmentName(adventurer.equipment.hand)} (XP: ${adventurer.equipment.hand.xp})` : null,
-    adventurer.equipment.neck ? `Neck: ${getEquipmentName(adventurer.equipment.neck)} (XP: ${adventurer.equipment.neck.xp})` : null,
-    adventurer.equipment.ring ? `Ring: ${getEquipmentName(adventurer.equipment.ring)} (XP: ${adventurer.equipment.ring.xp})` : null,
+    adventurer.equipment.weapon ? `Weapon: ${getEquipmentName(adventurer.equipment.weapon)}` : null,
+    adventurer.equipment.chest ? `Chest: ${getEquipmentName(adventurer.equipment.chest)}` : null,
+    adventurer.equipment.head ? `Head: ${getEquipmentName(adventurer.equipment.head)}` : null,
+    adventurer.equipment.waist ? `Waist: ${getEquipmentName(adventurer.equipment.waist)}` : null,
+    adventurer.equipment.foot ? `Foot: ${getEquipmentName(adventurer.equipment.foot)}` : null,
+    adventurer.equipment.hand ? `Hand: ${getEquipmentName(adventurer.equipment.hand)}` : null,
+    adventurer.equipment.neck ? `Neck: ${getEquipmentName(adventurer.equipment.neck)}` : null,
+    adventurer.equipment.ring ? `Ring: ${getEquipmentName(adventurer.equipment.ring)}` : null,
   ].filter(Boolean).join(', ');
   
   // Equipment names for prompt (without XP)
