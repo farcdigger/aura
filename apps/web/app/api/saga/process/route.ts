@@ -188,16 +188,21 @@ export async function POST(req: NextRequest) {
       // Start processing but don't wait for completion (to avoid timeout)
       // Instead, process will save each page incrementally
       processJobDirectly(job, sagaId, gameId, userWallet, supabase, fetchGameData, extractScenes, createComicPages, generateComicPageImages)
-        .catch(err => {
+        .catch(async (err) => {
           console.error(`[Process] Error processing job ${job.id}:`, err);
           // Mark saga as failed if error occurs
-          supabase
-            .from('sagas')
-            .update({ status: 'failed', completed_at: new Date().toISOString() })
-            .eq('id', sagaId)
-            .catch((updateErr: any) => {
-              console.error(`[Process] Failed to mark saga as failed:`, updateErr);
-            });
+          try {
+            const { error: updateError } = await supabase
+              .from('sagas')
+              .update({ status: 'failed', completed_at: new Date().toISOString() })
+              .eq('id', sagaId);
+            
+            if (updateError) {
+              console.error(`[Process] Failed to mark saga as failed:`, updateError);
+            }
+          } catch (updateErr: any) {
+            console.error(`[Process] Error updating saga status:`, updateErr);
+          }
         });
       
       // Return immediately - processing continues in background
