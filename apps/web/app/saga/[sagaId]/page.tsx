@@ -204,7 +204,7 @@ export default function SagaViewerPage() {
           )}
           
           {/* Warning if stuck */}
-          {progress >= 100 && saga.status !== 'completed' && (
+          {progress >= 100 && (
             <p className="text-orange-600 text-xs mt-4 italic">Processing may be delayed. Please wait...</p>
           )}
         </div>
