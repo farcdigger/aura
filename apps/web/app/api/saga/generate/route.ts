@@ -109,8 +109,37 @@ export async function POST(req: NextRequest) {
 
     console.log('[Saga Generate] ✅ Game saved to database');
 
-    // Allow multiple sagas for the same game ID - users can generate different versions
-    console.log('[Saga Generate] ✅ Creating new saga (multiple sagas per game allowed)...');
+    // Check if there's already a pending/generating saga for this game_id
+    // If yes, return existing saga instead of creating a new one (prevent duplicate charges)
+    const { data: existingSagas, error: checkError } = await supabase
+      .from('sagas')
+      .select('id, status, progress_percent, created_at')
+      .eq('game_id', gameId)
+      .in('status', ['pending', 'generating_story', 'generating_images', 'rendering'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!checkError && existingSagas && existingSagas.length > 0) {
+      const existingSaga = existingSagas[0];
+      const ageSeconds = (Date.now() - new Date(existingSaga.created_at).getTime()) / 1000;
+      
+      // If saga is less than 5 minutes old and still processing, return it
+      if (ageSeconds < 300) {
+        console.log(`[Saga Generate] ⚠️  Found existing saga ${existingSaga.id} for game ${gameId} (${Math.floor(ageSeconds)}s old, status: ${existingSaga.status})`);
+        return NextResponse.json({
+          sagaId: existingSaga.id,
+          status: 'existing',
+          message: 'Saga already exists for this game',
+          existingStatus: existingSaga.status,
+          progress: existingSaga.progress_percent || 0
+        });
+      } else {
+        console.log(`[Saga Generate] ℹ️  Existing saga is ${Math.floor(ageSeconds)}s old, creating new one...`);
+      }
+    }
+
+    // Create new saga
+    console.log('[Saga Generate] ✅ Creating new saga...');
 
     // Yeni saga kaydı oluştur (UUID format - Supabase schema'ya uygun)
     const sagaId = randomUUID();
@@ -135,41 +164,10 @@ export async function POST(req: NextRequest) {
 
     console.log('[Saga Generate] ✅ Saga created:', { sagaId, gameId, userWallet });
 
-    // Worker'ı önce başlat (job eklemeden önce - önemli!)
-    // Not: Production'da worker ayrı process'te çalışmalı
-    console.log('[Saga Generate] 🔧 Initializing worker...');
-    try {
-      const { getOrCreateWorker } = await import('@/lib/saga/queue/saga-queue');
-      const worker = getOrCreateWorker();
-      
-      // Worker'ın ready olmasını bekle (max 3 saniye)
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.warn('[Saga Generate] ⚠️ Worker ready timeout, continuing anyway...');
-          resolve(); // Timeout'ta bile devam et (Worker zaten başlatıldı)
-        }, 3000);
-        
-        worker.once('ready', () => {
-          clearTimeout(timeout);
-          console.log('[Saga Generate] ✅ Worker ready');
-          resolve();
-        });
-        
-        // Worker zaten ready ise hemen resolve et
-        // (Worker'ın ready event'i zaten tetiklenmiş olabilir)
-        setTimeout(() => {
-          if (worker.isRunning && worker.isRunning()) {
-            clearTimeout(timeout);
-            console.log('[Saga Generate] ✅ Worker is already running');
-            resolve();
-          }
-        }, 100);
-      });
-    } catch (error: any) {
-      console.error('[Saga Generate] ❌ Worker initialization error:', error);
-      // Worker hatası job'u durdurmamalı, sadece log'la
-      console.warn('[Saga Generate] ⚠️ Continuing without waiting for worker ready...');
-    }
+    // NOTE: Worker pattern doesn't work in Vercel serverless
+    // Workers require a continuously running process, but Vercel instances are ephemeral
+    // Instead, we use /api/saga/process endpoint which is triggered by frontend polling
+    console.log('[Saga Generate] ℹ️  Skipping worker initialization (Vercel serverless - using /api/saga/process instead)');
 
     // Queue'ya ekle
     console.log('[Saga Generate] 📤 Adding job to queue...');

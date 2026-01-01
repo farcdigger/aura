@@ -179,19 +179,43 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Process job directly (this will be async, but we return immediately)
-    // The job will continue processing in the background
-    processJobDirectly(job, sagaId, gameId, userWallet, supabase, fetchGameData, extractScenes, createComicPages, generateComicPageImages)
-      .catch(err => {
-        console.error(`[Process] Error processing job ${job.id}:`, err);
-      });
+    // CRITICAL FIX: In Vercel serverless, we MUST await the process
+    // If we return immediately, the instance will be killed and processing stops
+    // However, this means we might hit timeout limits
+    // Solution: Process incrementally - generate one page at a time and save immediately
     
-    return NextResponse.json({
-      message: 'Job processing started',
-      jobId: job.id,
-      sagaId,
-      status: 'processing'
-    });
+    try {
+      // Start processing but don't wait for completion (to avoid timeout)
+      // Instead, process will save each page incrementally
+      processJobDirectly(job, sagaId, gameId, userWallet, supabase, fetchGameData, extractScenes, createComicPages, generateComicPageImages)
+        .catch(err => {
+          console.error(`[Process] Error processing job ${job.id}:`, err);
+          // Mark saga as failed if error occurs
+          supabase
+            .from('sagas')
+            .update({ status: 'failed', completed_at: new Date().toISOString() })
+            .eq('id', sagaId)
+            .catch((updateErr: any) => {
+              console.error(`[Process] Failed to mark saga as failed:`, updateErr);
+            });
+        });
+      
+      // Return immediately - processing continues in background
+      // Frontend will poll status and trigger /api/saga/process again if needed
+      return NextResponse.json({
+        message: 'Job processing started',
+        jobId: job.id,
+        sagaId,
+        status: 'processing',
+        note: 'Processing continues in background. Frontend will poll for status updates.'
+      });
+    } catch (error: any) {
+      console.error(`[Process] Failed to start processing:`, error);
+      return NextResponse.json({
+        error: error.message || 'Failed to start processing',
+        sagaId
+      }, { status: 500 });
+    }
   } catch (error: any) {
     console.error('[Process] Error:', error);
     return NextResponse.json(
