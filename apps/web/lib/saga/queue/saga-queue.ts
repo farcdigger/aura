@@ -37,7 +37,7 @@ function getRedisConnection(): Redis {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
       lazyConnect: false, // Otomatik bağlan - Worker için gerekli
-      retryStrategy: (times) => {
+      retryStrategy: (times: number) => {
         // Retry strategy: İlk 3 denemede hızlı, sonra yavaşla, 10 denemeden sonra dur
         if (times > 10) {
           console.error('[Queue] Redis connection failed after 10 attempts. Please check your Redis configuration.');

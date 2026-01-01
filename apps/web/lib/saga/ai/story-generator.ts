@@ -105,7 +105,7 @@ Character Stats:
 Equipment:
 ${equipmentList || 'No equipment'}
 
-${keyMoments.length > 0 ? `Key Events:\n${keyMoments.map((m, i) => `${i + 1}. Turn ${m.turnNumber}: ${m.description}`).join('\n')}` : 'No specific events logged - create a general adventure story based on the character stats and equipment.'}
+${keyMoments.length > 0 ? `Key Events:\n${keyMoments.map((m: any, i: number) => `${i + 1}. Turn ${m.turnNumber}: ${m.description}`).join('\n')}` : 'No specific events logged - create a general adventure story based on the character stats and equipment.'}
 
 TASK: Using this SPECIFIC game data, create an epic comic book story with exactly 20 panels that reflects:
 - The character's equipment (show the specific weapons and armor in scenes)
@@ -310,7 +310,7 @@ function identifyKeyMoments(logs: GameLog[], targetCount: number): Array<{
   description: string;
   importance: number;
 }> {
-  const moments = logs.map((log, index) => {
+  const moments = logs.map((log: GameLog, index: number) => {
     let importance = 1;
     let description = '';
 
