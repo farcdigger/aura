@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount, useSigner } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import { wrapFetchWithPayment } from 'x402-fetch';
 
 export default function SagaPage() {
@@ -11,25 +11,26 @@ export default function SagaPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const { data: signer } = useSigner();
+  const { data: walletClient } = useWalletClient();
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    if (!isConnected || !address || !signer) {
+    if (!isConnected || !address || !walletClient) {
       setError('Please connect your wallet first');
       setLoading(false);
       return;
     }
 
     try {
+      // Calculate USDC amount (0.5 USDC = 500000 with 6 decimals)
+      const amountInUSDC = 500000;
+      
       // Wrap fetch with x402 payment handling
-      const fetchWithPayment = wrapFetchWithPayment({
-        signer: signer as any,
-        payerAddress: address,
-      });
+      // @ts-ignore - viem version mismatch between dependencies
+      const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, BigInt(amountInUSDC));
 
       const sagaApiUrl = '/api/saga/generate';
       
