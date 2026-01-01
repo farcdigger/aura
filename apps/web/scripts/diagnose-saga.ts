@@ -4,11 +4,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
-import { config } from 'dotenv';
-import { resolve } from 'path';
 
-// Load .env.local file
-config({ path: resolve(process.cwd(), '.env.local') });
+// Try to load .env.local file (optional, for local development)
+try {
+  const { config } = require('dotenv');
+  const { resolve } = require('path');
+  config({ path: resolve(process.cwd(), '.env.local') });
+} catch (e) {
+  // dotenv not available, use environment variables directly
+}
 
 const sagaId = process.argv[2];
 
