@@ -18,6 +18,13 @@ function getRedisConnection(): Redis {
     // Her çağrıda environment variable'ları tekrar oku (dotenv yüklendikten sonra)
     const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || 'redis://localhost:6379';
     
+    // Vercel'de localhost Redis çalışmaz - Upstash Redis gerekli
+    if (redisUrl === 'redis://localhost:6379' && process.env.VERCEL) {
+      const errorMsg = 'Redis URL not configured! Please set UPSTASH_REDIS_URL or REDIS_URL in Vercel environment variables. Localhost Redis does not work on Vercel.';
+      console.error('[Queue] ❌', errorMsg);
+      throw new Error(errorMsg);
+    }
+    
     // Debug: Environment variable'ın yüklenip yüklenmediğini kontrol et
     if (process.env.UPSTASH_REDIS_URL) {
       console.log('[Queue] ✅ UPSTASH_REDIS_URL found:', process.env.UPSTASH_REDIS_URL.substring(0, 30) + '...');

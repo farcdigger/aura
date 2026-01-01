@@ -9,6 +9,17 @@ import { randomUUID } from 'crypto';
 // For now, let's use dynamic imports to avoid build issues
 export async function POST(req: NextRequest) {
   try {
+    // Redis URL kontrolü (Vercel'de gerekli)
+    if (!process.env.UPSTASH_REDIS_URL && !process.env.REDIS_URL) {
+      console.error('[Saga Generate] ❌ Redis URL not configured!');
+      return NextResponse.json(
+        { 
+          error: 'Redis URL not configured. Please set UPSTASH_REDIS_URL or REDIS_URL in Vercel environment variables. For Vercel deployment, you need an Upstash Redis instance (localhost Redis does not work on Vercel).' 
+        },
+        { status: 500 }
+      );
+    }
+    
     // Import saga dependencies
     const { sagaQueue } = await import('@/lib/saga/queue/saga-queue');
     const { cleanupQueue } = await import('@/lib/saga/queue/queue-cleanup');
