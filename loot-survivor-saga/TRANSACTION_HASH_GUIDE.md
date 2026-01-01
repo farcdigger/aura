@@ -98,3 +98,5 @@ curl -X POST https://api.cartridge.gg/x/pg-mainnet-10/torii/graphql \
 
 
 
+
+

@@ -1670,3 +1670,5 @@ Artık elimde **tamamen doğru bir yol haritası var**. Başka bir AI'a veya dev
 
 
 
+
+

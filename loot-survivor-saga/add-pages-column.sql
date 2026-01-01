@@ -8,3 +8,5 @@ ADD COLUMN IF NOT EXISTS total_pages INTEGER; -- Total number of comic pages
 CREATE INDEX IF NOT EXISTS idx_sagas_pages ON sagas USING GIN (pages); -- GIN index for JSONB queries
 
 
+
+

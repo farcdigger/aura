@@ -120,3 +120,5 @@ Eğer GraphQL bulunamazsa, belki:
 
 
 
+
+

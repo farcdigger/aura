@@ -9,6 +9,84 @@ import { randomUUID } from 'crypto';
 // For now, let's use dynamic imports to avoid build issues
 export async function POST(req: NextRequest) {
   try {
+    // Check for x402 payment header (sent by x402-fetch after payment)
+    const paymentHeader = req.headers.get("X-PAYMENT");
+    
+    if (!paymentHeader) {
+      // No payment header - return 402 to request payment
+      console.log('[Saga Generate] 💳 Payment required - returning 402');
+      return NextResponse.json(
+        {
+          x402Version: 1,
+          accepts: [{
+            scheme: "exact" as const,
+            network: "base",
+            maxAmountRequired: "500000", // 0.5 USDC (6 decimals)
+            resource: "https://xfroranft.xyz/api/saga/payment",
+            description: "Loot Survivor Saga Generation - 0.5 USDC",
+            mimeType: "application/json",
+            payTo: "0xDA9097c5672928a16C42889cD4b07d9a766827ee",
+            maxTimeoutSeconds: 60,
+            asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            extra: {
+              name: "USD Coin",
+              version: "2"
+            }
+          }],
+        },
+        { 
+          status: 402,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Payment-Required": "true"
+          }
+        }
+      );
+    }
+
+    // Parse and verify payment
+    let paymentPayload;
+    try {
+      if (paymentHeader.startsWith('eyJ')) {
+        const decoded = Buffer.from(paymentHeader, 'base64').toString('utf-8');
+        paymentPayload = JSON.parse(decoded);
+      } else {
+        paymentPayload = JSON.parse(paymentHeader);
+      }
+      console.log('[Saga Generate] ✅ Payment payload parsed');
+    } catch (error) {
+      console.error('[Saga Generate] ❌ Invalid payment header format:', error);
+      return NextResponse.json(
+        { error: "Invalid payment header" },
+        { status: 400 }
+      );
+    }
+
+    // Verify payment by calling payment endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const paymentResponse = await fetch(`${baseUrl}/api/saga/payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-PAYMENT': paymentHeader
+      }
+    });
+
+    if (!paymentResponse.ok) {
+      console.error('[Saga Generate] ❌ Payment verification failed');
+      const errorData = await paymentResponse.json().catch(() => ({}));
+      return NextResponse.json(
+        { 
+          error: "Payment verification failed", 
+          reason: errorData.reason || 'Unknown error'
+        },
+        { status: 402 }
+      );
+    }
+
+    const paymentData = await paymentResponse.json();
+    console.log('[Saga Generate] ✅ Payment verified:', paymentData.walletAddress);
+
     // Redis URL kontrolü (Vercel'de gerekli)
     if (!process.env.UPSTASH_REDIS_URL && !process.env.REDIS_URL) {
       console.error('[Saga Generate] ❌ Redis URL not configured!');

@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
-
-// Test wallet address - only this wallet can see the saga page
-const TEST_WALLET_ADDRESS = '0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d';
+import { useAccount, useSigner } from 'wagmi';
+import { wrapFetchWithPayment } from 'x402-fetch';
 
 export default function SagaPage() {
   const [gameId, setGameId] = useState('');
@@ -13,21 +11,30 @@ export default function SagaPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { address, isConnected } = useAccount();
-
-  // Check if user is authorized (test wallet only)
-  const isAuthorized = isConnected && address?.toLowerCase() === TEST_WALLET_ADDRESS.toLowerCase();
+  const { data: signer } = useSigner();
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    if (!isConnected || !address || !signer) {
+      setError('Please connect your wallet first');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Use the saga app's API endpoint (same domain)
-      // Saga API is on the same domain, so use relative path
+      // Wrap fetch with x402 payment handling
+      const fetchWithPayment = wrapFetchWithPayment({
+        signer: signer as any,
+        payerAddress: address,
+      });
+
       const sagaApiUrl = '/api/saga/generate';
       
-      const res = await fetch(sagaApiUrl, {
+      // x402-fetch automatically handles the entire payment flow
+      const res = await fetchWithPayment(sagaApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameId })
@@ -43,33 +50,24 @@ export default function SagaPage() {
       const sagaViewerUrl = `/saga/${data.sagaId}`;
       router.push(sagaViewerUrl);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Saga generation error:', err);
+      setError(err.message || 'Failed to generate saga. Please ensure you have sufficient USDC balance (0.5 USDC required).');
     } finally {
       setLoading(false);
     }
   };
 
-  // Show unauthorized message if not test wallet
-  if (!isAuthorized) {
+  // Show connect wallet message if not connected
+  if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-50 dark:from-slate-950 dark:via-gray-950 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 p-8 rounded-lg shadow-lg max-w-md">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            Access Restricted
+            Connect Wallet
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            This page is currently in testing phase and is only available to authorized wallets.
+            Please connect your wallet to generate a saga. Saga generation costs 0.5 USDC.
           </p>
-          {!isConnected && (
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">
-              Please connect your wallet to continue.
-            </p>
-          )}
-          {isConnected && address?.toLowerCase() !== TEST_WALLET_ADDRESS.toLowerCase() && (
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">
-              Your wallet ({address?.substring(0, 10)}...) is not authorized.
-            </p>
-          )}
         </div>
       </div>
     );

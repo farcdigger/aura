@@ -1267,8 +1267,8 @@ function HomePageContent() {
                 </Link>
               )}
               
-              {/* Loot Survivor Saga - Test Phase (Only for authorized wallet) */}
-              {address && address.toLowerCase() === '0xEdf8e693b3ab4899a03aB22eDF90E36a6AC1Fd9d'.toLowerCase() && (
+              {/* Loot Survivor Saga */}
+              {address && (
                 <Link
                   href="/saga"
                   className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300/30 dark:border-gray-700/30 bg-white/30 dark:bg-black/30 backdrop-blur-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.05)]"
