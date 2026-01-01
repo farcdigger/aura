@@ -576,7 +576,7 @@ export function getOrCreateWorker(): ReturnType<typeof createSagaWorker> {
 }
 
 // Helper: Wallet address'i seed'e çevir (Character consistency için)
-function hashWalletToSeed(wallet: string): number {
+export function hashWalletToSeed(wallet: string): number {
   let hash = 0;
   for (let i = 0; i < wallet.length; i++) {
     hash = ((hash << 5) - hash) + wallet.charCodeAt(i);

@@ -9,17 +9,19 @@ export const revalidate = 0;
 
 export async function POST(req: NextRequest) {
   try {
-    // Import queue and worker
-    const { sagaQueue, getOrCreateWorker } = await import('@/lib/saga/queue/saga-queue');
+    // Import queue
+    const { sagaQueue } = await import('@/lib/saga/queue/saga-queue');
     
-    // Get waiting jobs
+    // Get waiting or active jobs
     const waitingJobs = await sagaQueue.getJobs(['waiting']);
     const activeJobs = await sagaQueue.getJobs(['active']);
     
     console.log(`[Process] Queue status: ${waitingJobs.length} waiting, ${activeJobs.length} active`);
     
-    // If no waiting jobs, return
-    if (waitingJobs.length === 0) {
+    // Process waiting jobs first, then check active jobs that might be stuck
+    const jobsToProcess = waitingJobs.length > 0 ? waitingJobs : activeJobs;
+    
+    if (jobsToProcess.length === 0) {
       return NextResponse.json({
         message: 'No jobs to process',
         waiting: waitingJobs.length,
@@ -27,28 +29,49 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    // Initialize worker (this will start processing jobs)
-    console.log('[Process] 🔧 Initializing worker...');
-    const worker = getOrCreateWorker();
+    // Get the first job
+    const job = jobsToProcess[0];
+    const { sagaId, gameId, userWallet } = job.data;
     
-    // In Vercel serverless, we need to explicitly run the worker
-    // The worker will process jobs asynchronously
-    worker.run();
+    console.log(`[Process] 🎯 Processing job ${job.id} for saga ${sagaId}`);
     
-    // Wait a bit for worker to pick up the job
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Import worker processing function directly
+    // In Vercel serverless, we process jobs directly instead of using worker pattern
+    const { supabase } = await import('@/lib/saga/database/supabase');
+    const { fetchGameData } = await import('@/lib/saga/blockchain/bibliotheca');
+    const { extractScenes, createComicPages } = await import('@/lib/saga/ai/scene-extractor');
+    const { generateComicPages: generateComicPageImages } = await import('@/lib/saga/ai/image-generator');
     
-    // Check if job was picked up (using getJobs with state filters, not job.state property)
-    const afterWaitingJobs = await sagaQueue.getJobs(['waiting']);
-    const afterActiveJobs = await sagaQueue.getJobs(['active']);
-    console.log(`[Process] After worker init: ${afterWaitingJobs.length} waiting, ${afterActiveJobs.length} active`);
+    // Check saga status
+    const { data: existingSaga } = await supabase
+      .from('sagas')
+      .select('id, status')
+      .eq('id', sagaId)
+      .single();
+    
+    if (!existingSaga) {
+      return NextResponse.json({ error: 'Saga not found' }, { status: 404 });
+    }
+    
+    if (existingSaga.status === 'completed' || existingSaga.status === 'failed') {
+      return NextResponse.json({
+        message: `Saga already ${existingSaga.status}`,
+        status: existingSaga.status
+      });
+    }
+    
+    // Process job directly (this will be async, but we return immediately)
+    // The job will continue processing in the background
+    processJobDirectly(job, sagaId, gameId, userWallet, supabase, fetchGameData, extractScenes, createComicPages, generateComicPageImages)
+      .catch(err => {
+        console.error(`[Process] Error processing job ${job.id}:`, err);
+      });
     
     return NextResponse.json({
-      message: 'Worker initialized, job processing started',
-      waiting: waitingJobs.length,
-      active: activeJobs.length,
-      afterWaiting: afterWaitingJobs.length,
-      afterActive: afterActiveJobs.length
+      message: 'Job processing started',
+      jobId: job.id,
+      sagaId,
+      status: 'processing'
     });
   } catch (error: any) {
     console.error('[Process] Error:', error);
@@ -56,6 +79,171 @@ export async function POST(req: NextRequest) {
       { error: error.message || 'Internal server error' },
       { status: 500 }
     );
+  }
+}
+
+// Direct job processing function (for Vercel serverless)
+async function processJobDirectly(
+  job: any,
+  sagaId: string,
+  gameId: string,
+  userWallet: string,
+  supabase: any,
+  fetchGameData: any,
+  extractScenes: any,
+  createComicPages: any,
+  generateComicPageImages: any
+) {
+  try {
+    console.log(`[Process] 🎯 Starting direct processing for saga ${sagaId}`);
+    
+    // Helper function to update progress
+    const updateProgress = async (step: string, progress: number) => {
+      try {
+        await job.updateProgress({ step, progress });
+        await supabase
+          .from('sagas')
+          .update({
+            progress_percent: progress,
+            current_step: step,
+            status: step === 'fetching_data' ? 'pending' : 
+                    step === 'generating_story' ? 'generating_story' :
+                    step === 'generating_images' ? 'generating_images' :
+                    step === 'saving' ? 'rendering' : 'pending'
+          } as any)
+          .eq('id', sagaId);
+      } catch (err: any) {
+        console.warn(`[Process] Error updating progress:`, err.message);
+      }
+    };
+    
+    // Step 1: Fetch game data
+    await updateProgress('fetching_data', 10);
+    const gameData = await fetchGameData(gameId);
+    console.log(`[Process] Fetched game data: ${gameData.logs.length} logs`);
+    
+    // Step 2: Extract scenes
+    await updateProgress('generating_story', 30);
+    const totalTurns = gameData.logs.length || gameData.adventurer.xp || 100;
+    const scenes = extractScenes(gameData.adventurer, gameData.logs, totalTurns);
+    console.log(`[Process] Extracted ${scenes.length} scenes`);
+    
+    // Step 3: Create comic pages
+    const comicPages = createComicPages(scenes);
+    console.log(`[Process] Created ${comicPages.length} comic pages`);
+    
+    // Step 4: Generate images
+    await updateProgress('generating_images', 50);
+    
+    // Character seed
+    const { hashWalletToSeed } = await import('@/lib/saga/queue/saga-queue');
+    const characterSeed = hashWalletToSeed(userWallet);
+    
+    const pagesForGeneration = comicPages.map((page: any) => ({
+      panels: page.scenes.map((scene: any) => ({
+        speechBubble: scene.speechBubble,
+        imagePrompt: scene.description
+      })),
+      imagePrompt: page.imagePrompt
+    }));
+    
+    const pageImages = await generateComicPageImages(
+      pagesForGeneration,
+      characterSeed,
+      async (currentIndex: number, total: number) => {
+        const imageProgress = 50 + Math.floor((currentIndex / total) * 40);
+        await updateProgress('generating_images', imageProgress);
+      }
+    );
+    
+    // Step 5: Combine pages and panels
+    const pages = comicPages.map((page: any, i: number) => ({
+      pageNumber: page.pageNumber,
+      panels: page.scenes.map((scene: any) => ({
+        panelNumber: scene.panelNumber,
+        speechBubble: scene.speechBubble,
+        narration: scene.speechBubble,
+        imagePrompt: scene.description,
+        sceneType: scene.sceneType,
+        mood: 'dramatic' as const
+      })),
+      pageImageUrl: pageImages[i].url,
+      pageDescription: page.pageDescription
+    }));
+    
+    const panels = scenes.map((scene: any, i: number) => {
+      const pageIndex = Math.floor(i / 4);
+      return {
+        panelNumber: scene.panelNumber,
+        speechBubble: scene.speechBubble,
+        narration: scene.speechBubble,
+        imagePrompt: scene.description,
+        imageUrl: pageImages[pageIndex]?.url || '',
+        sceneType: scene.sceneType,
+        mood: 'dramatic' as const
+      };
+    });
+    
+    const storyTitle = gameData.adventurer.health === 0 
+      ? `The Fall of ${gameData.adventurer.name || 'the Hero'}`
+      : `The Journey of ${gameData.adventurer.name || 'the Hero'}`;
+    
+    // Step 6: Save to database
+    await updateProgress('saving', 95);
+    
+    const generationTime = Math.floor((Date.now() - job.timestamp) / 1000);
+    const costUsd = 0.09;
+    
+    const updateData = {
+      status: 'completed' as const,
+      story_text: storyTitle,
+      panels: panels,
+      pages: pages,
+      total_panels: panels.length,
+      total_pages: pages.length,
+      generation_time_seconds: generationTime,
+      cost_usd: costUsd,
+      completed_at: new Date().toISOString()
+    };
+    
+    const { error: updateError } = await supabase
+      .from('sagas')
+      .update(updateData)
+      .eq('id', sagaId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      throw new Error(`Database update failed: ${updateError.message}`);
+    }
+    
+    // Final progress update
+    await supabase
+      .from('sagas')
+      .update({ progress_percent: 100 })
+      .eq('id', sagaId);
+    
+    console.log(`[Process] ✅ Saga ${sagaId} completed successfully`);
+    
+    // Mark job as completed
+    await job.moveToCompleted(updateData, 'completed');
+    
+  } catch (error: any) {
+    console.error(`[Process] ❌ Error processing saga ${sagaId}:`, error);
+    
+    // Mark saga as failed
+    await supabase
+      .from('sagas')
+      .update({
+        status: 'failed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', sagaId);
+    
+    // Mark job as failed
+    await job.moveToFailed(error, 'failed');
+    
+    throw error;
   }
 }
 
