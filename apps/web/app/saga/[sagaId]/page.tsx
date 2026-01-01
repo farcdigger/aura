@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface ComicPage {
   pageNumber: number;
@@ -198,7 +199,21 @@ export default function SagaViewerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
+        <Link
+          href="/"
+          className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 px-4 py-2 bg-white border-4 border-black hover:bg-gray-50 transition-all"
+          style={{
+            fontFamily: 'Georgia, serif',
+            boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+            textShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold text-black">Back to Home</span>
+        </Link>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-black text-lg">Loading saga...</p>
@@ -209,7 +224,21 @@ export default function SagaViewerPage() {
 
   if (error || !saga) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
+        <Link
+          href="/"
+          className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 px-4 py-2 bg-white border-4 border-black hover:bg-gray-50 transition-all"
+          style={{
+            fontFamily: 'Georgia, serif',
+            boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+            textShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold text-black">Back to Home</span>
+        </Link>
         <div className="text-center bg-white border-2 border-black p-8 shadow-lg">
           <p className="text-black text-xl mb-4 font-bold">Error</p>
           <p className="text-gray-700">{error || 'Saga not found'}</p>
@@ -230,7 +259,21 @@ export default function SagaViewerPage() {
     const currentMessage = stepMessages[saga.current_step || 'pending'] || 'Generating saga...';
 
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
+        <Link
+          href="/"
+          className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 px-4 py-2 bg-white border-4 border-black hover:bg-gray-50 transition-all"
+          style={{
+            fontFamily: 'Georgia, serif',
+            boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+            textShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold text-black">Back to Home</span>
+        </Link>
         <div className="text-center max-w-md mx-auto px-6">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black mx-auto mb-6"></div>
           <h2 className="text-2xl font-bold text-black mb-4">{currentMessage}</h2>
@@ -261,7 +304,21 @@ export default function SagaViewerPage() {
   // If completed but no pages yet, show loading
   if (saga.status === 'completed' && (!saga.pages || saga.pages.length === 0)) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
+        <Link
+          href="/"
+          className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 px-4 py-2 bg-white border-4 border-black hover:bg-gray-50 transition-all"
+          style={{
+            fontFamily: 'Georgia, serif',
+            boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+            textShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-bold text-black">Back to Home</span>
+        </Link>
         <div className="text-center max-w-md mx-auto px-6">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black mx-auto mb-6"></div>
           <h2 className="text-2xl font-bold text-black mb-4">Loading saga...</h2>
@@ -273,6 +330,22 @@ export default function SagaViewerPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Back to Home Button */}
+      <Link
+        href="/"
+        className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 px-4 py-2 bg-white border-4 border-black hover:bg-gray-50 transition-all"
+        style={{
+          fontFamily: 'Georgia, serif',
+          boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+          textShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+        }}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="font-bold text-black">Back to Home</span>
+      </Link>
+
       {/* Header */}
       <div className="bg-black text-white p-6 border-b-4 border-gray-800">
         <div className="max-w-5xl mx-auto">
