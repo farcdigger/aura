@@ -252,17 +252,36 @@ async function processJobDirectly(
     console.log(`[Process] Created ${comicPages.length} comic pages`);
     
     // Step 4: Check existing pages in database (incremental update)
-    const { data: existingSagaData } = await supabase
+    const { data: existingSagaData, error: existingSagaError } = await supabase
       .from('sagas')
       .select('pages, story_text')
       .eq('id', sagaId)
       .single();
     
-    const existingPages: any[] = existingSagaData?.pages || [];
-    const existingPageNumbers = new Set(existingPages.map((p: any) => p.pageNumber));
+    if (existingSagaError) {
+      console.error(`[Process] ⚠️  Error fetching existing saga data:`, existingSagaError);
+    }
+    
+    // Handle null/undefined pages properly
+    let existingPages: any[] = [];
+    if (existingSagaData?.pages) {
+      if (Array.isArray(existingSagaData.pages)) {
+        existingPages = existingSagaData.pages;
+      } else {
+        console.warn(`[Process] ⚠️  Pages is not an array:`, typeof existingSagaData.pages);
+      }
+    }
+    
+    const existingPageNumbers = new Set(existingPages.map((p: any) => p?.pageNumber).filter((n: any) => n != null));
     
     console.log(`[Process] 📊 Existing pages in DB: ${existingPages.length}/${comicPages.length}`);
     console.log(`[Process] 📊 Existing page numbers:`, Array.from(existingPageNumbers));
+    console.log(`[Process] 📊 Existing saga data:`, { 
+      hasPages: !!existingSagaData?.pages, 
+      pagesType: typeof existingSagaData?.pages,
+      pagesIsArray: Array.isArray(existingSagaData?.pages),
+      pagesLength: Array.isArray(existingSagaData?.pages) ? existingSagaData.pages.length : 'N/A'
+    });
     
     // Step 5: Generate images incrementally (only missing pages)
     await updateProgress('generating_images', 50);
@@ -356,11 +375,15 @@ async function processJobDirectly(
           
           // Generate single page image
           const { generateComicPage } = await import('@/lib/saga/ai/image-generator');
+          console.log(`[Process] 🎨 Calling generateComicPage for page ${page.pageNumber}...`);
+          
           const imageResult = await generateComicPage(
             pageForGeneration.panels,
             characterSeed ? characterSeed + pageIndex : undefined,
             pageForGeneration.imagePrompt
           );
+          
+          console.log(`[Process] ✅ Image generated for page ${page.pageNumber}, URL: ${imageResult.url?.substring(0, 50)}...`);
           
           // Create page data
           const pageData = {
@@ -377,10 +400,27 @@ async function processJobDirectly(
             pageDescription: page.pageDescription
           };
           
-          // Save immediately to database
-          await savePageToDatabase(pageData, pageIndex + 1, comicPages.length);
-          
-          console.log(`[Process] ✅ Page ${page.pageNumber} generated and saved successfully`);
+          // Save immediately to database (with retry)
+          console.log(`[Process] 💾 Saving page ${page.pageNumber} to database...`);
+          let saveAttempts = 0;
+          const maxSaveAttempts = 3;
+          while (saveAttempts < maxSaveAttempts) {
+            try {
+              await savePageToDatabase(pageData, pageIndex + 1, comicPages.length);
+              console.log(`[Process] ✅ Page ${page.pageNumber} generated and saved successfully`);
+              break; // Success, exit retry loop
+            } catch (saveErr: any) {
+              saveAttempts++;
+              console.error(`[Process] ❌ Failed to save page ${page.pageNumber} (attempt ${saveAttempts}/${maxSaveAttempts}):`, saveErr.message);
+              if (saveAttempts >= maxSaveAttempts) {
+                // Last attempt failed, but don't throw - continue with next page
+                console.error(`[Process] ⚠️  Giving up on saving page ${page.pageNumber}, continuing with next page...`);
+              } else {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 1000 * saveAttempts));
+              }
+            }
+          }
           
         } catch (error: any) {
           console.error(`[Process] ❌ Error generating page ${comicPages[pageIndex].pageNumber}:`, error);

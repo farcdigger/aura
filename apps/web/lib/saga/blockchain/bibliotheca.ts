@@ -49,7 +49,7 @@ export async function fetchGameData(gameId: string): Promise<{
       variables: { id: gameId }
     }, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000
+      timeout: 30000 // Increased to 30 seconds for slow API responses
     });
 
     if (response.data.errors) {
