@@ -33,6 +33,17 @@ export default function SagaPage() {
     }
   }, [isConnected, address]);
 
+  // Also fetch when page becomes visible (e.g., returning from saga viewer)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isConnected && address) {
+        fetchSagaHistory();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isConnected, address]);
+
   const fetchSagaHistory = async () => {
     if (!address) return;
     
