@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+// Increase timeout for Pro plan (max 300s for Pro, 60s for Hobby)
+export const maxDuration = 60; // 60 seconds - adjust based on your Vercel plan
 
 export async function POST(req: NextRequest) {
   try {
@@ -249,53 +251,183 @@ async function processJobDirectly(
     const comicPages = createComicPages(scenes);
     console.log(`[Process] Created ${comicPages.length} comic pages`);
     
-    // Step 4: Generate images
+    // Step 4: Check existing pages in database (incremental update)
+    const { data: existingSagaData } = await supabase
+      .from('sagas')
+      .select('pages, story_text')
+      .eq('id', sagaId)
+      .single();
+    
+    const existingPages: any[] = existingSagaData?.pages || [];
+    const existingPageNumbers = new Set(existingPages.map((p: any) => p.pageNumber));
+    
+    console.log(`[Process] 📊 Existing pages in DB: ${existingPages.length}/${comicPages.length}`);
+    console.log(`[Process] 📊 Existing page numbers:`, Array.from(existingPageNumbers));
+    
+    // Step 5: Generate images incrementally (only missing pages)
     await updateProgress('generating_images', 50);
     
     // Character seed
     const { hashWalletToSeed } = await import('@/lib/saga/queue/saga-queue');
     const characterSeed = hashWalletToSeed(userWallet);
     
-    const pagesForGeneration = comicPages.map((page: any) => ({
-      panels: page.scenes.map((scene: any) => ({
-        speechBubble: scene.speechBubble,
-        imagePrompt: scene.description
-      })),
-      imagePrompt: page.imagePrompt
-    }));
-    
-    const pageImages = await generateComicPageImages(
-      pagesForGeneration,
-      characterSeed,
-      async (currentIndex: number, total: number) => {
-        const imageProgress = 50 + Math.floor((currentIndex / total) * 40);
-        await updateProgress('generating_images', imageProgress);
+    // Helper function to save a single page to database
+    const savePageToDatabase = async (pageData: any, pageIndex: number, totalPages: number) => {
+      try {
+        // Get current pages from database
+        const { data: currentSaga } = await supabase
+          .from('sagas')
+          .select('pages')
+          .eq('id', sagaId)
+          .single();
+        
+        const currentPages: any[] = currentSaga?.pages || [];
+        
+        // Update or add this page
+        const pageExists = currentPages.findIndex((p: any) => p.pageNumber === pageData.pageNumber);
+        if (pageExists >= 0) {
+          currentPages[pageExists] = pageData;
+        } else {
+          currentPages.push(pageData);
+        }
+        
+        // Sort by page number
+        currentPages.sort((a: any, b: any) => a.pageNumber - b.pageNumber);
+        
+        // Update progress
+        const progress = 50 + Math.floor((pageIndex / totalPages) * 40);
+        
+        // Save to database
+        const { error: saveError } = await supabase
+          .from('sagas')
+          .update({
+            pages: currentPages,
+            progress_percent: progress,
+            current_step: 'generating_images',
+            status: 'generating_images'
+          })
+          .eq('id', sagaId);
+        
+        if (saveError) {
+          console.error(`[Process] ❌ Error saving page ${pageData.pageNumber}:`, saveError);
+          throw saveError;
+        }
+        
+        console.log(`[Process] ✅ Saved page ${pageData.pageNumber}/${totalPages} to database (progress: ${progress}%)`);
+      } catch (err: any) {
+        console.error(`[Process] ❌ Failed to save page ${pageData.pageNumber}:`, err.message);
+        throw err;
       }
-    );
+    };
     
-    // Step 5: Combine pages and panels
-    const pages = comicPages.map((page: any, i: number) => ({
-      pageNumber: page.pageNumber,
-      panels: page.scenes.map((scene: any) => ({
-        panelNumber: scene.panelNumber,
-        speechBubble: scene.speechBubble,
-        narration: scene.speechBubble,
-        imagePrompt: scene.description,
-        sceneType: scene.sceneType,
-        mood: 'dramatic' as const
-      })),
-      pageImageUrl: pageImages[i].url,
-      pageDescription: page.pageDescription
-    }));
+    // Generate images for missing pages only
+    const pagesToGenerate: number[] = [];
+    for (let i = 0; i < comicPages.length; i++) {
+      if (!existingPageNumbers.has(comicPages[i].pageNumber)) {
+        pagesToGenerate.push(i);
+      }
+    }
     
+    console.log(`[Process] 🎨 Generating ${pagesToGenerate.length} missing pages out of ${comicPages.length} total`);
+    
+    if (pagesToGenerate.length === 0) {
+      console.log(`[Process] ✅ All pages already generated, skipping image generation`);
+    } else {
+      // Generate images one by one and save immediately
+      for (let idx = 0; idx < pagesToGenerate.length; idx++) {
+        const pageIndex = pagesToGenerate[idx];
+        try {
+          const page = comicPages[pageIndex];
+          const pageForGeneration = {
+            panels: page.scenes.map((scene: any) => ({
+              speechBubble: scene.speechBubble,
+              imagePrompt: scene.description
+            })),
+            imagePrompt: page.imagePrompt
+          };
+          
+          console.log(`[Process] 🎨 Generating page ${page.pageNumber} (${idx + 1}/${pagesToGenerate.length} missing pages)...`);
+          
+          // Rate limit protection: wait 12s between requests (except first)
+          if (idx > 0) {
+            console.log(`[Process] ⏳ Waiting 12s before generating next page (rate limit protection)...`);
+            await new Promise(resolve => setTimeout(resolve, 12000));
+          }
+          
+          // Generate single page image
+          const { generateComicPage } = await import('@/lib/saga/ai/image-generator');
+          const imageResult = await generateComicPage(
+            pageForGeneration.panels,
+            characterSeed ? characterSeed + pageIndex : undefined,
+            pageForGeneration.imagePrompt
+          );
+          
+          // Create page data
+          const pageData = {
+            pageNumber: page.pageNumber,
+            panels: page.scenes.map((scene: any) => ({
+              panelNumber: scene.panelNumber,
+              speechBubble: scene.speechBubble,
+              narration: scene.speechBubble,
+              imagePrompt: scene.description,
+              sceneType: scene.sceneType,
+              mood: 'dramatic' as const
+            })),
+            pageImageUrl: imageResult.url,
+            pageDescription: page.pageDescription
+          };
+          
+          // Save immediately to database
+          await savePageToDatabase(pageData, pageIndex + 1, comicPages.length);
+          
+          console.log(`[Process] ✅ Page ${page.pageNumber} generated and saved successfully`);
+          
+        } catch (error: any) {
+          console.error(`[Process] ❌ Error generating page ${comicPages[pageIndex].pageNumber}:`, error);
+          
+          // Check if it's a rate limit error
+          const isRateLimit = error.status === 429 || 
+                              error.message?.includes('429') || 
+                              error.message?.includes('rate limit') ||
+                              error.message?.includes('Too Many Requests');
+          
+          if (isRateLimit) {
+            console.warn(`[Process] ⚠️  Rate limit hit, stopping generation. Will resume on next trigger.`);
+            // Don't throw - let the process end gracefully so it can be retried
+            return; // Exit early, pages saved so far will remain
+          } else {
+            // For other errors, throw to mark as failed
+            throw error;
+          }
+        }
+      }
+    }
+    
+    // Step 6: Finalize - combine all pages and panels
+    const { data: finalSagaData } = await supabase
+      .from('sagas')
+      .select('pages')
+      .eq('id', sagaId)
+      .single();
+    
+    const finalPages: any[] = finalSagaData?.pages || [];
+    
+    if (finalPages.length !== comicPages.length) {
+      console.warn(`[Process] ⚠️  Not all pages generated yet: ${finalPages.length}/${comicPages.length}`);
+      console.log(`[Process] ℹ️  Process will continue on next trigger`);
+      return; // Exit - will resume on next trigger
+    }
+    
+    // All pages generated, create panels and finalize
     const panels = scenes.map((scene: any, i: number) => {
       const pageIndex = Math.floor(i / 4);
+      const page = finalPages[pageIndex];
       return {
         panelNumber: scene.panelNumber,
         speechBubble: scene.speechBubble,
         narration: scene.speechBubble,
         imagePrompt: scene.description,
-        imageUrl: pageImages[pageIndex]?.url || '',
+        imageUrl: page?.pageImageUrl || '',
         sceneType: scene.sceneType,
         mood: 'dramatic' as const
       };
@@ -305,7 +437,7 @@ async function processJobDirectly(
       ? `The Fall of ${gameData.adventurer.name || 'the Hero'}`
       : `The Journey of ${gameData.adventurer.name || 'the Hero'}`;
     
-    // Step 6: Save to database
+    // Step 7: Final save to database
     await updateProgress('saving', 95);
     
     const generationTime = Math.floor((Date.now() - job.timestamp) / 1000);
@@ -315,15 +447,16 @@ async function processJobDirectly(
       status: 'completed' as const,
       story_text: storyTitle,
       panels: panels,
-      pages: pages,
+      pages: finalPages,
       total_panels: panels.length,
-      total_pages: pages.length,
+      total_pages: finalPages.length,
       generation_time_seconds: generationTime,
       cost_usd: costUsd,
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      progress_percent: 100
     };
     
-    console.log(`[Process] 💾 Saving saga ${sagaId} to database...`);
+    console.log(`[Process] 💾 Finalizing saga ${sagaId} in database...`);
     console.log(`[Process] Update data:`, {
       status: updateData.status,
       total_pages: updateData.total_pages,
@@ -349,7 +482,7 @@ async function processJobDirectly(
       throw new Error('Saga not found after update');
     }
     
-    console.log(`[Process] ✅ Saga ${sagaId} saved successfully:`, {
+    console.log(`[Process] ✅ Saga ${sagaId} completed successfully:`, {
       id: updatedSaga.id,
       status: updatedSaga.status,
       total_pages: updatedSaga.total_pages,
@@ -367,14 +500,6 @@ async function processJobDirectly(
         .eq('id', sagaId);
       console.log(`[Process] ✅ Force-updated status to 'completed'`);
     }
-    
-    // Final progress update
-    await supabase
-      .from('sagas')
-      .update({ progress_percent: 100 })
-      .eq('id', sagaId);
-    
-    console.log(`[Process] ✅ Saga ${sagaId} completed successfully`);
     
     // Mark job as completed
     await job.moveToCompleted(updateData, 'completed');
