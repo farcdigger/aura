@@ -31,9 +31,10 @@ export async function POST(req: NextRequest) {
     
     // Get the first job
     const job = jobsToProcess[0];
-    const { sagaId, gameId, userWallet } = job.data;
+    let { sagaId, gameId, userWallet } = job.data;
     
     console.log(`[Process] 🎯 Processing job ${job.id} for saga ${sagaId}`);
+    console.log(`[Process] Job data:`, { sagaId, gameId, userWallet, jobId: job.id });
     
     // Import worker processing function directly
     // In Vercel serverless, we process jobs directly instead of using worker pattern
@@ -43,24 +44,66 @@ export async function POST(req: NextRequest) {
     const { generateComicPages: generateComicPageImages } = await import('@/lib/saga/ai/image-generator');
     
     // Check saga status and last update time
-    const { data: existingSaga, error: sagaError } = await supabase
+    let existingSaga: any = null;
+    let actualSagaId = sagaId;
+    
+    const { data: sagaById, error: sagaError } = await supabase
       .from('sagas')
       .select('id, status, updated_at, current_step, progress_percent')
       .eq('id', sagaId)
       .single();
     
-    if (sagaError || !existingSaga) {
-      console.warn(`[Process] Saga ${sagaId} not found in database, may have been deleted`);
-      // If saga doesn't exist, mark job as completed to clean up queue
-      try {
-        await job.remove();
-      } catch (e) {
-        // Ignore errors
+    if (sagaById && !sagaError) {
+      existingSaga = sagaById;
+    } else {
+      console.warn(`[Process] Saga ${sagaId} not found by ID. Error:`, sagaError);
+      
+      // Try to find saga by game_id as fallback
+      if (gameId) {
+        console.log(`[Process] Trying to find saga by game_id: ${gameId}`);
+        const { data: sagaByGameId, error: gameIdError } = await supabase
+          .from('sagas')
+          .select('id, status, updated_at, current_step, progress_percent')
+          .eq('game_id', gameId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (sagaByGameId && !gameIdError) {
+          console.log(`[Process] ✅ Found saga by game_id: ${sagaByGameId.id} (expected: ${sagaId})`);
+          existingSaga = sagaByGameId;
+          actualSagaId = sagaByGameId.id;
+        } else {
+          // Saga not found by game_id either, remove job
+          console.warn(`[Process] Saga not found by game_id either. Removing job.`);
+          try {
+            await job.remove();
+          } catch (e) {
+            // Ignore errors
+          }
+          return NextResponse.json({ 
+            message: 'Saga not found in database',
+            error: sagaError?.message || gameIdError?.message
+          }, { status: 200 });
+        }
+      } else {
+        // No gameId to search by, remove job
+        try {
+          await job.remove();
+        } catch (e) {
+          // Ignore errors
+        }
+        return NextResponse.json({ 
+          message: 'Saga not found in database',
+          error: sagaError?.message 
+        }, { status: 200 });
       }
-      return NextResponse.json({ 
-        message: 'Saga not found in database',
-        error: sagaError?.message 
-      }, { status: 200 }); // Return 200 instead of 404 to avoid frontend errors
+    }
+    
+    // Update sagaId if we found a different saga
+    if (actualSagaId !== sagaId) {
+      console.log(`[Process] Using saga ID ${actualSagaId} instead of ${sagaId}`);
+      sagaId = actualSagaId;
     }
     
     if (existingSaga.status === 'completed' || existingSaga.status === 'failed') {
