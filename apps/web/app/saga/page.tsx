@@ -186,6 +186,17 @@ export default function SagaPage() {
             >
               {loading ? 'Generating...' : 'Generate Saga'}
             </button>
+
+            {/* Cost Information */}
+            <p 
+              className="text-center text-gray-600 text-sm mt-4" 
+              style={{ 
+                fontFamily: 'Georgia, serif',
+                textShadow: '1px 1px 0px rgba(255,255,255,0.8)'
+              }}
+            >
+              Cost: 0.5 USDC
+            </p>
           </form>
         </div>
 
