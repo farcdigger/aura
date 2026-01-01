@@ -87,6 +87,19 @@ export async function POST(req: NextRequest) {
     const paymentData = await paymentResponse.json();
     console.log('[Saga Generate] ✅ Payment verified:', paymentData.walletAddress);
 
+    // CRITICAL: Use payment wallet address (the person who paid) instead of game owner
+    // This ensures sagas are saved to the correct user's history
+    const userWallet = paymentData.walletAddress?.toLowerCase();
+    if (!userWallet) {
+      console.error('[Saga Generate] ❌ No wallet address from payment');
+      return NextResponse.json(
+        { error: 'Could not determine wallet address from payment' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[Saga Generate] 💰 Using payment wallet: ${userWallet}`);
+
     // Redis URL kontrolü (Vercel'de gerekli)
     if (!process.env.UPSTASH_REDIS_URL && !process.env.REDIS_URL) {
       console.error('[Saga Generate] ❌ Redis URL not configured!');
@@ -131,7 +144,7 @@ export async function POST(req: NextRequest) {
       .replace(/^#/, '') // "#" işaretini kaldır
       .trim();
 
-    // Önce game data'yı çek (wallet adresini almak için)
+    // Önce game data'yı çek
     let gameData;
     try {
       console.log(`[Saga Generate] Fetching game data for ID: ${gameId}`);
@@ -149,15 +162,6 @@ export async function POST(req: NextRequest) {
         { error: `Game not found: ${error.message}` },
         { status: 404 }
       );
-    }
-
-    // Owner boşsa (packed data decode edilmediyse) geçici çözüm
-    let userWallet = gameData.adventurer.owner?.toLowerCase();
-    if (!userWallet || userWallet === '') {
-      console.warn(`[Saga Generate] Owner is empty for game ${gameId}. Using game ID as fallback.`);
-      // Geçici çözüm: Game ID'yi wallet olarak kullan (sadece test için)
-      // TODO: Packed data decode implementasyonu
-      userWallet = `unknown_${gameId}`.toLowerCase();
     }
 
     // ÖNCE: Game'i games tablosuna kaydet (Foreign key constraint için)
