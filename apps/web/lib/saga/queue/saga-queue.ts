@@ -314,7 +314,7 @@ export function createSagaWorker() {
         : `The Journey of ${gameData.adventurer.name || 'the Hero'}`;
 
       // Step 5: Save to database
-      await updateProgress('saving', 90);
+      await updateProgress('saving', 95);
       
       const generationTime = Math.floor((Date.now() - job.timestamp) / 1000);
       const costUsd = 0.09; // Approximate: $0.03 (story) + $0.06 (images)
@@ -363,6 +363,9 @@ export function createSagaWorker() {
           : 'null'
       });
 
+      // Final progress update before saving
+      await updateProgress('saving', 99);
+      
       // Explicit select ile JSONB field'ları dahil et
       const { data: updatedSaga, error: updateError } = await supabase
         .from('sagas')
@@ -376,6 +379,12 @@ export function createSagaWorker() {
         console.error(`[Worker] Update data:`, JSON.stringify(updateData, null, 2));
         throw new Error(`Database update failed: ${updateError.message}`);
       }
+      
+      // Final progress update to 100%
+      await supabase
+        .from('sagas')
+        .update({ progress_percent: 100 })
+        .eq('id', sagaId);
 
       if (!updatedSaga) {
         console.error(`[Worker] Saga ${sagaId} not found after update`);

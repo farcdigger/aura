@@ -31,8 +31,12 @@ export async function POST(req: NextRequest) {
     console.log('[Process] 🔧 Initializing worker...');
     const worker = getOrCreateWorker();
     
+    // In Vercel serverless, we need to explicitly run the worker
+    // The worker will process jobs asynchronously
+    worker.run();
+    
     // Wait a bit for worker to pick up the job
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Check if job was picked up (using getJobs with state filters, not job.state property)
     const afterWaitingJobs = await sagaQueue.getJobs(['waiting']);
