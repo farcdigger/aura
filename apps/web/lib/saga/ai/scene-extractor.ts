@@ -3,6 +3,7 @@
 
 import type { AdventurerData, GameLog } from '../types/game';
 import { getItemName } from '../blockchain/loot-items';
+import { BEAST_NAMES } from '../blockchain/beast-mapping';
 
 export interface GameScene {
   panelNumber: number;
@@ -84,12 +85,18 @@ function generateVictoryScenes(adventurer: AdventurerData, count: number): GameS
   const chestName = getItemName(adventurer.equipment.chest?.id || 0);
   const { strength, dexterity, vitality } = adventurer.stats;
   
-  // Farklı canavarlar listesi (her sahne için farklı)
-  const monsters = [
-    'Skeleton Warrior', 'Goblin Chief', 'Zombie Horde', 'Orc Warlord',
-    'Troll Guardian', 'Giant Spider', 'Dark Knight', 'Dragon Wyrmling',
-    'Demon Imp', 'Lich Apprentice', 'Beast of Shadows', 'Ancient Guardian'
-  ];
+  // Loot Survivor canavarları (beast-mapping.ts'den)
+  // Her sahne için farklı canavar kullan
+  const lootSurvivorBeasts = Object.values(BEAST_NAMES) as string[];
+  
+  // Farklı canavarlar listesi (Loot Survivor'dan)
+  // Her sahne için farklı canavar seç (döngüsel olarak)
+  const monsters: string[] = [];
+  for (let i = 0; i < count; i++) {
+    // Her sahne için farklı canavar seç (döngüsel)
+    const beastIndex = i % lootSurvivorBeasts.length;
+    monsters.push(lootSurvivorBeasts[beastIndex]);
+  }
   
   // Farklı zafer anları
   const victoryActions = [

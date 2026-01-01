@@ -108,23 +108,38 @@ function enhancePrompt(basePrompt: string): string {
   const styleModifiers = [
     'black and white',
     'pen and ink drawing',
-    'line art',
+    'line art only',
+    'detailed linework',
+    'intricate line art',
+    'fine line details',
+    'crosshatching',
+    'hatching techniques',
+    'stippling',
+    'detailed crosshatching patterns',
+    'precise line work',
+    'technical drawing style',
+    'architectural line drawing',
     'comic book illustration',
     'classic comic book style',
     'monochrome',
     'no colors',
     'grayscale',
-    'detailed linework',
-    'hatching and crosshatching',
-    'dramatic shadows',
-    'high contrast',
+    'only lines and shadows',
+    'no fill colors',
+    'line-based illustration',
+    'dramatic shadows created with lines',
+    'high contrast line art',
     'motion lines',
     'speed effects',
     'action-packed',
     'dynamic composition',
     'professional comic book art',
     '1024x1024 resolution',
-    'NO speech bubbles or text in images'
+    'NO speech bubbles or text in images',
+    'NO solid fills',
+    'ONLY lines and crosshatching',
+    'detailed pen and ink style',
+    'intricate line patterns'
   ].join(', ');
 
   return `${basePrompt}, ${styleModifiers}`;
@@ -152,10 +167,11 @@ function createComicPagePrompt(panels: Array<{ speechBubble: string; imagePrompt
     const position = positions[i] || `position ${i + 1}`;
     
     // Her panelin MUTLAKA FARKLI olduğunu vurgula - çok agresif
-    return `Panel ${i + 1} (${position}): ${cleanPrompt}, THIS PANEL MUST BE COMPLETELY DIFFERENT FROM ALL OTHER PANELS - DIFFERENT monster, DIFFERENT action, DIFFERENT location, DIFFERENT composition, DIFFERENT perspective, UNIQUE scene, dynamic action, motion lines, speed effects, dramatic shadows`;
+    // Her panel farklı bir senaryo, farklı bir hikaye anı olmalı
+    return `Panel ${i + 1} (${position}): ${cleanPrompt}, THIS PANEL MUST BE COMPLETELY DIFFERENT FROM ALL OTHER PANELS - DIFFERENT monster/enemy, DIFFERENT action/scenario, DIFFERENT location/environment, DIFFERENT composition, DIFFERENT camera angle/perspective, DIFFERENT moment in story, UNIQUE scene, each panel tells a different part of the story, dynamic action, motion lines, speed effects, dramatic shadows`;
   }).join(' | ');
 
-  return `Professional comic book page, ${gridLayout} layout with exactly ${panels.length} COMPLETELY DISTINCT AND UNIQUE panels, black and white charcoal drawing, pen and ink illustration, classic comic book style, MANDATORY: each panel shows a COMPLETELY DIFFERENT scene with DIFFERENT monster/enemy, DIFFERENT action, DIFFERENT location, DIFFERENT composition, DIFFERENT camera angle, dynamic action scenes with motion lines and speed effects, dramatic shadows, high contrast, each panel clearly separated with thick black borders (3-5px), panels arranged in a perfect grid format, NO REPEATED SCENES OR SIMILAR COMPOSITIONS: ${panelDescriptions}, detailed linework, hatching and crosshatching techniques, dramatic composition, monochrome, no colors, grayscale, 1024x1024 resolution, professional comic book page layout, NO speech bubbles or text in images, each panel must be visually distinct and unique, classic comic book illustration style, action-packed scenes`;
+  return `Professional comic book page, ${gridLayout} layout with exactly ${panels.length} COMPLETELY DISTINCT AND UNIQUE panels, black and white pen and ink drawing, line art only, detailed linework, intricate crosshatching, fine line details, stippling, precise line work, technical drawing style, MANDATORY: each panel shows a COMPLETELY DIFFERENT scene with DIFFERENT monster/enemy, DIFFERENT action, DIFFERENT location, DIFFERENT composition, DIFFERENT camera angle, dynamic action scenes with motion lines and speed effects, dramatic shadows created with lines and crosshatching, high contrast line art, each panel clearly separated with thick black borders (3-5px), panels arranged in a perfect grid format, NO REPEATED SCENES OR SIMILAR COMPOSITIONS: ${panelDescriptions}, detailed linework, intricate hatching and crosshatching techniques, stippling for texture, dramatic composition, monochrome, no colors, grayscale, ONLY lines and shadows, NO solid fills, line-based illustration, 1024x1024 resolution, professional comic book page layout, NO speech bubbles or text in images, each panel must be visually distinct and unique, classic comic book illustration style, action-packed scenes, detailed pen and ink style, intricate line patterns`;
 }
 
 /**

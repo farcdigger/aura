@@ -288,7 +288,6 @@ export default function SagaViewerPage() {
           <p className="text-gray-300 text-sm">
             Game ID: {saga.game_id} • {saga.total_pages || 0} pages
             {saga.generation_time_seconds && ` • ${Math.round(saga.generation_time_seconds)}s`}
-            {saga.cost_usd && ` • $${saga.cost_usd.toFixed(4)}`}
           </p>
         </div>
       </div>
