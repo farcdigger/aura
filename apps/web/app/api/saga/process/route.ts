@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Wait a bit for worker to pick up the job
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Check if job was picked up
+    // Check if job was picked up (using getJobs with state filters, not job.state property)
     const afterWaitingJobs = await sagaQueue.getJobs(['waiting']);
     const afterActiveJobs = await sagaQueue.getJobs(['active']);
     console.log(`[Process] After worker init: ${afterWaitingJobs.length} waiting, ${afterActiveJobs.length} active`);
