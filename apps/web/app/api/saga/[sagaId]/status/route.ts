@@ -94,8 +94,9 @@ export async function GET(
     }
 
     // Retry mechanism if pages is null (read-after-write consistency)
-    if (!saga.pages && saga.status === 'completed') {
-      console.warn(`[Saga Status] ⚠️ Pages is null for completed saga. Retrying fetch...`);
+    // IMPORTANT: Check for pages in generating_images status too (incremental update)
+    if (!saga.pages && (saga.status === 'completed' || saga.status === 'generating_images' || saga.status === 'rendering')) {
+      console.warn(`[Saga Status] ⚠️ Pages is null for ${saga.status} saga. Retrying fetch...`);
       let retryCount = 0;
       const maxRetries = 3;
       const baseDelay = 500;
@@ -118,7 +119,7 @@ export async function GET(
               // Ignore parse errors
             }
           }
-          console.log(`[Saga Status] ✅ Pages found after retry ${retryCount + 1}`);
+          console.log(`[Saga Status] ✅ Pages found after retry ${retryCount + 1} (${Array.isArray(saga.pages) ? saga.pages.length : 0} pages)`);
           break;
         }
         retryCount++;

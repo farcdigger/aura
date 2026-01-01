@@ -92,6 +92,20 @@ export default function SagaViewerPage() {
         };
       });
 
+      // IMPORTANT: If pages are available in status response, use them immediately
+      // This handles Supabase read-after-write consistency
+      if (statusData.pages && Array.isArray(statusData.pages) && statusData.pages.length > 0) {
+        console.log(`[SagaViewer] ✅ Pages found in status response (${statusData.pages.length} pages)`);
+        setSaga((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pages: statusData.pages,
+            status: statusData.status
+          };
+        });
+      }
+
       // If completed, fetch full saga data immediately
       if (statusData.status === 'completed' || statusData.status === 'failed') {
         if (pollingIntervalRef.current) {

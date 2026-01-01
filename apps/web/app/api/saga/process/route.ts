@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
     console.log(`[Process] 🎯 Processing job ${job.id} for saga ${sagaId}`);
     console.log(`[Process] Job data:`, { sagaId, gameId, userWallet, jobId: job.id });
     
+    // NOTE: Don't remove job - it's needed for tracking
+    // Lock mismatch errors happen when multiple instances try to process the same job
+    // We handle this by checking saga status before processing
+    
     // Import worker processing function directly
     // In Vercel serverless, we process jobs directly instead of using worker pattern
     const { supabase } = await import('@/lib/saga/database/supabase');
