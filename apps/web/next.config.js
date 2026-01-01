@@ -10,6 +10,20 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@coinbase/x402'],
   },
+  // Image configuration for external domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'replicate.delivery',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.replicate.delivery',
+      },
+    ],
+    unoptimized: false, // Enable optimization for better performance
+  },
   env: {
     NEXT_PUBLIC_CHAIN_ID: process.env.NEXT_PUBLIC_CHAIN_ID || "8453", // Base Mainnet
     NEXT_PUBLIC_CONTRACT_ADDRESS: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x7De68EB999A314A0f986D417adcbcE515E476396", // Base Mainnet default

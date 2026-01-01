@@ -38,6 +38,58 @@ export default function SagaViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [downloadingPages, setDownloadingPages] = useState<Set<number>>(new Set());
+
+  const downloadPageImage = async (imageUrl: string, pageNumber: number) => {
+    if (downloadingPages.has(pageNumber)) return;
+    
+    setDownloadingPages(prev => new Set(prev).add(pageNumber));
+    
+    try {
+      // Fetch image from URL
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `loot-survivor-saga-page-${pageNumber}.webp`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error downloading image:', err);
+      alert('Failed to download image. Please try again.');
+    } finally {
+      setDownloadingPages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pageNumber);
+        return newSet;
+      });
+    }
+  };
+
+  const downloadAllPages = async () => {
+    if (!saga?.pages || saga.pages.length === 0) return;
+    
+    for (const page of saga.pages) {
+      if (page.pageImageUrl) {
+        await downloadPageImage(page.pageImageUrl, page.pageNumber || 1);
+        // Wait 500ms between downloads to avoid browser blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  };
 
   const fetchSaga = async () => {
     try {
@@ -370,6 +422,29 @@ export default function SagaViewerPage() {
         {saga.pages && saga.pages.length > 0 ? (
           saga.pages.map((page, pageIndex) => (
             <div key={page.pageNumber || pageIndex} className="bg-white border-4 border-black shadow-lg">
+              {/* Page Header with Download Button */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 border-b-2 border-black">
+                <h3 
+                  className="text-xl font-bold text-black"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  Comic Page {page.pageNumber || pageIndex + 1}
+                </h3>
+                {page.pageImageUrl && (
+                  <button
+                    onClick={() => downloadPageImage(page.pageImageUrl!, page.pageNumber || pageIndex + 1)}
+                    disabled={downloadingPages.has(page.pageNumber || pageIndex + 1)}
+                    className="px-4 py-2 bg-black text-white font-bold border-2 border-black hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+                    style={{
+                      fontFamily: 'Georgia, serif',
+                      boxShadow: '2px 2px 0px rgba(0,0,0,1)'
+                    }}
+                  >
+                    {downloadingPages.has(page.pageNumber || pageIndex + 1) ? 'Downloading...' : 'Download'}
+                  </button>
+                )}
+              </div>
+
               {/* Page Image */}
               {page.pageImageUrl ? (
                 <div className="relative w-full aspect-square overflow-hidden border-b-2 border-black bg-white">
@@ -379,7 +454,24 @@ export default function SagaViewerPage() {
                     fill
                     className="object-contain"
                     priority={pageIndex < 2}
-                    unoptimized
+                    unoptimized={true}
+                    onError={(e) => {
+                      console.error('Image load error:', page.pageImageUrl);
+                      // Fallback to img tag if Next Image fails
+                      const target = e.target as HTMLImageElement;
+                      if (target && target.parentElement) {
+                        const img = document.createElement('img');
+                        img.src = page.pageImageUrl || '';
+                        img.alt = `Comic Page ${page.pageNumber || pageIndex + 1}`;
+                        img.className = 'w-full h-full object-contain';
+                        img.onerror = () => {
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-100"><p class="text-gray-400">Failed to load image</p></div>`;
+                          }
+                        };
+                        target.parentElement.replaceChild(img, target);
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -427,16 +519,31 @@ export default function SagaViewerPage() {
           <p className="text-gray-300 text-sm">
             Generated by Loot Survivor Saga
           </p>
-          <a
-            href="/saga"
-            className="inline-block bg-white text-black px-6 py-3 font-bold border-2 border-black hover:bg-gray-100 transition-all"
-            style={{
-              boxShadow: '4px 4px 0px rgba(0,0,0,1)',
-              fontFamily: 'Georgia, serif'
-            }}
-          >
-            View Saga History
-          </a>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {saga.pages && saga.pages.length > 0 && saga.pages.some(p => p.pageImageUrl) && (
+              <button
+                onClick={downloadAllPages}
+                disabled={downloadingPages.size > 0}
+                className="inline-block bg-white text-black px-6 py-3 font-bold border-2 border-black hover:bg-gray-100 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+                style={{
+                  boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+                  fontFamily: 'Georgia, serif'
+                }}
+              >
+                {downloadingPages.size > 0 ? 'Downloading...' : 'Download All Pages'}
+              </button>
+            )}
+            <a
+              href="/saga"
+              className="inline-block bg-white text-black px-6 py-3 font-bold border-2 border-black hover:bg-gray-100 transition-all"
+              style={{
+                boxShadow: '4px 4px 0px rgba(0,0,0,1)',
+                fontFamily: 'Georgia, serif'
+              }}
+            >
+              View Saga History
+            </a>
+          </div>
         </div>
       </div>
     </div>
