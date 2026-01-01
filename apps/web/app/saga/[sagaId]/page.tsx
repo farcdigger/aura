@@ -71,6 +71,13 @@ export default function SagaViewerPage() {
       }
       const statusData = await res.json();
       
+      console.log('[SagaViewer] Status poll result:', { 
+        status: statusData.status, 
+        progress: statusData.progress_percent,
+        hasPages: !!statusData.pages,
+        pagesLength: statusData.pages?.length 
+      });
+      
       // Update saga with status data
       setSaga((prev) => {
         if (!prev) return prev;
@@ -85,14 +92,33 @@ export default function SagaViewerPage() {
         };
       });
 
-      // If completed, fetch full saga data
+      // If completed, fetch full saga data immediately
       if (statusData.status === 'completed' || statusData.status === 'failed') {
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
-        // Fetch full saga data
-        await fetchSaga();
+        // Fetch full saga data with retry if pages is null
+        let retryCount = 0;
+        const maxRetries = 5;
+        while (retryCount < maxRetries) {
+          await fetchSaga();
+          // Check if pages are now available
+          const fullSagaRes = await fetch(`/api/saga/${sagaId}`, { cache: 'no-store' });
+          if (fullSagaRes.ok) {
+            const fullSaga = await fullSagaRes.json();
+            if (fullSaga.pages && fullSaga.pages.length > 0) {
+              setSaga(fullSaga);
+              console.log('[SagaViewer] ✅ Full saga data loaded with pages');
+              break;
+            }
+          }
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`[SagaViewer] Pages not available yet, retrying... (${retryCount}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+        }
       }
     } catch (err: any) {
       console.error('[SagaViewer] Status poll error:', err);
@@ -211,6 +237,19 @@ export default function SagaViewerPage() {
           {progress >= 100 && (
             <p className="text-orange-600 text-xs mt-4 italic">Processing may be delayed. Please wait...</p>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // If completed but no pages yet, show loading
+  if (saga.status === 'completed' && (!saga.pages || saga.pages.length === 0)) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-black mb-4">Loading saga...</h2>
+          <p className="text-gray-600 text-sm mb-6">Finalizing pages...</p>
         </div>
       </div>
     );

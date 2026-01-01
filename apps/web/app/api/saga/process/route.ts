@@ -43,14 +43,24 @@ export async function POST(req: NextRequest) {
     const { generateComicPages: generateComicPageImages } = await import('@/lib/saga/ai/image-generator');
     
     // Check saga status and last update time
-    const { data: existingSaga } = await supabase
+    const { data: existingSaga, error: sagaError } = await supabase
       .from('sagas')
       .select('id, status, updated_at, current_step, progress_percent')
       .eq('id', sagaId)
       .single();
     
-    if (!existingSaga) {
-      return NextResponse.json({ error: 'Saga not found' }, { status: 404 });
+    if (sagaError || !existingSaga) {
+      console.warn(`[Process] Saga ${sagaId} not found in database, may have been deleted`);
+      // If saga doesn't exist, mark job as completed to clean up queue
+      try {
+        await job.remove();
+      } catch (e) {
+        // Ignore errors
+      }
+      return NextResponse.json({ 
+        message: 'Saga not found in database',
+        error: sagaError?.message 
+      }, { status: 200 }); // Return 200 instead of 404 to avoid frontend errors
     }
     
     if (existingSaga.status === 'completed' || existingSaga.status === 'failed') {
