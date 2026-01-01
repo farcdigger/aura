@@ -919,7 +919,7 @@ export function createComicPages(scenes: GameScene[]): ComicPage[] {
  * Sayfa açıklaması oluştur
  */
 function generatePageDescription(scenes: GameScene[]): string {
-  const descriptions = scenes.map((scene, idx) => {
+  const descriptions = scenes.map((scene: GameScene, idx: number) => {
     const panelNum = scenes[0].panelNumber + idx;
     return `Panel ${panelNum}: ${scene.speechBubble}`;
   });
@@ -931,7 +931,7 @@ function generatePageDescription(scenes: GameScene[]): string {
  * Comic page prompt oluştur (Replicate için - GERÇEK SCENE DESCRIPTION KULLANARAK)
  */
 function generateComicPagePrompt(scenes: GameScene[]): string {
-  const panelDescriptions = scenes.map((scene, idx) => {
+  const panelDescriptions = scenes.map((scene: GameScene, idx: number) => {
     const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
     const position = positions[idx] || `position ${idx + 1}`;
     

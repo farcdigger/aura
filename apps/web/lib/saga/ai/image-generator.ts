@@ -102,7 +102,7 @@ function enhancePrompt(basePrompt: string): string {
 function createComicPagePrompt(panels: Array<{ speechBubble: string; imagePrompt: string }>): string {
   const gridLayout = '2x2 grid'; // Her zaman 4 panel (2x2)
   
-  const panelDescriptions = panels.map((panel, i) => {
+  const panelDescriptions = panels.map((panel: any, i: number) => {
     // Panel prompt'undan "speech bubble" kısmını çıkar (görselde olmayacak)
     let cleanPrompt = panel.imagePrompt
       .replace(/speech bubble[^,]*/gi, '')

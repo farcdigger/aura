@@ -273,9 +273,9 @@ export function createSagaWorker() {
       }
 
       // Step 5: Pages ve panels'i birleştir (imageUrl ekle)
-      const pages = comicPages.map((page, i) => ({
+      const pages = comicPages.map((page: any, i: number) => ({
         pageNumber: page.pageNumber,
-        panels: page.scenes.map(scene => ({
+        panels: page.scenes.map((scene: any) => ({
           panelNumber: scene.panelNumber,
           speechBubble: scene.speechBubble,
           narration: scene.speechBubble,
@@ -288,7 +288,7 @@ export function createSagaWorker() {
       }));
       
       // Backward compatibility için panels array'i de oluştur
-      const panels = scenes.map((scene, i) => {
+      const panels = scenes.map((scene: any, i: number) => {
         const pageIndex = Math.floor(i / 4); // Her sayfada 4 panel
         return {
           panelNumber: scene.panelNumber,
