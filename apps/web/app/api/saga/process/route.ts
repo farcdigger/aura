@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     
     const { data: sagaById, error: sagaError } = await supabase
       .from('sagas')
-      .select('id, status, updated_at, current_step, progress_percent, game_id')
+      .select('id, status, created_at, completed_at, current_step, progress_percent, game_id')
       .eq('id', sagaId)
       .single();
     
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         
         const { data: sagaByGameId, error: gameIdError } = await supabase
           .from('sagas')
-          .select('id, status, updated_at, current_step, progress_percent, game_id')
+          .select('id, status, created_at, completed_at, current_step, progress_percent, game_id')
           .eq('game_id', cleanGameId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -128,17 +128,23 @@ export async function POST(req: NextRequest) {
     }
     
     // If saga is already processing images, check if it's actively being processed
-    // (updated in last 60 seconds means it's still being processed)
-    if (existingSaga.status === 'generating_images' && existingSaga.updated_at) {
-      const lastUpdate = new Date(existingSaga.updated_at).getTime();
+    // Use created_at or completed_at to determine if saga is stuck
+    if (existingSaga.status === 'generating_images' || existingSaga.status === 'rendering') {
+      const lastUpdate = existingSaga.completed_at 
+        ? new Date(existingSaga.completed_at).getTime()
+        : new Date(existingSaga.created_at).getTime();
       const now = Date.now();
       const secondsSinceUpdate = (now - lastUpdate) / 1000;
       
-      console.log(`[Process] Saga ${sagaId} status: ${existingSaga.status}, last update: ${Math.floor(secondsSinceUpdate)}s ago`);
+      console.log(`[Process] Saga ${sagaId} status: ${existingSaga.status}, progress: ${existingSaga.progress_percent}%, created: ${Math.floor(secondsSinceUpdate)}s ago`);
       
-      // If updated recently (within 60 seconds), don't start a new process
-      if (secondsSinceUpdate < 60) {
-        console.log(`[Process] Saga ${sagaId} is already being processed (updated ${Math.floor(secondsSinceUpdate)}s ago), skipping...`);
+      // If progress is 95+ and saga is stuck in generating_images/rendering for 2+ minutes, continue processing
+      if (existingSaga.progress_percent >= 95 && secondsSinceUpdate > 120) {
+        console.log(`[Process] Saga ${sagaId} appears stuck (${existingSaga.status}, ${existingSaga.progress_percent}%, ${Math.floor(secondsSinceUpdate)}s old), continuing processing...`);
+        // Continue processing
+      } else if (secondsSinceUpdate < 60 && existingSaga.progress_percent < 95) {
+        // Saga was created/updated recently and still processing - don't restart
+        console.log(`[Process] Saga ${sagaId} is actively being processed (${Math.floor(secondsSinceUpdate)}s ago), skipping...`);
         return NextResponse.json({
           message: 'Saga is already being processed',
           status: existingSaga.status,
@@ -146,8 +152,8 @@ export async function POST(req: NextRequest) {
           lastUpdate: secondsSinceUpdate
         });
       } else {
-        // Saga hasn't been updated in 60+ seconds, it might be stuck - continue processing
-        console.log(`[Process] Saga ${sagaId} hasn't been updated in ${Math.floor(secondsSinceUpdate)}s, continuing processing...`);
+        // Saga might be stuck - continue processing
+        console.log(`[Process] Saga ${sagaId} may be stuck, continuing processing...`);
       }
     }
     
