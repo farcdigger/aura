@@ -384,16 +384,16 @@ async function processJobDirectly(
       // Generate images one by one and save immediately
       for (let idx = 0; idx < pagesToGenerate.length; idx++) {
         const pageIndex = pagesToGenerate[idx];
+        const page = comicPages[pageIndex];
+        const pageForGeneration = {
+          panels: page.scenes.map((scene: any) => ({
+            speechBubble: scene.speechBubble,
+            imagePrompt: scene.description
+          })),
+          imagePrompt: page.imagePrompt
+        };
+        
         try {
-          const page = comicPages[pageIndex];
-          const pageForGeneration = {
-            panels: page.scenes.map((scene: any) => ({
-              speechBubble: scene.speechBubble,
-              imagePrompt: scene.description
-            })),
-            imagePrompt: page.imagePrompt
-          };
-          
           console.log(`[Process] 🎨 Generating page ${page.pageNumber} (${idx + 1}/${pagesToGenerate.length} missing pages)...`);
           
           // Rate limit protection: wait 12s between requests (except first)
@@ -458,15 +458,68 @@ async function processJobDirectly(
           const isRateLimit = error.status === 429 || 
                               error.message?.includes('429') || 
                               error.message?.includes('rate limit') ||
-                              error.message?.includes('Too Many Requests');
+                              error.message?.includes('Too Many Requests') ||
+                              error.message?.includes('Rate limit exceeded');
           
           if (isRateLimit) {
-            console.warn(`[Process] ⚠️  Rate limit hit, stopping generation. Will resume on next trigger.`);
-            // Don't throw - let the process end gracefully so it can be retried
-            return; // Exit early, pages saved so far will remain
+            // Extract retry_after from error
+            let retryAfter = error.retryAfter || 10;
+            try {
+              const match = error.message?.match(/retry after[":\s]*(\d+)/i);
+              if (match) {
+                retryAfter = parseInt(match[1]) || 10;
+              }
+            } catch (e) {
+              // Ignore parse errors
+            }
+            
+            console.warn(`[Process] ⚠️  Rate limit hit for page ${comicPages[pageIndex].pageNumber}, retry after ${retryAfter}s`);
+            
+            // Wait for retry_after + buffer
+            const waitTime = (retryAfter + 5) * 1000; // Add 5s buffer
+            console.log(`[Process] ⏳ Waiting ${waitTime/1000}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            
+            // Retry once
+            try {
+              console.log(`[Process] 🔄 Retrying page ${comicPages[pageIndex].pageNumber} after rate limit...`);
+              const { generateComicPage } = await import('@/lib/saga/ai/image-generator');
+              const imageResult = await generateComicPage(
+                pageForGeneration.panels,
+                characterSeed ? characterSeed + pageIndex : undefined,
+                pageForGeneration.imagePrompt
+              );
+              
+              const pageData = {
+                pageNumber: page.pageNumber,
+                panels: page.scenes.map((scene: any) => ({
+                  panelNumber: scene.panelNumber,
+                  speechBubble: scene.speechBubble,
+                  narration: scene.speechBubble,
+                  imagePrompt: scene.description,
+                  sceneType: scene.sceneType,
+                  mood: 'dramatic' as const
+                })),
+                pageImageUrl: imageResult.url,
+                pageDescription: page.pageDescription
+              };
+              
+              // Save to database
+              await savePageToDatabase(pageData, pageIndex + 1, comicPages.length);
+              console.log(`[Process] ✅ Page ${page.pageNumber} generated and saved after retry`);
+              
+            } catch (retryError: any) {
+              // Retry also failed - stop processing this page, continue with next
+              console.error(`[Process] ❌ Retry also failed for page ${comicPages[pageIndex].pageNumber}:`, retryError.message);
+              console.warn(`[Process] ⚠️  Skipping page ${comicPages[pageIndex].pageNumber}, will retry on next trigger`);
+              // Don't throw - continue with next page
+              continue; // Skip to next page
+            }
           } else {
-            // For other errors, throw to mark as failed
-            throw error;
+            // For other errors, log and continue (don't throw - let other pages generate)
+            console.error(`[Process] ❌ Non-rate-limit error for page ${comicPages[pageIndex].pageNumber}:`, error.message);
+            console.warn(`[Process] ⚠️  Skipping page ${comicPages[pageIndex].pageNumber}, will retry on next trigger`);
+            continue; // Skip to next page instead of throwing
           }
         }
       }
