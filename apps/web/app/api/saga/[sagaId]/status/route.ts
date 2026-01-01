@@ -126,6 +126,38 @@ export async function GET(
       }
     }
 
+    // Auto-complete check: If saga has all pages but status is not completed, update it
+    const pagesArray = Array.isArray(saga.pages) ? saga.pages : [];
+    const expectedPages = saga.total_pages || 5; // Default to 5 if not set
+    const hasAllPages = pagesArray.length > 0 && pagesArray.length >= expectedPages;
+    
+    if (hasAllPages && saga.status !== 'completed' && saga.status !== 'failed') {
+      // Check if all pages have image URLs (completed)
+      const allPagesHaveImages = pagesArray.every((page: any) => page.pageImageUrl);
+      
+      if (allPagesHaveImages) {
+        console.log(`[Saga Status] 🔄 Auto-completing saga ${sagaId}: has ${pagesArray.length} pages with images, status is ${saga.status}`);
+        
+        // Update status to completed
+        const { error: updateError } = await supabase
+          .from('sagas')
+          .update({
+            status: 'completed',
+            progress_percent: 100,
+            completed_at: saga.completed_at || new Date().toISOString()
+          })
+          .eq('id', sagaId);
+        
+        if (updateError) {
+          console.error(`[Saga Status] ❌ Failed to auto-complete saga:`, updateError);
+        } else {
+          console.log(`[Saga Status] ✅ Auto-completed saga ${sagaId}`);
+          saga.status = 'completed';
+          saga.progress_percent = 100;
+        }
+      }
+    }
+
     // Prepare response data
     const responseData = {
       id: saga.id,
