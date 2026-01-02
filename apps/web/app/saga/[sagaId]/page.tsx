@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import SagaGameGuideChat from '@/components/SagaGameGuideChat';
 
 interface ComicPage {
   pageNumber: number;
@@ -397,6 +398,9 @@ export default function SagaViewerPage() {
         </svg>
         <span className="font-bold text-black">Back to Home</span>
       </Link>
+
+      {/* Game Guide Chat */}
+      <SagaGameGuideChat sagaId={sagaId} />
 
       {/* Header */}
       <div className="bg-black text-white p-6 border-b-4 border-gray-800">
