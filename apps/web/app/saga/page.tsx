@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount, useWalletClient } from 'wagmi';
 import { wrapFetchWithPayment } from 'x402-fetch';
 import Link from 'next/link';
+import SagaGameGuideChat from '@/components/SagaGameGuideChat';
 
 export default function SagaPage() {
   const [gameId, setGameId] = useState('');
@@ -100,6 +101,9 @@ export default function SagaPage() {
         </svg>
         <span className="font-bold text-black">Back to Home</span>
       </Link>
+
+      {/* Game Guide Chat */}
+      <SagaGameGuideChat sagaId="main" />
       
       <div className="max-w-3xl mx-auto px-4 py-12 md:py-20 relative z-10">
         {/* Header - Comic Book Style */}

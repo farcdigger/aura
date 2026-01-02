@@ -171,21 +171,26 @@ export default function SagaGameGuideChat({ sagaId }: SagaGameGuideChatProps) {
     }
   };
 
-  if (!address) {
-    return null; // Don't show chat if wallet not connected
-  }
+  // Show button even if wallet not connected, but show message when clicked
+  const handleToggleWithWalletCheck = () => {
+    if (!address) {
+      alert("Please connect your wallet to use the Game Guide chat.");
+      return;
+    }
+    setIsOpen(!isOpen);
+  };
 
   return (
     <>
       {/* Chat Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleWithWalletCheck}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center border-4 border-white"
         style={{
           boxShadow: '4px 4px 0px rgba(0,0,0,1)',
           fontFamily: 'Georgia, serif'
         }}
-        title="Game Guide Chat"
+        title={address ? "Game Guide Chat" : "Connect wallet to use Game Guide"}
       >
         {isOpen ? (
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +204,7 @@ export default function SagaGameGuideChat({ sagaId }: SagaGameGuideChatProps) {
       </button>
 
       {/* Chat Window */}
-      {isOpen && (
+      {isOpen && address && (
         <div
           className="fixed bottom-24 right-6 z-40 w-96 h-[600px] bg-white border-4 border-black shadow-2xl flex flex-col"
           style={{
