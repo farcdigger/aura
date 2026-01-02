@@ -51,35 +51,24 @@ export default function SagaGameGuideChat({ sagaId }: SagaGameGuideChatProps) {
     localStorage.setItem(storageKey, JSON.stringify(messages));
   }, [messages, sagaId, address]);
 
-  // Fetch token balance
+  // Fetch token balance using API endpoint (same as Chatbot component)
   useEffect(() => {
     if (!address) return;
     
     const fetchBalance = async () => {
       try {
-        const { isMockMode } = await import("@/env.mjs");
+        const response = await fetch(`/api/chat/token-balance?wallet=${address}&t=${Date.now()}`, {
+          cache: 'no-store',
+        });
         
-        if (isMockMode) {
-          const { getMockTokenBalances } = await import("@/lib/chat-tokens-mock");
-          const mockBalances = getMockTokenBalances();
-          const userData = mockBalances.get(address.toLowerCase()) || { balance: 0, points: 0 };
-          setTokenBalance(userData.balance);
-        } else {
-          const { db, chat_tokens } = await import("@/lib/db");
-          const { eq } = await import("drizzle-orm");
-          
-          const result = await db
-            .select()
-            .from(chat_tokens)
-            .where(eq(chat_tokens.wallet_address, address.toLowerCase()))
-            .limit(1);
-          
-          if (result && result.length > 0) {
-            setTokenBalance(Number(result[0].balance) || 0);
-          } else {
-            setTokenBalance(0);
-          }
+        if (!response.ok) {
+          console.error("Failed to fetch token balance:", response.status);
+          setTokenBalance(null);
+          return;
         }
+        
+        const data = await response.json();
+        setTokenBalance(data.balance || 0);
       } catch (err) {
         console.error("Error fetching balance:", err);
         setTokenBalance(null);
@@ -87,6 +76,10 @@ export default function SagaGameGuideChat({ sagaId }: SagaGameGuideChatProps) {
     };
     
     fetchBalance();
+    
+    // Refresh balance periodically (every 30 seconds)
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
   }, [address]);
 
   // Scroll to bottom when messages change
@@ -151,9 +144,22 @@ export default function SagaGameGuideChat({ sagaId }: SagaGameGuideChatProps) {
       
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // Update token balance
+      // Refresh token balance from API after message (to get accurate balance)
       if (data.newBalance !== undefined) {
         setTokenBalance(data.newBalance);
+      }
+      
+      // Also fetch fresh balance from API to ensure accuracy
+      try {
+        const balanceResponse = await fetch(`/api/chat/token-balance?wallet=${address}&t=${Date.now()}`, {
+          cache: 'no-store',
+        });
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          setTokenBalance(balanceData.balance || 0);
+        }
+      } catch (err) {
+        console.error("Error refreshing balance:", err);
       }
       
       // Show low balance warning
