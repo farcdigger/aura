@@ -250,7 +250,8 @@ export async function POST(request: NextRequest) {
         }
         
         // Update balance, points, and total_tokens_spent in database
-        await updateTokenBalance(walletAddress, newBalance, newPoints, totalTokensSpent);
+        // CRITICAL: Pass creditsToDeduct to enable atomic decrement (prevents race condition with top-ups)
+        await updateTokenBalance(walletAddress, newBalance, newPoints, totalTokensSpent, creditsToDeduct);
 
         // Check if balance is low
         if (newBalance <= 0) {
