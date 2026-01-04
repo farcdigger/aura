@@ -162,7 +162,7 @@ export async function updateTokenBalance(
               currentBalance,
               expectedNewBalance: newBalance,
               adjustedBalance,
-              balanceDifference,
+              creditsToDeduct: creditsToDeduct !== undefined ? creditsToDeduct : 'not provided',
               updateData,
             });
             
